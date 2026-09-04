@@ -118,9 +118,9 @@
   /* enter.png sits on an opaque white plate; feather its edges so it melts
      into the artwork instead of showing a hard rectangle. */
   --mark-fade: radial-gradient(
-    ellipse 62% 60% at 50% 50%,
-    #000 58%,
-    transparent 100%
+    ellipse 50% 50% at 50% 50%,
+    #000 42%,
+    transparent 88%
   );
   mask-image: var(--mark-fade);
   -webkit-mask-image: var(--mark-fade);
