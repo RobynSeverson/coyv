@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import Home from "./Home";
 import gatesArtwork from "../assets/gates2.jpeg";
+import enterMark from "../assets/enter.png";
 import "./Landing.css";
 
 const DISSOLVE_DURATION = 2000;
@@ -132,8 +133,9 @@ export default function Landing() {
         className="landing__button"
         onClick={dissolve}
         disabled={isDissolving}
+        aria-label="gates"
       >
-        gates
+        <img className="landing__buttonMark" src={enterMark} alt="" />
       </button>
     </main>
   );
