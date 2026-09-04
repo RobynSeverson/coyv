@@ -1,0 +1,11 @@
+.siteLayout {
+  min-height: 100dvh;
+  background:
+    radial-gradient(closest-side at 50% 0%, #ffffff 0%, #e6efe9 45%, #cfdcdb 100%);
+  color: #12181a;
+}
+
+.siteLayout__content {
+  /* leave room for the fixed bottom nav */
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}

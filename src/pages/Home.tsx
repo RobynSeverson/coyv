@@ -1,50 +1,49 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import gatesArtwork from '../assets/gates.jpg'
+import { Link } from 'react-router-dom'
+import gatesArtwork from '../assets/gates2.jpeg'
 import './Home.css'
 
-const GATE_OPEN_DURATION = 1700
+const TILES = [
+  {
+    to: '/prints',
+    label: 'prints',
+    blurb: 'Editions on paper',
+    /* different crops of the artwork so each tile reads distinctly */
+    position: '18% center',
+  },
+  {
+    to: '/photos',
+    label: 'photos',
+    blurb: 'Shot and collected',
+    position: '82% center',
+  },
+]
 
 export default function Home() {
-  const [isOpening, setIsOpening] = useState(false)
-  const navigate = useNavigate()
-  const timeoutRef = useRef<number | undefined>(undefined)
-
-  useEffect(() => () => window.clearTimeout(timeoutRef.current), [])
-
-  const openGates = () => {
-    if (isOpening) return
-    setIsOpening(true)
-    timeoutRef.current = window.setTimeout(
-      () => navigate('/beyond'),
-      GATE_OPEN_DURATION,
-    )
-  }
-
   return (
-    <main className={`home${isOpening ? ' is-opening' : ''}`}>
-      <div className="home__beyond" aria-hidden="true">
-        <div className="home__beyondGlow" />
-      </div>
+    <main className="home">
+      <header className="home__header">
+        <h1 className="home__title">gates</h1>
+        <p className="home__subtitle">Past the threshold.</p>
+      </header>
 
-      <div
-        className="home__stage"
-        style={{ ['--gate-image' as string]: `url(${gatesArtwork})` }}
-        aria-hidden="true"
-      >
-        <div className="home__gate home__gate--left" />
-        <div className="home__gate home__gate--right" />
-        <div className="home__seam" />
-      </div>
-
-      <button
-        type="button"
-        className="home__button"
-        onClick={openGates}
-        disabled={isOpening}
-      >
-        gates
-      </button>
+      <ul className="home__tiles">
+        {TILES.map((tile) => (
+          <li key={tile.to}>
+            <Link to={tile.to} className="home__tile">
+              <img
+                className="home__tileImage"
+                src={gatesArtwork}
+                alt=""
+                style={{ objectPosition: tile.position }}
+              />
+              <span className="home__tileBody">
+                <span className="home__tileLabel">{tile.label}</span>
+                <span className="home__tileBlurb">{tile.blurb}</span>
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </main>
   )
 }

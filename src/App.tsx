@@ -1,13 +1,35 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import SiteLayout from './components/SiteLayout'
+import Landing from './pages/Landing'
 import Home from './pages/Home'
-import Beyond from './pages/Beyond'
+import Collection from './pages/Collection'
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/beyond" element={<Beyond />} />
+        <Route path="/" element={<Landing />} />
+        <Route element={<SiteLayout />}>
+          <Route path="/home" element={<Home />} />
+          <Route
+            path="/prints"
+            element={
+              <Collection title="prints" blurb="Editions on paper" />
+            }
+          />
+          <Route
+            path="/photos"
+            element={
+              <Collection title="photos" blurb="Shot and collected" />
+            }
+          />
+          <Route
+            path="/archive"
+            element={
+              <Collection title="archive" blurb="Everything else, kept" />
+            }
+          />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
