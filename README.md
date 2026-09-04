@@ -26,18 +26,32 @@ npm run lint
 
 ## How the dissolve works
 
-The artwork layer is masked by an inline SVG `<mask>`: a white rect keeps it
-visible, and a set of soft-edged black circles grow to punch holes through it.
-The destination page is rendered behind the artwork, so the holes reveal real
-content rather than a flat colour.
+The destination page (`.landing__reveal`) sits *on top* of the artwork and is
+hidden by a CSS mask built from a stack of `radial-gradient` layers — one per
+blob. Each layer starts at zero size and grows, and because CSS masks are
+alpha-based and composite with `add`, the growing blobs union together until the
+page is fully revealed.
 
-- `SPLOTCHES` in `Landing.tsx` controls each blob's position, radius, final
-  scale, delay and duration — delay roughly tracks distance from the centre,
-  with jitter so some patches clear faster than their neighbours.
+- `BLOBS` in `Landing.tsx` controls each blob's position, diameter (`vmax`),
+  delay and duration — delay roughly tracks distance from the centre, with
+  jitter so some patches clear faster than their neighbours. The last entry is
+  an oversized sweep that clears anything the others missed.
+- Each blob gets a registered `@property --landing-bN` (`syntax: "<number>"`)
+  plus a matching keyframe, generated into `BLOB_CSS`. Registration is what makes
+  the value *tween* — unregistered custom properties animate discretely.
 - `DISSOLVE_DURATION` in `Landing.tsx` and `--dissolve-duration` in
   `Landing.css` must stay in sync; they set the total length (2s).
-- `.landing__blobSweep` is a black rect that fades in over the last stretch to
-  clear anything the blobs missed.
+
+### Why not an SVG mask?
+
+WebKit does not support `mask-image: url(#someSvgMask)` on HTML elements, so the
+original SVG-mask version silently failed on every iOS browser. Gradient masks
+work everywhere. `supportsBlobMask` feature-detects `CSS.registerProperty` and
+falls back to a plain crossfade (`.is-plain`) on older engines.
+
+Note: a mask does **not** create a containing block for `position: fixed`
+descendants (unlike `filter`), so `.landing__revealInner` carries a
+`transform: translateZ(0)` to keep the fixed bottom nav inside the mask.
 
 ## Responsive notes
 
