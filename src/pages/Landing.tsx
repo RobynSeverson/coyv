@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import Home from "./Home";
-import gatesArtwork from "../assets/gates2.jpeg";
+import gatesArtwork from "../assets/gates3.jpeg";
 import enterMark from "../assets/enter.png";
 import "./Landing.css";
 

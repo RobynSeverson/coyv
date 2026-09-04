@@ -1,4 +1,4 @@
-import gatesArtwork from '../assets/gates2.jpeg'
+import gatesArtwork from '../assets/gates3.jpeg'
 import './Collection.css'
 
 type CollectionProps = {

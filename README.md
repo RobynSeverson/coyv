@@ -16,7 +16,7 @@ npm run lint
 
 ## Structure
 
-- `src/assets/gates2.jpeg` — the only image asset, reused across every page
+- `src/assets/gates3.jpeg` — the only image asset, reused across every page
 - `src/pages/Landing.tsx` / `Landing.css` — `/`, the artwork + dissolve transition
 - `src/pages/Home.tsx` / `Home.css` — `/home`, prints & photos tiles
 - `src/pages/Collection.tsx` / `Collection.css` — `/prints`, `/photos`, `/archive`

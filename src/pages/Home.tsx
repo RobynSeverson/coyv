@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import gatesArtwork from '../assets/gates2.jpeg'
+import gatesArtwork from '../assets/gates3.jpeg'
 import './Home.css'
 
 const TILES = [
