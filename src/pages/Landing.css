@@ -10,6 +10,14 @@
   --art-width: 100vw;
 }
 
+/* The landing is exactly one viewport tall, so nothing should scroll. Locking
+   it stops iOS from nudging the page when the button takes focus on tap. */
+html:has(.landing),
+body:has(.landing) {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .landing__art {
   position: absolute;
   inset: 0;
@@ -107,6 +115,9 @@
   animation: float 4s ease-in-out infinite;
   transition: opacity 500ms ease-out, filter 300ms ease, scale 300ms ease;
   filter: contrast(1.15) drop-shadow(0 10px 26px rgba(20, 24, 28, 0.3));
+  /* Touch devices otherwise get a tap flash and a sticky :hover state. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .landing__buttonMark {
@@ -126,9 +137,13 @@
   -webkit-mask-image: var(--mark-fade);
 }
 
-.landing__button:hover:not(:disabled) {
-  filter: contrast(1.3) drop-shadow(0 14px 34px rgba(20, 24, 28, 0.42));
-  scale: 1.04;
+/* Hover only on real pointers: touch browsers latch :hover on tap, which made
+   the button scale up the moment it was pressed. */
+@media (hover: hover) and (pointer: fine) {
+  .landing__button:hover:not(:disabled) {
+    filter: contrast(1.3) drop-shadow(0 14px 34px rgba(20, 24, 28, 0.42));
+    scale: 1.04;
+  }
 }
 
 .landing__button:focus-visible {
@@ -139,7 +154,9 @@
 .landing.is-dissolving .landing__button {
   opacity: 0;
   pointer-events: none;
-  animation: none;
+  /* Pausing freezes the float mid-cycle. `animation: none` snapped the
+     transform back to 0, which read as the button jumping on tap. */
+  animation-play-state: paused;
 }
 
 @keyframes float {
