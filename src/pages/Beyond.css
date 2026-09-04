@@ -1,0 +1,70 @@
+.beyond {
+  min-height: 100dvh;
+  width: 100vw;
+  overflow-y: auto;
+  display: grid;
+  place-items: center;
+  padding: 3rem 1.5rem;
+  color: #12181a;
+  background:
+    radial-gradient(closest-side at 50% 40%, #ffffff 0%, #dfeae3 40%, #a9c0c2 75%, #6d8a90 100%);
+  animation: beyondIn 900ms ease-out both;
+}
+
+@keyframes beyondIn {
+  from {
+    opacity: 0;
+    transform: scale(1.06);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.beyond__inner {
+  max-width: 46rem;
+  text-align: center;
+}
+
+.beyond__title {
+  margin: 0 0 1rem;
+  font-size: clamp(2.4rem, 8vw, 5rem);
+  font-weight: 300;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  text-transform: lowercase;
+}
+
+.beyond__text {
+  margin: 0 auto 2.5rem;
+  max-width: 34rem;
+  line-height: 1.8;
+  font-size: 1.05rem;
+  opacity: 0.78;
+}
+
+.beyond__back {
+  padding: 0.85rem 2.2rem;
+  border: 1px solid rgba(18, 24, 26, 0.5);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.24em;
+  text-indent: 0.24em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: background-color 250ms ease, color 250ms ease;
+}
+
+.beyond__back:hover {
+  background: rgba(18, 24, 26, 0.88);
+  color: #f3f7f4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beyond {
+    animation: none;
+  }
+}
