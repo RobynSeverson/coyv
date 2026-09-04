@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import Home from "./Home";
@@ -81,8 +81,45 @@ export default function Landing() {
   const [isDissolving, setIsDissolving] = useState(false);
   const navigate = useNavigate();
   const timeoutRef = useRef<number | undefined>(undefined);
+  const landingRef = useRef<HTMLElement>(null);
 
   useEffect(() => () => window.clearTimeout(timeoutRef.current), []);
+
+  /* Viewport units are unreliable here: iOS resolves them against whichever
+     viewport it thinks is current, and keeps reporting the pre-toolbar value
+     until something forces a reflow — which is why the button could sit low
+     until it was tapped. Measure visualViewport instead, re-measuring on a
+     few delays while the toolbar settles and on every resize. */
+  useLayoutEffect(() => {
+    const el = landingRef.current;
+    if (!el) return;
+
+    const vv = window.visualViewport;
+    const measure = () => {
+      const h = Math.round(vv?.height ?? window.innerHeight);
+      if (h > 0) el.style.setProperty("--landing-h", `${h}px`);
+    };
+
+    measure();
+    const frame = requestAnimationFrame(measure);
+    const timers = [120, 350, 800].map((ms) => window.setTimeout(measure, ms));
+
+    vv?.addEventListener("resize", measure);
+    vv?.addEventListener("scroll", measure);
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    window.addEventListener("pageshow", measure);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      timers.forEach((t) => window.clearTimeout(t));
+      vv?.removeEventListener("resize", measure);
+      vv?.removeEventListener("scroll", measure);
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+      window.removeEventListener("pageshow", measure);
+    };
+  }, []);
 
   const dissolve = () => {
     if (isDissolving) return;
@@ -102,7 +139,7 @@ export default function Landing() {
     .join(" ");
 
   return (
-    <main className={className}>
+    <main className={className} ref={landingRef}>
       {supportsBlobMask ? <style>{BLOB_CSS}</style> : null}
 
       <div
