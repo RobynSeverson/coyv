@@ -52,6 +52,9 @@
   inset: 0;
   perspective: 1400px;
   perspective-origin: 50% 50%;
+  /* Width the artwork is painted at across the two halves. At 100vw the whole
+     artwork is visible; at 200vw only its left half fills the viewport. */
+  --gate-canvas-width: 100vw;
 }
 
 .home__gate {
@@ -60,7 +63,7 @@
   height: 100%;
   width: 50%;
   background-image: var(--gate-image);
-  background-size: 100vw 100dvh;
+  background-size: var(--gate-canvas-width) 100dvh;
   background-repeat: no-repeat;
   backface-visibility: hidden;
   will-change: transform, filter;
@@ -71,14 +74,14 @@
 
 .home__gate--left {
   left: 0;
-  background-position: left center;
+  background-position: 0 center;
   transform-origin: left center;
   box-shadow: 8px 0 24px -8px rgba(0, 0, 0, 0.55);
 }
 
 .home__gate--right {
   right: 0;
-  background-position: right center;
+  background-position: -50vw center;
   transform-origin: right center;
   box-shadow: -8px 0 24px -8px rgba(0, 0, 0, 0.55);
 }
@@ -177,6 +180,14 @@
   }
   50% {
     transform: translateY(6px);
+  }
+}
+
+/* On narrow screens the full artwork is too squeezed, so the gates only show
+   the left half of it. */
+@media (max-width: 768px) {
+  .home__stage {
+    --gate-canvas-width: 200vw;
   }
 }
 
