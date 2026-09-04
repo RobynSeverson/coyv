@@ -1,0 +1,163 @@
+.landing {
+  position: relative;
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
+  background: #f7f9f6;
+  --dissolve-duration: 2000ms;
+  /* Width the artwork is painted at. At 100vw the whole artwork is visible;
+     at 200vw only its left half fills the viewport. */
+  --art-width: 100vw;
+}
+
+.landing__art {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-color: #f7f9f6;
+  background-image: var(--art-image);
+  background-size: var(--art-width) 100dvh;
+  background-position: 0 center;
+  background-repeat: no-repeat;
+}
+
+.landing.is-dissolving .landing__art {
+  animation: artDrift var(--dissolve-duration) ease-in forwards;
+}
+
+@keyframes artDrift {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.05);
+  }
+}
+
+/* The destination page, masked by a stack of soft radial gradients. Each
+   gradient's mask-size is driven by its own registered custom property, so the
+   blobs can grow on independent timings. */
+.landing__reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+}
+
+.landing.is-dissolving .landing__reveal {
+  animation: var(--landing-blob-animation);
+}
+
+/* transform keeps the fixed bottom nav inside the masked layer */
+.landing__revealInner {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transform: translateZ(0);
+}
+
+.landing.is-dissolving .landing__revealInner {
+  animation: revealSettle var(--dissolve-duration) ease-out both;
+}
+
+@keyframes revealSettle {
+  0% {
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Fallback for engines that can't tween registered custom properties: a plain
+   crossfade instead of a broken, motionless transition. */
+.landing.is-plain .landing__reveal {
+  opacity: 0;
+}
+
+.landing.is-plain.is-dissolving .landing__reveal {
+  animation: plainReveal var(--dissolve-duration) ease-in-out forwards;
+}
+
+@keyframes plainReveal {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.15;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* floating button */
+.landing__button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  z-index: 3;
+  padding: 1.1rem 2.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 999px;
+  background: rgba(20, 24, 28, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #fff;
+  font-size: clamp(1.1rem, 2.4vw, 1.6rem);
+  letter-spacing: 0.42em;
+  text-indent: 0.42em;
+  text-transform: lowercase;
+  cursor: pointer;
+  animation: float 4s ease-in-out infinite;
+  transition: opacity 500ms ease-out, background-color 300ms ease,
+    box-shadow 300ms ease;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.18);
+}
+
+.landing__button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 44px rgba(255, 255, 255, 0.4);
+}
+
+.landing__button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 6px;
+}
+
+.landing.is-dissolving .landing__button {
+  opacity: 0;
+  pointer-events: none;
+  animation: none;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(-6px);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+/* On narrow screens the full artwork is too squeezed, so only its left half
+   is shown. */
+@media (max-width: 768px) {
+  .landing {
+    --art-width: 200vw;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing {
+    --dissolve-duration: 400ms;
+  }
+
+  .landing__button {
+    animation: none;
+  }
+}
