@@ -4,15 +4,17 @@
   left: 0;
   right: 0;
   z-index: 20;
-  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  padding: 0 1rem env(safe-area-inset-bottom);
   border-top: 1px solid rgba(18, 24, 26, 0.12);
-  background: rgba(245, 248, 245, 0.82);
+  /* background: rgba(245, 248, 245, 0.82); */
+  background: white;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
 
 .bottomNav__list {
   display: flex;
+  align-items: center;
   justify-content: center;
   gap: clamp(0.5rem, 5vw, 3rem);
   margin: 0;
@@ -50,10 +52,32 @@
   outline-offset: 3px;
 }
 
+/* Artwork labels sit on their own opaque plate, so the pill background would
+   show as a rectangle behind them — they carry their own active state. */
+.bottomNav__link--image {
+  padding: 0 0.4rem;
+  opacity: 0.75;
+}
+
+.bottomNav__link--image:hover,
+.bottomNav__link--image.is-active {
+  background: none;
+  opacity: 1;
+}
+
+.bottomNav__mark {
+  display: block;
+  height: 3.4rem;
+  width: auto;
+  user-select: none;
+  -webkit-user-drag: none;
+  mix-blend-mode: multiply;
+}
+
 /* four labels don't fit at desktop sizing on a phone */
 @media (max-width: 480px) {
   .bottomNav {
-    padding: 0.6rem 0.5rem calc(0.6rem + env(safe-area-inset-bottom));
+    padding: 0 0.5rem env(safe-area-inset-bottom);
   }
 
   .bottomNav__list {
@@ -66,5 +90,9 @@
     font-size: 0.72rem;
     letter-spacing: 0.1em;
     text-indent: 0.1em;
+  }
+
+  .bottomNav__mark {
+    height: 2.7rem;
   }
 }

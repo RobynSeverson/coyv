@@ -174,7 +174,7 @@ export default function Landing() {
         className="landing__button"
         onClick={dissolve}
         disabled={isDissolving}
-        aria-label="gates"
+        aria-label="enter coyv"
       >
         <img className="landing__buttonMark" src={enterMark} alt="" />
       </button>

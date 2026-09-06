@@ -18,15 +18,9 @@ export default function App() {
             }
           />
           <Route
-            path="/photos"
+            path="/memories"
             element={
-              <Collection title="photos" blurb="Shot and collected" />
-            }
-          />
-          <Route
-            path="/archive"
-            element={
-              <Collection title="archive" blurb="Everything else, kept" />
+              <Collection title="memories" blurb="Everything else, kept" />
             }
           />
         </Route>

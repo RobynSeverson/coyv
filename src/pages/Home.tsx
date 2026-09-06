@@ -11,9 +11,9 @@ const TILES = [
     position: '18% center',
   },
   {
-    to: '/photos',
-    label: 'photos',
-    blurb: 'Shot and collected',
+    to: '/memories',
+    label: 'memories',
+    blurb: 'Everything else, kept',
     position: '82% center',
   },
 ]
@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <main className="home">
       <header className="home__header">
-        <h1 className="home__title">gates</h1>
+        <h1 className="home__title">coyv</h1>
         <p className="home__subtitle">Past the threshold.</p>
       </header>
 
