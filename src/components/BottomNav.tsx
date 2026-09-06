@@ -1,26 +1,33 @@
-import { NavLink } from 'react-router-dom'
-import printsButton from '../assets/printsButton.jpeg'
-import printsButtonActive from '../assets/printsButtonActive.png'
-import './BottomNav.css'
+import { NavLink } from "react-router-dom";
+import homeButton from "../assets/homeButton.jpeg";
+import homeButtonActive from "../assets/homeButtonActive.jpeg";
+import printsButton from "../assets/printsButton.jpeg";
+import printsButtonActive from "../assets/printsButtonActive.jpeg";
+import "./BottomNav.css";
 
 type NavItem = {
-  to: string
-  label: string
+  to: string;
+  label: string;
   /* when present the label is drawn as artwork instead of text */
-  image?: string
-  activeImage?: string
-}
+  image?: string;
+  activeImage?: string;
+};
 
 const LINKS: NavItem[] = [
-  { to: '/home', label: 'home' },
   {
-    to: '/prints',
-    label: 'prints',
+    to: "/home",
+    label: "home",
+    image: homeButton,
+    activeImage: homeButtonActive,
+  },
+  {
+    to: "/prints",
+    label: "prints",
     image: printsButton,
     activeImage: printsButtonActive,
   },
-  { to: '/memories', label: 'memories' },
-]
+  { to: "/memories", label: "memories" },
+];
 
 export default function BottomNav() {
   return (
@@ -33,19 +40,19 @@ export default function BottomNav() {
               aria-label={image ? label : undefined}
               className={({ isActive }) =>
                 [
-                  'bottomNav__link',
-                  image ? 'bottomNav__link--image' : '',
-                  isActive ? 'is-active' : '',
+                  "bottomNav__link",
+                  image ? "bottomNav__link--image" : "",
+                  isActive ? "is-active" : "",
                 ]
                   .filter(Boolean)
-                  .join(' ')
+                  .join(" ")
               }
             >
               {({ isActive }) =>
                 image ? (
                   <img
                     className="bottomNav__mark"
-                    src={isActive ? activeImage ?? image : image}
+                    src={isActive ? (activeImage ?? image) : image}
                     alt=""
                   />
                 ) : (
@@ -57,5 +64,5 @@ export default function BottomNav() {
         ))}
       </ul>
     </nav>
-  )
+  );
 }
