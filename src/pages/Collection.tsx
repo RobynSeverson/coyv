@@ -83,16 +83,20 @@ export default function Collection({ title, blurb, images }: CollectionProps) {
     let cancelled = false;
     const target = openItem.full;
     const loader = new Image();
-    loader.src = target;
 
+    /* onload rather than decode(): decode() can hang indefinitely in Chrome
+       for images that were never inserted into the document. */
     const done = () => {
       if (!cancelled) setFullSrc(target);
     };
-
-    loader.decode?.().then(done, done) ?? (loader.onload = done);
+    loader.onload = done;
+    loader.onerror = done;
+    loader.src = target;
 
     return () => {
       cancelled = true;
+      loader.onload = null;
+      loader.onerror = null;
     };
   }, [openItem]);
 

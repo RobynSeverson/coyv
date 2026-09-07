@@ -1,9 +1,9 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import SiteLayout from './components/SiteLayout'
-import Landing from './pages/Landing'
-import Home from './pages/Home'
-import Collection from './pages/Collection'
-import { MEMORIES } from './data/memories'
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import SiteLayout from "./components/SiteLayout";
+import Landing from "./pages/Landing";
+import Home from "./pages/Home";
+import Collection from "./pages/Collection";
+import { MEMORIES } from "./data/memories";
 
 export default function App() {
   return (
@@ -15,7 +15,7 @@ export default function App() {
           <Route
             path="/prints"
             element={
-              <Collection title="prints" blurb="Editions on paper" />
+              <Collection title="prints" blurb="save me from salvation" />
             }
           />
           <Route
@@ -23,7 +23,7 @@ export default function App() {
             element={
               <Collection
                 title="memories"
-                blurb="Everything else, kept"
+                blurb="don't forget me"
                 images={MEMORIES}
               />
             }
@@ -31,5 +31,5 @@ export default function App() {
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
