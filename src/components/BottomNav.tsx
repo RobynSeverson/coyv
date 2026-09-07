@@ -3,6 +3,8 @@ import homeButton from "../assets/homeButton.jpeg";
 import homeButtonActive from "../assets/homeButtonActive.jpeg";
 import printsButton from "../assets/printsButton.jpeg";
 import printsButtonActive from "../assets/printsButtonActive.jpeg";
+import memoriesButton from "../assets/memoriesButton.jpeg";
+import memoriesButtonActive from "../assets/memoriesButtonActive.jpeg";
 import "./BottomNav.css";
 
 type NavItem = {
@@ -26,7 +28,12 @@ const LINKS: NavItem[] = [
     image: printsButton,
     activeImage: printsButtonActive,
   },
-  { to: "/memories", label: "memories" },
+  {
+    to: "/memories",
+    label: "memories",
+    image: memoriesButton,
+    activeImage: memoriesButtonActive,
+  },
 ];
 
 export default function BottomNav() {

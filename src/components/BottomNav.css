@@ -5,6 +5,9 @@
   right: 0;
   z-index: 20;
   padding: 0 1rem env(safe-area-inset-bottom);
+  /* The marks are pulled up by negative margins to swallow the blank space on
+     their plates; clipping keeps that overhang from painting over the page. */
+  overflow: hidden;
   border-top: 1px solid rgba(18, 24, 26, 0.12);
   /* background: rgba(245, 248, 245, 0.82); */
   background: white;
@@ -34,11 +37,24 @@
   text-decoration: none;
   opacity: 0.6;
   transition: opacity 200ms ease, background-color 200ms ease;
+  /* Touch browsers otherwise flash a grey plate over the mark on tap. */
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 
-.bottomNav__link:hover {
-  opacity: 1;
-  background: rgba(18, 24, 26, 0.07);
+/* Hover only on real pointers: touch browsers latch :hover on tap, which read
+   as the mark flashing when it was pressed. */
+@media (hover: hover) and (pointer: fine) {
+  .bottomNav__link:hover {
+    opacity: 1;
+    background: rgba(18, 24, 26, 0.07);
+  }
+
+  .bottomNav__link--image:hover {
+    background: none;
+    opacity: 1;
+  }
 }
 
 .bottomNav__link.is-active {
@@ -59,7 +75,6 @@
   opacity: 0.75;
 }
 
-.bottomNav__link--image:hover,
 .bottomNav__link--image.is-active {
   background: none;
   opacity: 1;
@@ -72,7 +87,7 @@
   display: block;
   height: var(--mark-h);
   width: auto;
-  margin-top: calc(var(--mark-h) * -0.13);
+  margin-top: calc(var(--mark-h) * -0.11);
   margin-bottom: calc(var(--mark-h) * -0.06);
   user-select: none;
   -webkit-user-drag: none;
