@@ -1,29 +1,29 @@
-import { Link } from 'react-router-dom'
-import gatesArtwork from '../assets/landingDesktop.jpg'
-import './Home.css'
+import { Link } from "react-router-dom";
+import gatesArtwork from "../assets/landingDesktop.jpg";
+import "./Home.css";
 
 const TILES = [
   {
-    to: '/prints',
-    label: 'prints',
-    blurb: 'Editions on paper',
+    to: "/prints",
+    label: "prints",
+    blurb: "Editions on paper",
     /* different crops of the artwork so each tile reads distinctly */
-    position: '18% center',
+    position: "18% center",
   },
   {
-    to: '/memories',
-    label: 'memories',
-    blurb: 'Everything else, kept',
-    position: '82% center',
+    to: "/memories",
+    label: "memories",
+    blurb: "Everything else, kept",
+    position: "82% center",
   },
-]
+];
 
 export default function Home() {
   return (
     <main className="home">
       <header className="home__header">
         <h1 className="home__title">coyv</h1>
-        <p className="home__subtitle">Past the threshold.</p>
+        <p className="home__subtitle">past the threshold.</p>
       </header>
 
       <ul className="home__tiles">
@@ -45,5 +45,5 @@ export default function Home() {
         ))}
       </ul>
     </main>
-  )
+  );
 }

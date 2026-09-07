@@ -71,14 +71,13 @@ export default function Collection({ title, blurb, images }: CollectionProps) {
   const openItem = openIndex === null ? null : (items?.[openIndex] ?? null);
 
   /* The lightbox shows the grid's preview straight away and swaps in the
-     original once it has decoded, so opening never waits on a large file. */
+     original once it has loaded, so opening never waits on a large file.
+     Holding the last loaded src (rather than clearing it on close) means
+     reopening an image already in cache skips the preview entirely. */
   const [fullSrc, setFullSrc] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!openItem) {
-      setFullSrc(null);
-      return;
-    }
+    if (!openItem) return;
 
     let cancelled = false;
     const target = openItem.full;
