@@ -14,9 +14,8 @@
   place-items: center;
   background: #f7f9f6;
   --dissolve-duration: 2000ms;
-  /* Width the artwork is painted at. At 100% the whole artwork is visible;
-     at 200% only its left half fills the viewport. */
-  --art-width: 100%;
+  /* Desktop artwork by default; the mobile crop swaps in below 768px. */
+  --art-image: var(--art-image-desktop);
 }
 
 /* The landing is exactly one viewport tall, so nothing should scroll. Locking
@@ -36,8 +35,8 @@ body:has(.landing) {
   z-index: 1;
   background-color: #f7f9f6;
   background-image: var(--art-image);
-  background-size: var(--art-width) 100%;
-  background-position: 0 center;
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
@@ -137,7 +136,7 @@ body:has(.landing) {
   height: auto;
   user-select: none;
   -webkit-user-drag: none;
-  /* enter.png sits on an opaque white plate; feather its edges so it melts
+  /* openGates.png sits on an opaque plate; feather its edges so it melts
      into the artwork instead of showing a hard rectangle. */
   --mark-fade: radial-gradient(
     ellipse 50% 50% at 50% 50%,
@@ -180,11 +179,10 @@ body:has(.landing) {
   }
 }
 
-/* On narrow screens the full artwork is too squeezed, so only its left half
-   is shown. */
+/* Narrow screens get the artwork cropped for portrait. */
 @media (max-width: 768px) {
   .landing {
-    --art-width: 200%;
+    --art-image: var(--art-image-mobile);
   }
 }
 

@@ -2,8 +2,9 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import Home from "./Home";
-import gatesArtwork from "../assets/gates3.jpeg";
-import enterMark from "../assets/enter.png";
+import landingDesktop from "../assets/landingDesktop.jpg";
+import landingMobile from "../assets/landingMobile.jpg";
+import enterMark from "../assets/openGates.png";
 import "./Landing.css";
 
 const DISSOLVE_DURATION = 2000;
@@ -139,14 +140,17 @@ export default function Landing() {
     .join(" ");
 
   return (
-    <main className={className} ref={landingRef}>
+    <main
+      className={className}
+      ref={landingRef}
+      style={{
+        ["--art-image-desktop" as string]: `url(${landingDesktop})`,
+        ["--art-image-mobile" as string]: `url(${landingMobile})`,
+      }}
+    >
       {supportsBlobMask ? <style>{BLOB_CSS}</style> : null}
 
-      <div
-        className="landing__art"
-        style={{ ["--art-image" as string]: `url(${gatesArtwork})` }}
-        aria-hidden="true"
-      />
+      <div className="landing__art" aria-hidden="true" />
 
       {/* The destination page, revealed through the blobs the dissolve opens. */}
       <div
@@ -170,7 +174,7 @@ export default function Landing() {
         className="landing__button"
         onClick={dissolve}
         disabled={isDissolving}
-        aria-label="gates"
+        aria-label="enter coyv"
       >
         <img className="landing__buttonMark" src={enterMark} alt="" />
       </button>

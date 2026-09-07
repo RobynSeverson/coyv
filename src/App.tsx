@@ -3,6 +3,7 @@ import SiteLayout from './components/SiteLayout'
 import Landing from './pages/Landing'
 import Home from './pages/Home'
 import Collection from './pages/Collection'
+import { MEMORIES } from './data/memories'
 
 export default function App() {
   return (
@@ -18,15 +19,13 @@ export default function App() {
             }
           />
           <Route
-            path="/photos"
+            path="/memories"
             element={
-              <Collection title="photos" blurb="Shot and collected" />
-            }
-          />
-          <Route
-            path="/archive"
-            element={
-              <Collection title="archive" blurb="Everything else, kept" />
+              <Collection
+                title="memories"
+                blurb="Everything else, kept"
+                images={MEMORIES}
+              />
             }
           />
         </Route>
