@@ -1,0 +1,90 @@
+.manage__card {
+  border: 1px solid rgba(28, 26, 31, 0.14);
+  border-radius: 3px;
+  padding: 1.25rem 1.35rem;
+  margin: 1.25rem 0;
+}
+
+.manage__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.manage__title {
+  font-size: 1.1rem;
+  font-weight: normal;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.manage__badge {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(18, 24, 26, 0.1);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+}
+
+.manage__label {
+  margin: 1rem 0 0.3rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.manage__address {
+  display: flex;
+  flex-direction: column;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.manage__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.manage__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.15rem;
+}
+
+.manage__link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  opacity: 0.65;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.manage__link:hover {
+  opacity: 1;
+}
+
+.manage__link--danger {
+  color: #8f2323;
+  opacity: 0.85;
+}
+
+.manage__notice {
+  background: rgba(38, 122, 78, 0.12);
+  color: #1e5c3b;
+  padding: 0.7rem 0.9rem;
+  border-radius: 3px;
+}
+
+.manage__warn {
+  color: #8f2323;
+}

@@ -136,9 +136,20 @@ export type Subscription = {
   email: string | null;
   name: string | null;
   currentPeriodEnd: string | null;
+  /* True once the subscriber has cancelled but the month they already paid
+     for has not run out yet. */
+  cancelAtPeriodEnd: boolean;
   canceledAt: string | null;
   lastPaymentError: string | null;
   createdAt: string;
+};
+
+/* What the self-service manage page sees: the subscription plus the address
+   it ships to, and whether it is still in a state the subscriber can act on. */
+export type ManagedSubscription = Subscription & {
+  shippingName: string | null;
+  shippingAddress: ShippingAddress | null;
+  manageable: boolean;
 };
 
 export type FulfillmentStatus = "pending" | "sent";
@@ -297,6 +308,45 @@ export const api = {
 
   listMemories: (signal?: AbortSignal) =>
     request<{ memories: Memory[] }>("/memories", { signal }),
+
+  manage: {
+    /* Always resolves, whether or not the address has a subscription — the
+       server refuses to confirm which addresses are customers. */
+    requestLink: (email: string) =>
+      request<{ ok: true }>("/manage/request-link", { method: "POST", body: { email } }),
+
+    redeem: (token: string) =>
+      request<{ ok: true; email: string }>("/manage/redeem", {
+        method: "POST",
+        body: { token },
+      }),
+
+    signOut: () => request<{ ok: true }>("/manage/signout", { method: "POST" }),
+
+    list: () =>
+      request<{ email: string; subscriptions: ManagedSubscription[] }>("/manage/subscriptions"),
+
+    updateAddress: (
+      id: string,
+      payload: { shippingName: string; shippingAddress: ShippingAddress },
+    ) =>
+      request<{ subscription: ManagedSubscription; pendingParcelsUpdated: number }>(
+        `/manage/subscriptions/${encodeURIComponent(id)}/address`,
+        { method: "PATCH", body: payload },
+      ),
+
+    cancel: (id: string) =>
+      request<{ subscription: Subscription }>(
+        `/manage/subscriptions/${encodeURIComponent(id)}/cancel`,
+        { method: "POST" },
+      ),
+
+    resume: (id: string) =>
+      request<{ subscription: Subscription }>(
+        `/manage/subscriptions/${encodeURIComponent(id)}/resume`,
+        { method: "POST" },
+      ),
+  },
 
   admin: {
     me: () => request<{ admin: Admin | null }>("/admin/auth/me"),

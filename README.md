@@ -140,6 +140,11 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET` | `/api/admin/fulfillments` | the packing queue, filtered by status |
 | `PATCH` | `/api/admin/fulfillments/:id` | mark sent / back to queue, tracking |
 | `POST` | `/api/tasks/daily-digest` | scheduler-only, `x-tasks-secret` header |
+| `POST` | `/api/manage/request-link` | emails a one-time link; always `{ok:true}` |
+| `POST` | `/api/manage/redeem` `/signout` | spends the link, opens a 30-minute session |
+| `GET` | `/api/manage/subscriptions` | the caller's own subscriptions |
+| `PATCH` | `/api/manage/subscriptions/:id/address` | also moves pending parcels |
+| `POST` | `/api/manage/subscriptions/:id/cancel` `/resume` | at period end |
 
 ### Product types
 
@@ -262,6 +267,47 @@ past-due filter already applied. "Past due" is computed once, server-side, in
 Scheduling is not wired up yet. Once the real key is in place, point any daily
 scheduler (EventBridge Scheduler → API destination) at that endpoint with the
 `x-tasks-secret` header; running it more than once a day is harmless.
+
+### Subscribers managing themselves
+
+`/manage-subscription` is unlinked from the site; subscribers arrive from the
+footer of a renewal email. It lets them change their posting address, cancel, or
+un-cancel without an account and without emailing us.
+
+There are no passwords and no signup. You enter your email, and if it has a live
+subscription we email a one-time link:
+
+- The credential is a 32-byte random token carried in the link, not a 6-digit
+  code. A short numeric code is guessable at a few thousand tries, which would
+  mean also building attempt caps and lockouts; a long token sidesteps all of it.
+- Only a SHA-256 hash of the token is stored, so the database never holds
+  anything that can be replayed.
+- Redemption is a single atomic `findOneAndUpdate` filtered on `usedAt: null`,
+  so a link works exactly once even if two requests land together.
+- Tokens last 20 minutes and the session that replaces them lasts 30, both on a
+  TTL index that removes spent rows on its own.
+- `request-link` answers `{ok: true}` for addresses we have never seen, so the
+  form cannot be used to test whether somebody is a customer. It is throttled per
+  IP and per address.
+- The page spends the token on arrival and strips it from the URL, so a
+  screenshot or a shared link is worthless.
+
+Two behaviours worth knowing:
+
+- **An address change also moves parcels already queued.** Updating the address
+  rewrites any `pending` fulfillment for that subscription as well as Stripe and
+  the subscription record. Without that, a change made after a renewal would
+  apply "from next month" and this month's print would still go to the old house.
+  Parcels already marked sent keep the address they were sent to.
+- **Cancelling sets `cancel_at_period_end`,** never an instant cancel — they
+  paid for the month, so they get the month. "keep it going" reverses it, so a
+  misclick is not a support email.
+
+Admin and subscriber sessions are signed with the same `JWT_SECRET`, so each is
+issued and verified with a distinct JWT `audience` (`coyv:admin` vs
+`coyv:manage`). Without that, a subscriber token would be a structurally valid
+admin cookie. **Consequence:** admin cookies issued before this change have no
+`aud` and are rejected, so everyone signs in once more after it ships.
 
 ### Admin panel
 

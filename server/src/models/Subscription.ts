@@ -57,6 +57,10 @@ const subscriptionSchema = new Schema(
     stripePaymentIntentId: { type: String, default: null, index: true },
 
     currentPeriodEnd: { type: Date, default: null },
+    /* Set when a subscriber cancels from the manage page. The subscription
+       stays active until the period they already paid for runs out, so this
+       is what separates "ending" from "ended". */
+    cancelAtPeriodEnd: { type: Boolean, default: false },
     canceledAt: { type: Date, default: null },
     lastPaymentError: { type: String, default: null },
   },

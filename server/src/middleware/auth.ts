@@ -6,6 +6,13 @@ import { AdminUserModel } from '../models/AdminUser.ts'
 
 export const SESSION_COOKIE = 'coyv_admin'
 
+/* Both the admin session and the subscriber "manage" session are signed with
+   JWT_SECRET, so they must be distinguishable by more than their cookie name —
+   otherwise a subscriber token presented as an admin cookie would verify.
+   The audience claim is what keeps them apart, and it is enforced on both
+   sides. */
+export const ADMIN_AUDIENCE = 'coyv:admin'
+
 type SessionClaims = {
   sub: string
   email: string
@@ -24,6 +31,7 @@ export function issueSession(res: Response, claims: SessionClaims): void {
   const maxAgeMs = env.SESSION_TTL_HOURS * 60 * 60 * 1000
   const token = jwt.sign(claims, env.JWT_SECRET, {
     expiresIn: `${env.SESSION_TTL_HOURS}h`,
+    audience: ADMIN_AUDIENCE,
   })
 
   res.cookie(SESSION_COOKIE, token, {
@@ -51,7 +59,7 @@ function readSession(req: Request): SessionClaims | null {
   if (typeof token !== 'string' || token.length === 0) return null
 
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET)
+    const payload = jwt.verify(token, env.JWT_SECRET, { audience: ADMIN_AUDIENCE })
     if (typeof payload === 'string' || typeof payload.sub !== 'string') return null
     return { sub: payload.sub, email: String(payload.email ?? '') }
   } catch {

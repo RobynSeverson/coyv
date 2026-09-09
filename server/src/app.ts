@@ -9,6 +9,7 @@ import { adminAuthRouter } from './routes/adminAuth.ts'
 import { adminMemoriesRouter } from './routes/adminMemories.ts'
 import { adminRouter } from './routes/adminProducts.ts'
 import { checkoutRouter } from './routes/checkout.ts'
+import { manageRouter } from './routes/manage.ts'
 import { memoriesRouter } from './routes/memories.ts'
 import { printsRouter, productsRouter } from './routes/products.ts'
 import { tasksRouter } from './routes/tasks.ts'
@@ -73,6 +74,8 @@ export function createApp(): Express {
   app.use('/api/prints', printsRouter)
   app.use('/api/memories', memoriesRouter)
   app.use('/api/checkout', checkoutRouter)
+  /* Subscriber self-service, authorised by an emailed single-use link. */
+  app.use('/api/manage', manageRouter)
   app.use('/api/admin/auth', adminAuthRouter)
   /* Driven by a scheduler with a shared secret, not by the admin session. */
   app.use('/api/tasks', tasksRouter)

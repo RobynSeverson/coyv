@@ -101,6 +101,7 @@ export function serializeSubscription(subscription: SubscriptionDocument) {
     email: subscription.email,
     name: subscription.name,
     currentPeriodEnd: subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
     canceledAt: subscription.canceledAt,
     lastPaymentError: subscription.lastPaymentError,
     createdAt: subscription.createdAt,

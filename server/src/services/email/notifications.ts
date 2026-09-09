@@ -1,7 +1,12 @@
 import type { FulfillmentDocument } from '../../models/Fulfillment.ts'
 import type { OrderDocument } from '../../models/Order.ts'
 import { sendEmail } from './brevo.ts'
-import { orderConfirmation, shippedNotice, subscriptionCharge } from './templates.ts'
+import {
+  manageLink,
+  orderConfirmation,
+  shippedNotice,
+  subscriptionCharge,
+} from './templates.ts'
 
 /* Customer-facing mail. Every one of these is called from a path that has
    already taken money or already changed state, so none of them may throw:
@@ -45,6 +50,18 @@ export async function sendShippedNotice(fulfillment: FulfillmentDocument): Promi
     kind: 'shipped',
     dedupeKey: `shipped:${String(fulfillment._id)}`,
     to: [{ email: fulfillment.email, name: fulfillment.shippingName ?? undefined }],
+    ...template,
+  })
+}
+
+/* Deliberately has no dedupeKey: each request mints a fresh single-use token,
+   so suppressing the second one would leave the subscriber holding a link
+   they never received. Abuse is handled by the throttle on the route. */
+export async function sendManageLink(email: string, link: string): Promise<void> {
+  const template = manageLink(link)
+  await sendEmail({
+    kind: 'manage-link',
+    to: [{ email }],
     ...template,
   })
 }

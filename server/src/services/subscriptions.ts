@@ -31,6 +31,7 @@ export async function applySubscriptionState(
   local.set({
     status: subscription.status as SubscriptionStatus,
     currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : local.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end ?? false,
     canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
     ...(subscription.status === 'active' ? { lastPaymentError: null } : {}),
   })

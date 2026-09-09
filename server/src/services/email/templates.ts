@@ -25,6 +25,26 @@ export function adminFulfillmentUrl(filter: 'due' | 'past-due' = 'due'): string 
   return `${env.PUBLIC_SITE_URL}${env.ADMIN_PATH}?tab=fulfillment&filter=${filter}`
 }
 
+export function manageSubscriptionUrl(): string {
+  return `${env.PUBLIC_SITE_URL}/manage-subscription`
+}
+
+/* Appended to subscriber mail so the way out is always in front of them
+   rather than buried in a support address. */
+function manageFooterHtml(): string {
+  const url = manageSubscriptionUrl()
+  return `<p style="margin-top:22px;font-size:13px;color:#7a7280">Need to change your address or cancel? <a href="${url}" style="color:#7a7280">Manage your subscription</a> — we will email you a sign-in link.</p>`
+}
+
+function manageFooterText(): string {
+  return [
+    '',
+    'Need to change your address or cancel? Manage your subscription at',
+    manageSubscriptionUrl(),
+    'and we will email you a sign-in link.',
+  ].join('\n')
+}
+
 const WRAPPER_STYLE =
   'font-family:Georgia,"Times New Roman",serif;color:#1c1a1f;line-height:1.6;' +
   'max-width:560px;margin:0 auto;padding:32px 24px'
@@ -113,13 +133,15 @@ export function subscriptionCharge(fulfillment: FulfillmentDocument): Template {
     `<p>Your subscription to <strong>${escapeHtml(fulfillment.title)}</strong> has been charged${
       period ? ` for ${escapeHtml(period)}` : ''
     }.</p>
-<p>This month's print will be packed and posted to you shortly.</p>`,
+<p>This month's print will be packed and posted to you shortly.</p>
+${manageFooterHtml()}`,
   )
 
   const text = [
     `Your subscription to ${fulfillment.title} has been charged${period ? ` for ${period}` : ''}.`,
     '',
     "This month's print will be packed and posted to you shortly.",
+    manageFooterText(),
   ].join('\n')
 
   return {
@@ -151,6 +173,29 @@ ${tracking ? `<p><strong>Tracking:</strong> ${escapeHtml(tracking)}</p>` : ''}
   ].join('\n')
 
   return { subject: `${fulfillment.title} is in the post`, html, text }
+}
+
+/* The sign-in link for the manage page. Deliberately short-lived and
+   single-use, and the copy says so, because a subscriber forwarding this email
+   would otherwise be handing over standing access. */
+export function manageLink(link: string, minutes = 20): Template {
+  const html = layout(
+    'manage your subscription',
+    `<p>Here is your sign-in link. It works once and expires in ${minutes} minutes.</p>
+<p style="margin:24px 0"><a href="${link}" style="background:#1c1a1f;color:#faf7f2;padding:12px 22px;text-decoration:none;border-radius:2px;display:inline-block">manage my subscription</a></p>
+<p style="font-size:13px;color:#7a7280">From there you can update your postal address or cancel. If you did not ask for this, you can ignore it — nothing has changed.</p>`,
+  )
+
+  const text = [
+    `Here is your sign-in link. It works once and expires in ${minutes} minutes.`,
+    '',
+    link,
+    '',
+    'From there you can update your postal address or cancel.',
+    'If you did not ask for this, you can ignore it — nothing has changed.',
+  ].join('\n')
+
+  return { subject: 'your link to manage your coyv subscription', html, text }
 }
 
 export type DigestEntry = {
