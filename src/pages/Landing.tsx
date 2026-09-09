@@ -4,10 +4,17 @@ import BottomNav from "../components/BottomNav";
 import Home from "./Home";
 import landingDesktop from "../assets/landingDesktop.jpg";
 import landingMobile from "../assets/landingMobile.jpg";
+import mainGate from "../assets/mainGate.png";
+import leftGate from "../assets/leftGate.png";
+import rightGate from "../assets/rightGate.png";
 import enterMark from "../assets/openGates.png";
 import "./Landing.css";
 
 const DISSOLVE_DURATION = 2000;
+/* Must match the tail of the gate keyframes in Landing.css: the right panel
+   slides out, then the left, then the main gate drops. */
+const GATE_DURATION = 1100;
+const GATE_DURATION_REDUCED = 300;
 const EASING = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const BLOB_GRADIENT =
   "radial-gradient(closest-side, rgb(0 0 0 / 1) 56%, rgb(0 0 0 / 0) 100%)";
@@ -79,12 +86,20 @@ const supportsBlobMask =
   CSS.supports("mask-image", BLOB_GRADIENT);
 
 export default function Landing() {
+  const [isOpening, setIsOpening] = useState(false);
   const [isDissolving, setIsDissolving] = useState(false);
   const navigate = useNavigate();
   const timeoutRef = useRef<number | undefined>(undefined);
+  const gateTimeoutRef = useRef<number | undefined>(undefined);
   const landingRef = useRef<HTMLElement>(null);
 
-  useEffect(() => () => window.clearTimeout(timeoutRef.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(timeoutRef.current);
+      window.clearTimeout(gateTimeoutRef.current);
+    },
+    [],
+  );
 
   /* Viewport units are unreliable here: iOS resolves them against whichever
      viewport it thinks is current, and keeps reporting the pre-toolbar value
@@ -122,17 +137,28 @@ export default function Landing() {
     };
   }, []);
 
-  const dissolve = () => {
-    if (isDissolving) return;
-    setIsDissolving(true);
-    timeoutRef.current = window.setTimeout(
-      () => navigate("/home"),
-      DISSOLVE_DURATION,
-    );
+  /* The gates open first, then the artwork dissolves into the home page. */
+  const openGates = () => {
+    if (isOpening) return;
+    setIsOpening(true);
+
+    const reduced = window.matchMedia?.(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const gateDuration = reduced ? GATE_DURATION_REDUCED : GATE_DURATION;
+
+    gateTimeoutRef.current = window.setTimeout(() => {
+      setIsDissolving(true);
+      timeoutRef.current = window.setTimeout(
+        () => navigate("/home"),
+        DISSOLVE_DURATION,
+      );
+    }, gateDuration);
   };
 
   const className = [
     "landing",
+    isOpening ? "is-opening" : "",
     isDissolving ? "is-dissolving" : "",
     supportsBlobMask ? "" : "is-plain",
   ]
@@ -151,6 +177,26 @@ export default function Landing() {
       {supportsBlobMask ? <style>{BLOB_CSS}</style> : null}
 
       <div className="landing__art" aria-hidden="true" />
+
+      {/* Gate panels, stacked over the artwork: main, then right, then left. */}
+      <img
+        className="landing__gate landing__gate--main"
+        src={mainGate}
+        alt=""
+        aria-hidden="true"
+      />
+      <img
+        className="landing__gate landing__gate--right"
+        src={rightGate}
+        alt=""
+        aria-hidden="true"
+      />
+      <img
+        className="landing__gate landing__gate--left"
+        src={leftGate}
+        alt=""
+        aria-hidden="true"
+      />
 
       {/* The destination page, revealed through the blobs the dissolve opens. */}
       <div
@@ -172,8 +218,8 @@ export default function Landing() {
       <button
         type="button"
         className="landing__button"
-        onClick={dissolve}
-        disabled={isDissolving}
+        onClick={openGates}
+        disabled={isOpening}
         aria-label="enter coyv"
       >
         <img className="landing__buttonMark" src={enterMark} alt="" />

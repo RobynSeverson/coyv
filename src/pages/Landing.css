@@ -53,13 +53,73 @@ body:has(.landing) {
   }
 }
 
+/* Gate panels sit over the artwork and slide away when the gates open.
+   Each asset is a full-bleed pre-registered layer, so they share the
+   artwork's cover/centre framing and stay aligned with one another. */
+.landing__gate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.landing__gate--main {
+  z-index: 2;
+}
+
+.landing__gate--right {
+  z-index: 3;
+}
+
+.landing__gate--left {
+  z-index: 4;
+}
+
+/* Right panel out first, then the left, then the main gate drops. The delays
+   here are what GATE_DURATION in Landing.tsx is timed against. */
+.landing.is-opening .landing__gate--right {
+  animation: gateSlideRight 450ms cubic-bezier(0.5, 0, 0.75, 0) 0ms forwards;
+}
+
+.landing.is-opening .landing__gate--left {
+  animation: gateSlideLeft 450ms cubic-bezier(0.5, 0, 0.75, 0) 300ms forwards;
+}
+
+.landing.is-opening .landing__gate--main {
+  animation: gateSlideDown 500ms cubic-bezier(0.5, 0, 0.75, 0) 600ms forwards;
+}
+
+@keyframes gateSlideRight {
+  to {
+    transform: translateX(110%);
+  }
+}
+
+@keyframes gateSlideLeft {
+  to {
+    transform: translateX(-110%);
+  }
+}
+
+@keyframes gateSlideDown {
+  to {
+    transform: translateY(110%);
+  }
+}
+
 /* The destination page, masked by a stack of soft radial gradients. Each
    gradient's mask-size is driven by its own registered custom property, so the
    blobs can grow on independent timings. */
 .landing__reveal {
   position: absolute;
   inset: 0;
-  z-index: 2;
+  z-index: 5;
   pointer-events: none;
   mask-repeat: no-repeat;
   -webkit-mask-repeat: no-repeat;
@@ -117,7 +177,7 @@ body:has(.landing) {
   /* Centred by the grid on .landing — no percentage translate, so nothing to
      recompute against a stale viewport. */
   position: relative;
-  z-index: 3;
+  z-index: 6;
   padding: 0;
   border: 0;
   background: none;
@@ -161,7 +221,7 @@ body:has(.landing) {
   outline-offset: 6px;
 }
 
-.landing.is-dissolving .landing__button {
+.landing.is-opening .landing__button {
   opacity: 0;
   pointer-events: none;
   /* Pausing freezes the float mid-cycle. `animation: none` snapped the
@@ -193,5 +253,21 @@ body:has(.landing) {
 
   .landing__button {
     animation: none;
+  }
+
+  /* Matches GATE_DURATION_REDUCED in Landing.tsx. */
+  .landing.is-opening .landing__gate--right {
+    animation-duration: 140ms;
+    animation-delay: 0ms;
+  }
+
+  .landing.is-opening .landing__gate--left {
+    animation-duration: 140ms;
+    animation-delay: 80ms;
+  }
+
+  .landing.is-opening .landing__gate--main {
+    animation-duration: 140ms;
+    animation-delay: 160ms;
   }
 }
