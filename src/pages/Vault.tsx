@@ -2,9 +2,18 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
 import { api, type Product } from "../lib/api";
+import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
 import "./Collection.css";
 import "./Vault.css";
+
+/* Deterrents, not protection: anything the browser renders can be saved by
+   someone determined. The control that actually works is upstream — the API
+   only ever serves a downscaled display copy, never the print-resolution
+   original. This just stops the artwork walking out by accident. */
+function blockCapture(event: React.SyntheticEvent) {
+  event.preventDefault();
+}
 
 export default function Vault() {
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -98,10 +107,16 @@ export default function Vault() {
                       alt={cover.alt}
                       loading="lazy"
                       decoding="async"
+                      draggable={false}
+                      onContextMenu={blockCapture}
+                      onDragStart={blockCapture}
                     />
                   ) : (
                     <div className="vault__imagePlaceholder" aria-hidden="true" />
                   )}
+                  {/* Sits over the artwork so a right-click or a long-press
+                      lands on an empty element instead of the image. */}
+                  {cover ? <span className="vault__guard" aria-hidden="true" /> : null}
                   {isSubscription ? (
                     <span className="vault__flag vault__flag--plan">monthly</span>
                   ) : product.soldOut ? (
@@ -111,9 +126,7 @@ export default function Vault() {
 
                 <div className="vault__body">
                   <h2 className="vault__name">{product.title}</h2>
-                  {product.description ? (
-                    <p className="vault__description">{product.description}</p>
-                  ) : null}
+                  <RichText className="vault__description" value={product.description} />
 
                   <div className="vault__row">
                     <span className="vault__price">

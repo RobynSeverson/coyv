@@ -1,0 +1,86 @@
+.rte {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.rte__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.rte__label {
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.rte__tools {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.rte__tools button {
+  min-width: 2rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgba(18, 26, 28, 0.2);
+  border-radius: 3px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: inherit;
+  cursor: pointer;
+}
+
+.rte__tools button:hover,
+.rte__tools button.is-active {
+  background: #121a1c;
+  color: #f7f9f6;
+  border-color: #121a1c;
+}
+
+.rte__input {
+  width: 100%;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid rgba(18, 26, 28, 0.2);
+  border-radius: 3px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: inherit;
+  resize: vertical;
+}
+
+/* Sized to match the textarea it replaces so toggling preview does not make
+   the surrounding form jump around. */
+.rte__preview {
+  min-height: 5.5rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px dashed rgba(18, 26, 28, 0.25);
+  border-radius: 3px;
+  background: rgba(18, 26, 28, 0.02);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.rte__preview p {
+  margin: 0 0 0.7rem;
+}
+
+.rte__preview p:last-child {
+  margin-bottom: 0;
+}
+
+.rte__empty {
+  opacity: 0.5;
+}
+
+.rte__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  opacity: 0.5;
+}

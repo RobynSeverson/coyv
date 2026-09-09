@@ -4,10 +4,11 @@ import AdminLogin from "./AdminLogin";
 import AdminProducts from "./AdminProducts";
 import AdminOrders from "./AdminOrders";
 import AdminSubscriptions from "./AdminSubscriptions";
+import AdminFulfillment from "./AdminFulfillment";
 import AdminMemories from "./AdminMemories";
 import "./admin.css";
 
-type Tab = "products" | "memories" | "orders" | "subscribers";
+type Tab = "products" | "memories" | "fulfillment" | "orders" | "subscribers";
 
 export default function AdminApp() {
   const [admin, setAdmin] = useState<Admin | null>(null);
@@ -64,7 +65,7 @@ export default function AdminApp() {
         </div>
 
         <nav className="admin__tabs" aria-label="Admin sections">
-          {(["products", "memories", "orders", "subscribers"] as Tab[]).map((name) => (
+          {(["products", "memories", "fulfillment", "orders", "subscribers"] as Tab[]).map((name) => (
             <button
               key={name}
               type="button"
@@ -92,6 +93,8 @@ export default function AdminApp() {
         <AdminProducts />
       ) : tab === "memories" ? (
         <AdminMemories />
+      ) : tab === "fulfillment" ? (
+        <AdminFulfillment />
       ) : tab === "subscribers" ? (
         <AdminSubscriptions />
       ) : (

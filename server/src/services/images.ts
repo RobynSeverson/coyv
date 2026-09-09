@@ -5,6 +5,12 @@ import sharp from 'sharp'
 const PREVIEW_WIDTH = 900
 const PREVIEW_QUALITY = 72
 
+/* What the shop front is allowed to serve. Big enough to judge a print by,
+   far too small to print from — which is the only download protection that
+   actually holds, since anything the browser renders can be saved. */
+const DISPLAY_WIDTH = 1200
+const DISPLAY_QUALITY = 76
+
 export type ImageDimensions = { width?: number; height?: number }
 
 export async function readDimensions(body: Buffer): Promise<ImageDimensions> {
@@ -25,6 +31,20 @@ export async function buildPreview(body: Buffer): Promise<Buffer | null> {
       .rotate()
       .resize({ width: PREVIEW_WIDTH, withoutEnlargement: true })
       .webp({ quality: PREVIEW_QUALITY })
+      .toBuffer()
+  } catch {
+    return null
+  }
+}
+
+/* Same contract as buildPreview: null means "could not decode", and the
+   caller falls back rather than failing the upload. */
+export async function buildDisplay(body: Buffer): Promise<Buffer | null> {
+  try {
+    return await sharp(body)
+      .rotate()
+      .resize({ width: DISPLAY_WIDTH, withoutEnlargement: true })
+      .webp({ quality: DISPLAY_QUALITY })
       .toBuffer()
   } catch {
     return null

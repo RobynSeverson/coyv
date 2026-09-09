@@ -3,12 +3,19 @@ import multer from 'multer'
 import { z } from 'zod'
 import { env } from '../env.ts'
 import { HttpError } from '../lib/httpError.ts'
-import { serializeOrder, serializeProductForAdmin, serializeSubscription } from '../lib/serialize.ts'
+import {
+  serializeFulfillment,
+  serializeOrder,
+  serializeProductForAdmin,
+  serializeSubscription,
+} from '../lib/serialize.ts'
 import { requireAdmin } from '../middleware/auth.ts'
 import { OrderModel, ORDER_STATUSES } from '../models/Order.ts'
 import { ProductModel, PRODUCT_KINDS } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
+import { FulfillmentModel, FULFILLMENT_STATUSES } from '../models/Fulfillment.ts'
 import { ensureSubscriptionPrice, stripe } from '../services/stripe.ts'
+import { buildDisplay, readDimensions } from '../services/images.ts'
 import {
   ALLOWED_IMAGE_TYPES,
   buildObjectKey,
@@ -160,12 +167,12 @@ adminRouter.delete('/products/:id', async (req, res) => {
   }
 
   await Promise.all(
-    product.images.map(async (image) => {
-      invalidateSignedUrl(image.key)
-      await deleteObject(image.key).catch((error) =>
-        console.warn(`[s3] failed to delete ${image.key}`, error),
-      )
-    }),
+    product.images.flatMap((image) =>
+      [image.key, image.displayKey].filter((key): key is string => Boolean(key)).map(async (key) => {
+        invalidateSignedUrl(key)
+        await deleteObject(key).catch((error) => console.warn(`[s3] failed to delete ${key}`, error))
+      }),
+    ),
   )
   await product.deleteOne()
 
@@ -196,9 +203,24 @@ adminRouter.post('/products/:id/images', upload.array('images', 8), async (req, 
   for (const file of files) {
     const key = buildObjectKey(`products/${product.slug}`, file.mimetype, file.originalname)
     await uploadObject({ key, body: file.buffer, contentType: file.mimetype })
+
+    /* The original is kept for the studio's own use; only the display copy is
+       ever served to a visitor. */
+    const display = await buildDisplay(file.buffer)
+    let displayKey: string | null = null
+    if (display) {
+      displayKey = buildObjectKey(`products/${product.slug}`, 'image/webp', 'display.webp')
+      await uploadObject({ key: displayKey, body: display, contentType: 'image/webp' })
+    }
+
+    const { width, height } = await readDimensions(display ?? file.buffer)
+
     product.images.push({
       key,
+      displayKey,
       alt: product.title,
+      width,
+      height,
       contentType: file.mimetype,
       bytes: file.size,
     })
@@ -219,10 +241,12 @@ adminRouter.delete('/products/:id/images/:imageId', async (req, res) => {
     throw HttpError.badRequest('Unpublish it before removing its last image')
   }
 
-  invalidateSignedUrl(image.key)
-  await deleteObject(image.key).catch((error) =>
-    console.warn(`[s3] failed to delete ${image.key}`, error),
-  )
+  /* Both objects go: the original and the display copy derived from it. */
+  for (const key of [image.key, image.displayKey]) {
+    if (!key) continue
+    invalidateSignedUrl(key)
+    await deleteObject(key).catch((error) => console.warn(`[s3] failed to delete ${key}`, error))
+  }
 
   product.images.pull({ _id: image._id })
   await product.save()
@@ -277,6 +301,63 @@ adminRouter.get('/subscriptions', async (req, res) => {
   ])
 
   res.json({ subscriptions: subscriptions.map(serializeSubscription), total })
+})
+
+/* The packing queue. Orders and subscription renewals land in the same list
+   because they are the same job: put a print in an envelope and post it. */
+adminRouter.get('/fulfillments', async (req, res) => {
+  const query = z
+    .object({
+      status: z.enum(FULFILLMENT_STATUSES).optional(),
+      limit: z.coerce.number().int().min(1).max(200).default(100),
+      skip: z.coerce.number().int().min(0).default(0),
+    })
+    .parse(req.query)
+
+  const filter = query.status ? { status: query.status } : {}
+
+  const [fulfillments, total, pendingCount] = await Promise.all([
+    FulfillmentModel.find(filter)
+      /* Outstanding work is oldest-first so nothing quietly ages out at the
+         bottom; history reads newest-first. */
+      .sort(query.status === 'sent' ? { sentAt: -1 } : { createdAt: 1 })
+      .skip(query.skip)
+      .limit(query.limit)
+      .exec(),
+    FulfillmentModel.countDocuments(filter),
+    FulfillmentModel.countDocuments({ status: 'pending' }),
+  ])
+
+  res.json({ fulfillments: fulfillments.map(serializeFulfillment), total, pendingCount })
+})
+
+const fulfillmentPatchSchema = z.object({
+  status: z.enum(FULFILLMENT_STATUSES).optional(),
+  trackingNumber: z.string().trim().max(120).optional(),
+  notes: z.string().trim().max(2000).optional(),
+})
+
+adminRouter.patch('/fulfillments/:id', async (req, res) => {
+  const body = fulfillmentPatchSchema.parse(req.body)
+
+  const fulfillment = await FulfillmentModel.findById(req.params.id).exec()
+  if (!fulfillment) throw HttpError.notFound('No such fulfillment')
+
+  if (body.status && body.status !== fulfillment.status) {
+    /* sentAt is derived from the status rather than sent by the client, so
+       "sent" always carries a truthful timestamp and undoing clears it. */
+    fulfillment.set({
+      status: body.status,
+      sentAt: body.status === 'sent' ? new Date() : null,
+    })
+  }
+
+  if (body.trackingNumber !== undefined) fulfillment.set({ trackingNumber: body.trackingNumber })
+  if (body.notes !== undefined) fulfillment.set({ notes: body.notes })
+
+  await fulfillment.save()
+
+  res.json({ fulfillment: serializeFulfillment(fulfillment) })
 })
 
 adminRouter.get('/orders', async (req, res) => {

@@ -40,6 +40,8 @@
 
 .vault__flag {
   position: absolute;
+  /* Above the capture guard, which would otherwise paint over it. */
+  z-index: 2;
   top: 0.65rem;
   left: 0.65rem;
   padding: 0.25rem 0.6rem;
@@ -65,11 +67,19 @@
   text-transform: lowercase;
 }
 
+/* Now a wrapper around rendered paragraphs rather than a single one. */
 .vault__description {
-  margin: 0;
   font-size: 0.85rem;
   line-height: 1.5;
   opacity: 0.65;
+}
+
+.vault__description p {
+  margin: 0 0 0.5rem;
+}
+
+.vault__description p:last-child {
+  margin-bottom: 0;
 }
 
 .vault__row {
@@ -201,4 +211,20 @@ a.vault__add {
 .vault__add--disabled {
   opacity: 0.45;
   pointer-events: none;
+}
+
+/* Artwork is not meant to be dragged out, selected, or long-pressed into a
+   save sheet. The real protection is that only a downscaled copy is served. */
+.vault__image {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
+
+.vault__guard {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }

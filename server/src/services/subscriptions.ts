@@ -4,6 +4,7 @@ import {
   type SubscriptionDocument,
   type SubscriptionStatus,
 } from '../models/Subscription.ts'
+import { ensureSubscriptionFulfillment } from './fulfillments.ts'
 import { stripe } from './stripe.ts'
 
 /* Stripe owns subscription state; this mirrors it so the studio can show who
@@ -44,7 +45,25 @@ export async function refreshSubscription(
 ): Promise<SubscriptionDocument | null> {
   try {
     const remote = await stripe.subscriptions.retrieve(stripeSubscriptionId)
-    return await applySubscriptionState(remote)
+    const local = await applySubscriptionState(remote)
+
+    /* The invoice.paid webhook normally queues the parcel. Doing it here too
+       means a subscriber who has demonstrably paid is never missing from the
+       fulfillment queue just because an event was slow, lost, or — in local
+       development — never delivered at all. */
+    if (local && (remote.status === 'active' || remote.status === 'trialing')) {
+      const invoiceId =
+        typeof remote.latest_invoice === 'string'
+          ? remote.latest_invoice
+          : (remote.latest_invoice?.id ?? null)
+      const periodStart = remote.items.data[0]?.current_period_start ?? null
+
+      if (invoiceId) {
+        await ensureSubscriptionFulfillment(local, invoiceId, periodStart)
+      }
+    }
+
+    return local
   } catch (cause: unknown) {
     /* Reconciliation is an optimisation; the webhook is still the backstop. */
     console.warn(`[stripe] could not refresh subscription ${stripeSubscriptionId}`, cause)

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import RichTextEditor from "../../components/RichTextEditor";
 import { api, type AdminProduct, type ProductKind } from "../../lib/api";
 import { formatMoney, parseMoneyToCents } from "../../lib/money";
 import "./admin.css";
@@ -175,14 +176,13 @@ export default function AdminProducts() {
           ) : null}
         </div>
 
-        <label className="admin__field">
-          <span>description</span>
-          <textarea
-            rows={2}
+        <div className="admin__field">
+          <RichTextEditor
+            label="description"
             value={newDraft.description}
-            onChange={(event) => setNewDraft({ ...newDraft, description: event.target.value })}
+            onChange={(description) => setNewDraft({ ...newDraft, description })}
           />
-        </label>
+        </div>
 
         <button className="admin__primary" type="submit" disabled={busyId === "new"}>
           {busyId === "new" ? "creating…" : "create"}
@@ -335,19 +335,15 @@ export default function AdminProducts() {
                 </label>
               </div>
 
-              <label className="admin__field">
-                <span>description</span>
-                <textarea
-                  rows={2}
+              <div className="admin__field">
+                <RichTextEditor
+                  label="description"
                   value={draft.description}
-                  onChange={(event) =>
-                    setDrafts({
-                      ...drafts,
-                      [product.id]: { ...draft, description: event.target.value },
-                    })
+                  onChange={(description) =>
+                    setDrafts({ ...drafts, [product.id]: { ...draft, description } })
                   }
                 />
-              </label>
+              </div>
 
               <label className="admin__checkbox">
                 <input

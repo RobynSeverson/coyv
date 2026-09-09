@@ -141,6 +141,29 @@ export type Subscription = {
   createdAt: string;
 };
 
+export type FulfillmentStatus = "pending" | "sent";
+export type FulfillmentKind = "order" | "subscription";
+
+/* One parcel to post: a one-off order, or one month of a subscription. */
+export type Fulfillment = {
+  id: string;
+  kind: FulfillmentKind;
+  orderId: string | null;
+  subscriptionId: string | null;
+  /* e.g. "September 2026" for a subscription; empty for an order */
+  periodLabel: string;
+  title: string;
+  items: { title: string; quantity: number }[];
+  email: string | null;
+  shippingName: string | null;
+  shippingAddress: ShippingAddress | null;
+  status: FulfillmentStatus;
+  sentAt: string | null;
+  trackingNumber: string;
+  notes: string;
+  createdAt: string;
+};
+
 export type OrderItem = {
   productId: string;
   slug: string;
@@ -157,6 +180,15 @@ export type OrderStatus =
   | "canceled"
   | "refunded";
 
+export type ShippingAddress = {
+  line1: string;
+  line2: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
 export type Order = {
   id: string;
   status: OrderStatus;
@@ -164,14 +196,7 @@ export type Order = {
   amountTotalCents: number;
   email: string | null;
   shippingName: string | null;
-  shippingAddress: {
-    line1: string;
-    line2: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-  } | null;
+  shippingAddress: ShippingAddress | null;
   items: OrderItem[];
   lastPaymentError: string | null;
   createdAt: string;
@@ -241,7 +266,13 @@ export const api = {
 
   /* Subscriptions are confirmed by the same Payment Element as the cart: the
      secret this returns belongs to the first invoice's PaymentIntent. */
-  startSubscription: (payload: { productId: string; email: string; name?: string }) =>
+  startSubscription: (payload: {
+    productId: string;
+    email: string;
+    name?: string;
+    shippingName: string;
+    shippingAddress: ShippingAddress;
+  }) =>
     request<{
       clientSecret: string;
       amountTotalCents: number;
@@ -313,6 +344,20 @@ export const api = {
 
     listSubscriptions: () =>
       request<{ subscriptions: Subscription[]; total: number }>("/admin/subscriptions"),
+
+    listFulfillments: (status?: FulfillmentStatus) =>
+      request<{ fulfillments: Fulfillment[]; total: number; pendingCount: number }>(
+        `/admin/fulfillments${status ? `?status=${status}` : ""}`,
+      ),
+
+    updateFulfillment: (
+      id: string,
+      payload: { status?: FulfillmentStatus; trackingNumber?: string; notes?: string },
+    ) =>
+      request<{ fulfillment: Fulfillment }>(`/admin/fulfillments/${id}`, {
+        method: "PATCH",
+        body: payload,
+      }),
 
     listMemories: () => request<{ memories: AdminMemory[] }>("/admin/memories"),
 

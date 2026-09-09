@@ -16,6 +16,20 @@ export const SUBSCRIPTION_STATUSES = [
 
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number]
 
+/* A print subscription ships a physical thing every month, so an address is
+   as much a part of signing up as the card is. */
+const addressSchema = new Schema(
+  {
+    line1: { type: String, default: '' },
+    line2: { type: String, default: '' },
+    city: { type: String, default: '' },
+    state: { type: String, default: '' },
+    postalCode: { type: String, default: '' },
+    country: { type: String, default: '' },
+  },
+  { _id: false },
+)
+
 const subscriptionSchema = new Schema(
   {
     product: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
@@ -29,6 +43,9 @@ const subscriptionSchema = new Schema(
 
     email: { type: String, default: null, trim: true, lowercase: true },
     name: { type: String, default: null },
+
+    shippingName: { type: String, default: null },
+    shippingAddress: { type: addressSchema, default: null },
 
     status: { type: String, enum: SUBSCRIPTION_STATUSES, default: 'incomplete', index: true },
 

@@ -10,6 +10,9 @@ export type ProductKind = (typeof PRODUCT_KINDS)[number]
 const productImageSchema = new Schema(
   {
     key: { type: String, required: true, trim: true },
+    /* A downscaled webp. This is the only version the public API hands out,
+       so the print-resolution original never leaves the bucket. */
+    displayKey: { type: String, default: null },
     alt: { type: String, default: '', trim: true },
     width: { type: Number },
     height: { type: Number },

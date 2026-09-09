@@ -2,6 +2,7 @@ import type { ProductDocument } from '../models/Product.ts'
 import type { OrderDocument } from '../models/Order.ts'
 import type { SubscriptionDocument } from '../models/Subscription.ts'
 import type { MemoryDocument } from '../models/Memory.ts'
+import type { FulfillmentDocument } from '../models/Fulfillment.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
 
 export type SerializedImage = {
@@ -29,11 +30,15 @@ export type SerializedProduct = {
   images: SerializedImage[]
 }
 
+/* Only ever the display copy. Anything the browser can render can be saved,
+   so the protection that matters is not handing out the print-resolution file
+   in the first place. Images uploaded before display copies existed fall back
+   to the original rather than disappearing from the shop. */
 async function serializeImages(product: ProductDocument): Promise<SerializedImage[]> {
   return Promise.all(
     product.images.map(async (image) => ({
       id: String(image._id),
-      url: await getSignedObjectUrl(image.key),
+      url: await getSignedObjectUrl(image.displayKey ?? image.key),
       alt: image.alt || product.title,
       width: image.width ?? null,
       height: image.height ?? null,
@@ -98,6 +103,29 @@ export function serializeSubscription(subscription: SubscriptionDocument) {
     canceledAt: subscription.canceledAt,
     lastPaymentError: subscription.lastPaymentError,
     createdAt: subscription.createdAt,
+  }
+}
+
+export function serializeFulfillment(fulfillment: FulfillmentDocument) {
+  return {
+    id: String(fulfillment._id),
+    kind: fulfillment.kind,
+    orderId: fulfillment.order ? String(fulfillment.order) : null,
+    subscriptionId: fulfillment.subscription ? String(fulfillment.subscription) : null,
+    periodLabel: fulfillment.periodLabel,
+    title: fulfillment.title,
+    items: fulfillment.items.map((item) => ({
+      title: item.title,
+      quantity: item.quantity,
+    })),
+    email: fulfillment.email,
+    shippingName: fulfillment.shippingName,
+    shippingAddress: fulfillment.shippingAddress,
+    status: fulfillment.status,
+    sentAt: fulfillment.sentAt,
+    trackingNumber: fulfillment.trackingNumber,
+    notes: fulfillment.notes,
+    createdAt: fulfillment.createdAt,
   }
 }
 

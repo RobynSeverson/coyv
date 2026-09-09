@@ -137,6 +137,8 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET/POST/PATCH/DELETE` | `/api/admin/memories…` | gallery upload, captions, order |
 | `GET` | `/api/admin/orders` | |
 | `GET` | `/api/admin/subscriptions` | subscriber list mirrored from Stripe |
+| `GET` | `/api/admin/fulfillments` | the packing queue, filtered by status |
+| `PATCH` | `/api/admin/fulfillments/:id` | mark sent / back to queue, tracking |
 
 ### Product types
 
@@ -174,8 +176,11 @@ on the price they signed up at.
    authorises the lookup, so an order id on its own reveals nothing.
 
 Subscriptions follow the same shape and never leave the site. `/subscribe/:slug`
-collects an email, and `POST /api/checkout/subscription` finds or creates the
-Stripe customer and creates the subscription with `payment_behavior:
+collects an email **and a postal address** — a monthly print is a physical
+parcel, so there is nothing to fulfil without one — and `POST
+/api/checkout/subscription` finds or creates the Stripe customer, writes the
+address onto it as the customer's `shipping` so receipts and dispute evidence
+match, and creates the subscription with `payment_behavior:
 'default_incomplete'`. The first invoice's PaymentIntent is confirmed by the
 same Payment Element the cart uses, which is what activates the subscription —
 there is no redirect to Stripe-hosted Checkout. The confirmation page
@@ -183,6 +188,29 @@ reconciles straight from Stripe rather than waiting on the webhook, so a slow
 event never leaves a paid subscriber staring at "pending".
 
 Amounts are integer cents everywhere; only the view layer formats them.
+
+### Fulfillment
+
+Orders and subscription renewals are different transactions but the same
+studio job: put a print in an envelope and post it. Both therefore feed one
+`fulfillments` collection and one **fulfillment** tab, which is the queue of
+parcels owed.
+
+A row is created when money actually lands — `payment_intent.succeeded` for an
+order, `invoice.paid` for each month of a subscription — so a subscriber
+reappears in the queue every time they are charged, which is the point. Each
+row carries the address as captured at purchase, so later edits to a customer
+never rewrite what was already posted.
+
+Idempotency is one mechanism: a unique `sourceKey` (`order:<id>` or
+`invoice:<id>`) written with `$setOnInsert` on an upsert. That single
+constraint covers replayed webhooks, the webhook racing the reconciliation
+path in `refreshSubscription`, and a re-delivered invoice — and because it is
+insert-only, a late event can never flip a parcel already marked sent back to
+pending.
+
+"Print packing slips" prints the queue through a `@media print` stylesheet that
+drops the site chrome and gives each slip its own page.
 
 ### Admin panel
 
@@ -199,6 +227,16 @@ resolving.
 
 The **subscribers** tab is a read-only mirror of who is subscribed, with their
 status and renewal date, so the studio never needs a Stripe login.
+
+The **fulfillment** tab is the parcel queue described above; its badge counts
+what is still owed.
+
+Description fields use a small rich text editor — blank line for a new
+paragraph, single newline for a line break, plus `**bold**`, `*italic*` and
+`[text](url)`, with a preview toggle. It is stored as plain text and parsed
+into React elements at render time rather than through
+`dangerouslySetInnerHTML`, and link URLs are dropped unless they are plainly
+http(s), so no admin-authored text can inject markup into the shop.
 
 The **memories** tab manages the `/memories` gallery: drop in any number of
 images, give them captions and alt text, reorder them with the arrows, hide one
@@ -219,6 +257,17 @@ instead. The originals run 2–4 MB each, so this is the difference between a
 30 MB gallery and a 300 KB one. Downloads are presigned with a
 `Content-Disposition` of their own, because the HTML `download` attribute is
 ignored on a cross-origin URL.
+
+Product artwork is stored twice for a different reason. The original is the
+print-resolution file and is **never served publicly**: the public API only
+ever presigns a 1200px WebP display copy, so what the vault hands out is not
+worth printing. The vault also blocks the context menu and dragging, but that
+is a deterrent only — anything a browser renders can be saved, and not serving
+the original is the control that actually works.
+
+Images uploaded before display copies existed were backfilled with
+`npm run backfill-display-images` (run from `server/`), which builds the
+missing copy for any image still lacking one. It is idempotent.
 
 The seven memories that used to ship inside the frontend bundle were moved into
 S3 with `npm run import-memories -- --dir ../src/assets/memories` (run from

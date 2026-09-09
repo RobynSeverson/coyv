@@ -5,6 +5,10 @@ import { OrderModel, type OrderDocument } from '../models/Order.ts'
 import { ProductModel } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
 import { stripe } from '../services/stripe.ts'
+import {
+  ensureOrderFulfillment,
+  ensureSubscriptionFulfillment,
+} from '../services/fulfillments.ts'
 import { applySubscriptionState } from '../services/subscriptions.ts'
 
 export const webhookRouter: Router = Router()
@@ -63,6 +67,10 @@ async function applySuccess(intent: Stripe.PaymentIntent): Promise<void> {
     ),
   )
 
+  /* Only paid orders become parcels, and only once — the fulfilledAt guard
+     above already made this branch run a single time per order. */
+  await ensureOrderFulfillment(order)
+
   console.log(`[webhook] order ${order._id} paid (${intent.id})`)
 }
 
@@ -103,7 +111,15 @@ async function applyInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   /* Re-read from Stripe rather than trusting the invoice's snapshot, so the
      status and period always come from one place. */
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-  await applySubscriptionState(subscription)
+  const local = await applySubscriptionState(subscription)
+  if (!local) return
+
+  /* Every paid invoice is a print to post, including the very first one. */
+  await ensureSubscriptionFulfillment(
+    local,
+    invoice.id ?? `sub:${subscriptionId}:${invoice.period_start}`,
+    invoice.period_start ?? null,
+  )
 }
 
 async function applyInvoiceFailure(invoice: Stripe.Invoice): Promise<void> {

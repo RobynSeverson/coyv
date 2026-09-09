@@ -1,0 +1,111 @@
+.fulfil__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.fulfil__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fulfil__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+.fulfil__label {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.5;
+}
+
+.fulfil__address {
+  display: flex;
+  flex-direction: column;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.fulfil__items {
+  margin: 0;
+  padding-left: 1.1rem;
+  line-height: 1.6;
+}
+
+.fulfil__email {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.fulfil__notes {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.fulfil__actions {
+  align-items: flex-end;
+}
+
+.fulfil__tracking {
+  margin: 0;
+  max-width: 16rem;
+  flex: 1 1 12rem;
+}
+
+@media (max-width: 640px) {
+  .fulfil__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Printing the queue produces one packing slip per page: everything that is
+   screen furniture is dropped, so what comes out of the printer is just the
+   address and what goes in the envelope. */
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .admin__header,
+  .fulfil__bar,
+  .admin__actions,
+  .admin__error {
+    display: none !important;
+  }
+
+  .admin,
+  .admin__section {
+    margin: 0;
+    padding: 0;
+    max-width: none;
+  }
+
+  .fulfil__list {
+    display: block;
+  }
+
+  .fulfil__slip {
+    break-after: page;
+    border: 0;
+    padding: 0;
+    margin: 0 0 2rem;
+    background: none;
+    box-shadow: none;
+  }
+
+  .fulfil__slip:last-child {
+    break-after: auto;
+  }
+
+  .fulfil__address {
+    font-size: 1.2rem;
+  }
+}

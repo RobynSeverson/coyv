@@ -186,10 +186,22 @@ checkoutRouter.get('/orders/lookup', async (req, res) => {
    in an incomplete state and hands back the client secret of the first
    invoice's PaymentIntent — the same kind of secret the one-off cart uses, so
    the same on-page Payment Element confirms it. */
+const addressSchema = z.object({
+  line1: z.string().trim().min(1).max(200),
+  line2: z.string().trim().max(200).optional(),
+  city: z.string().trim().min(1).max(120),
+  state: z.string().trim().max(120).optional(),
+  postalCode: z.string().trim().min(1).max(32),
+  country: z.string().trim().min(2).max(2).toUpperCase(),
+})
+
 const subscribeSchema = z.object({
   productId: z.string().regex(/^[a-f0-9]{24}$/, 'Invalid product id'),
   email: z.string().trim().toLowerCase().email(),
   name: z.string().trim().max(160).optional(),
+  /* Required: there is a print to post every month. */
+  shippingName: z.string().trim().min(1).max(160),
+  shippingAddress: addressSchema,
 })
 
 /* "pi_123_secret_abc" -> "pi_123". Stripe does not return the id separately
@@ -230,6 +242,15 @@ checkoutRouter.post('/subscription', async (req, res) => {
 
   /* One Customer per email keeps a returning subscriber's billing history in
      one place instead of scattering it across duplicates. */
+  const stripeAddress = {
+    line1: body.shippingAddress.line1,
+    line2: body.shippingAddress.line2 ?? '',
+    city: body.shippingAddress.city,
+    state: body.shippingAddress.state ?? '',
+    postal_code: body.shippingAddress.postalCode,
+    country: body.shippingAddress.country,
+  }
+
   const found = await stripe.customers.list({ email: body.email, limit: 1 })
   const customer =
     found.data[0] ??
@@ -237,6 +258,13 @@ checkoutRouter.post('/subscription', async (req, res) => {
       email: body.email,
       ...(body.name ? { name: body.name } : {}),
     }))
+
+  /* Keep Stripe's copy of the address current so receipts and any dispute
+     evidence match what the parcel was actually sent to. */
+  await stripe.customers.update(customer.id, {
+    ...(body.name ? { name: body.name } : {}),
+    shipping: { name: body.shippingName, address: stripeAddress },
+  })
 
   const existing = await SubscriptionModel.findOne({
     product: product._id,
@@ -273,6 +301,15 @@ checkoutRouter.post('/subscription', async (req, res) => {
     interval: 'month',
     email: body.email,
     name: body.name ?? null,
+    shippingName: body.shippingName,
+    shippingAddress: {
+      line1: body.shippingAddress.line1,
+      line2: body.shippingAddress.line2 ?? '',
+      city: body.shippingAddress.city,
+      state: body.shippingAddress.state ?? '',
+      postalCode: body.shippingAddress.postalCode,
+      country: body.shippingAddress.country,
+    },
     status: 'incomplete',
     stripeCustomerId: customer.id,
     stripeSubscriptionId: subscription.id,

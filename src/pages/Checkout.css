@@ -238,3 +238,25 @@
   outline: 2px solid rgba(18, 26, 28, 0.45);
   outline-offset: 1px;
 }
+
+.checkout__fieldRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 480px) {
+  .checkout__fieldRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The plan description renders as paragraphs now, so the fine-print block
+   needs its inner spacing controlled rather than relying on a single <p>. */
+.checkout__fine p {
+  margin: 0 0 0.5rem;
+}
+
+.checkout__fine p:last-child {
+  margin-bottom: 0;
+}

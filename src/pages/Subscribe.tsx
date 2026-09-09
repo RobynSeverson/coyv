@@ -3,6 +3,7 @@ import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Product } from "../lib/api";
+import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
 import { getStripe } from "../lib/stripe";
 import "./Checkout.css";
@@ -87,6 +88,17 @@ export default function Subscribe() {
   const [product, setProduct] = useState<Product | null>(null);
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
+  /* A print subscription posts a physical thing every month, so the address is
+     as much a part of signing up as the card is. */
+  const [shipping, setShipping] = useState({
+    shippingName: "",
+    line1: "",
+    line2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "US",
+  });
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [amountCents, setAmountCents] = useState(0);
   const [currency, setCurrency] = useState("usd");
@@ -136,6 +148,15 @@ export default function Subscribe() {
         productId: product.id,
         email: email.trim(),
         ...(name.trim() ? { name: name.trim() } : {}),
+        shippingName: shipping.shippingName.trim(),
+        shippingAddress: {
+          line1: shipping.line1.trim(),
+          line2: shipping.line2.trim(),
+          city: shipping.city.trim(),
+          state: shipping.state.trim(),
+          postalCode: shipping.postalCode.trim(),
+          country: shipping.country.trim().toUpperCase(),
+        },
       });
       setClientSecret(result.clientSecret);
       setAmountCents(result.amountTotalCents);
@@ -192,9 +213,7 @@ export default function Subscribe() {
             </li>
           </ul>
 
-          {product.description ? (
-            <p className="checkout__fine">{product.description}</p>
-          ) : null}
+          <RichText className="checkout__fine" value={product.description} />
 
           <p className="checkout__total">
             <span>today</span>
@@ -242,6 +261,90 @@ export default function Subscribe() {
                 </label>
               </fieldset>
 
+              <fieldset className="checkout__fieldset" disabled={starting}>
+                <legend className="checkout__legend">where to post it</legend>
+
+                <label className="checkout__field">
+                  <span>full name</span>
+                  <input
+                    required
+                    autoComplete="shipping name"
+                    value={shipping.shippingName}
+                    onChange={(event) =>
+                      setShipping({ ...shipping, shippingName: event.target.value })
+                    }
+                  />
+                </label>
+
+                <label className="checkout__field">
+                  <span>address</span>
+                  <input
+                    required
+                    autoComplete="shipping address-line1"
+                    value={shipping.line1}
+                    onChange={(event) => setShipping({ ...shipping, line1: event.target.value })}
+                  />
+                </label>
+
+                <label className="checkout__field">
+                  <span>apartment, suite (optional)</span>
+                  <input
+                    autoComplete="shipping address-line2"
+                    value={shipping.line2}
+                    onChange={(event) => setShipping({ ...shipping, line2: event.target.value })}
+                  />
+                </label>
+
+                <div className="checkout__fieldRow">
+                  <label className="checkout__field">
+                    <span>city</span>
+                    <input
+                      required
+                      autoComplete="shipping address-level2"
+                      value={shipping.city}
+                      onChange={(event) => setShipping({ ...shipping, city: event.target.value })}
+                    />
+                  </label>
+
+                  <label className="checkout__field">
+                    <span>state / region</span>
+                    <input
+                      autoComplete="shipping address-level1"
+                      value={shipping.state}
+                      onChange={(event) => setShipping({ ...shipping, state: event.target.value })}
+                    />
+                  </label>
+                </div>
+
+                <div className="checkout__fieldRow">
+                  <label className="checkout__field">
+                    <span>postal code</span>
+                    <input
+                      required
+                      autoComplete="shipping postal-code"
+                      value={shipping.postalCode}
+                      onChange={(event) =>
+                        setShipping({ ...shipping, postalCode: event.target.value })
+                      }
+                    />
+                  </label>
+
+                  <label className="checkout__field">
+                    <span>country</span>
+                    <input
+                      required
+                      maxLength={2}
+                      placeholder="US"
+                      autoComplete="shipping country"
+                      value={shipping.country}
+                      onChange={(event) =>
+                        setShipping({ ...shipping, country: event.target.value.toUpperCase() })
+                      }
+                    />
+                  </label>
+                </div>
+              </fieldset>
+
               {error ? (
                 <p className="checkout__error" role="alert">
                   {error}
@@ -253,7 +356,8 @@ export default function Subscribe() {
               </button>
 
               <p className="checkout__fine">
-                Your receipt and any renewal notices go to this address.
+                Your receipt and any renewal notices go to this email. We post a new print to
+                the address above every month.
               </p>
             </form>
           )}
