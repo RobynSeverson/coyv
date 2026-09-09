@@ -15,6 +15,7 @@ import { ProductModel, PRODUCT_KINDS } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
 import { FulfillmentModel, FULFILLMENT_STATUSES } from '../models/Fulfillment.ts'
 import { ensureSubscriptionPrice, stripe } from '../services/stripe.ts'
+import { sendShippedNotice } from '../services/email/notifications.ts'
 import { buildDisplay, readDimensions } from '../services/images.ts'
 import {
   ALLOWED_IMAGE_TYPES,
@@ -343,6 +344,8 @@ adminRouter.patch('/fulfillments/:id', async (req, res) => {
   const fulfillment = await FulfillmentModel.findById(req.params.id).exec()
   if (!fulfillment) throw HttpError.notFound('No such fulfillment')
 
+  const becameSent = body.status === 'sent' && fulfillment.status !== 'sent'
+
   if (body.status && body.status !== fulfillment.status) {
     /* sentAt is derived from the status rather than sent by the client, so
        "sent" always carries a truthful timestamp and undoing clears it. */
@@ -356,6 +359,11 @@ adminRouter.patch('/fulfillments/:id', async (req, res) => {
   if (body.notes !== undefined) fulfillment.set({ notes: body.notes })
 
   await fulfillment.save()
+
+  /* Sent after the save so the note quotes the tracking number that was just
+     stored. Dedupes on the fulfillment id, so toggling sent → pending → sent
+     while correcting a mistake does not spam the buyer. */
+  if (becameSent) await sendShippedNotice(fulfillment)
 
   res.json({ fulfillment: serializeFulfillment(fulfillment) })
 })

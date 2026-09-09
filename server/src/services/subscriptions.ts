@@ -5,6 +5,7 @@ import {
   type SubscriptionStatus,
 } from '../models/Subscription.ts'
 import { ensureSubscriptionFulfillment } from './fulfillments.ts'
+import { sendSubscriptionCharge } from './email/notifications.ts'
 import { stripe } from './stripe.ts'
 
 /* Stripe owns subscription state; this mirrors it so the studio can show who
@@ -59,7 +60,16 @@ export async function refreshSubscription(
       const periodStart = remote.items.data[0]?.current_period_start ?? null
 
       if (invoiceId) {
-        await ensureSubscriptionFulfillment(local, invoiceId, periodStart)
+        const { created, fulfillment } = await ensureSubscriptionFulfillment(
+          local,
+          invoiceId,
+          periodStart,
+        )
+        /* This path exists for when no webhook arrives, so it has to send the
+           subscriber's note too. The email dedupe key is the same one the
+           webhook would use, so whichever gets here first wins and the other
+           is a no-op. */
+        if (created && fulfillment) await sendSubscriptionCharge(fulfillment)
       }
     }
 

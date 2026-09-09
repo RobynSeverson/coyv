@@ -10,6 +10,10 @@ import {
   ensureSubscriptionFulfillment,
 } from '../services/fulfillments.ts'
 import { applySubscriptionState } from '../services/subscriptions.ts'
+import {
+  sendOrderConfirmation,
+  sendSubscriptionCharge,
+} from '../services/email/notifications.ts'
 
 export const webhookRouter: Router = Router()
 
@@ -71,6 +75,11 @@ async function applySuccess(intent: Stripe.PaymentIntent): Promise<void> {
      above already made this branch run a single time per order. */
   await ensureOrderFulfillment(order)
 
+  /* Confirmation is best-effort by design: sendEmail never throws, because a
+     Brevo outage must not make this webhook fail and replay the stock
+     decrement above. */
+  await sendOrderConfirmation(order)
+
   console.log(`[webhook] order ${order._id} paid (${intent.id})`)
 }
 
@@ -115,11 +124,15 @@ async function applyInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   if (!local) return
 
   /* Every paid invoice is a print to post, including the very first one. */
-  await ensureSubscriptionFulfillment(
+  const { created, fulfillment } = await ensureSubscriptionFulfillment(
     local,
     invoice.id ?? `sub:${subscriptionId}:${invoice.period_start}`,
     invoice.period_start ?? null,
   )
+
+  /* Only a genuinely new billing period earns a note; a replayed invoice.paid
+     finds the row already there and stays quiet. */
+  if (created && fulfillment) await sendSubscriptionCharge(fulfillment)
 }
 
 async function applyInvoiceFailure(invoice: Stripe.Invoice): Promise<void> {

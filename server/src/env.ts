@@ -41,6 +41,38 @@ const schema = z.object({
   S3_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().positive().default(3600),
 
   MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(15 * 1024 * 1024),
+
+  /* Brevo (transactional email). Left optional on purpose: without a real key
+     the app still boots and every send becomes a logged no-op, so local dev
+     and a half-configured deploy behave sanely instead of failing at the
+     first paid order. See isEmailConfigured() in services/email/brevo.ts. */
+  BREVO_API_KEY: trimmed.optional(),
+  BREVO_SENDER_EMAIL: trimmed.email().default('orders@coyvcastle.com'),
+  BREVO_SENDER_NAME: trimmed.default('coyv'),
+  /* Where the fulfillment digest goes. Comma-separated; blank disables it. */
+  ADMIN_NOTIFICATION_EMAILS: trimmed
+    .default('')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((entry) => entry.trim().toLowerCase())
+        .filter((entry) => entry.length > 0),
+    ),
+
+  /* Where the admin panel lives, so emails can deep-link into it. Must match
+     the frontend's VITE_ADMIN_PATH. */
+  ADMIN_PATH: trimmed.default('/studio-back-door'),
+
+  /* A parcel still unsent this many days after it was paid for is past due,
+     which is what the digest highlights. */
+  FULFILLMENT_PAST_DUE_DAYS: z.coerce.number().int().positive().default(3),
+  /* Above this many outstanding parcels the digest stops listing them and
+     links to the admin queue instead. */
+  DIGEST_MAX_ITEMS: z.coerce.number().int().positive().default(10),
+
+  /* Shared secret for the scheduled-task endpoint. Without it the endpoint
+     refuses every request rather than running unauthenticated. */
+  TASKS_SECRET: trimmed.optional(),
 })
 
 const parsed = schema.safeParse(

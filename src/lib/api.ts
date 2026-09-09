@@ -162,6 +162,9 @@ export type Fulfillment = {
   trackingNumber: string;
   notes: string;
   createdAt: string;
+  /* Computed by the server so the admin list, the digest email and its deep
+     link all agree on what "past due" means. */
+  pastDue: boolean;
 };
 
 export type OrderItem = {

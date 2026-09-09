@@ -11,6 +11,7 @@ import { adminRouter } from './routes/adminProducts.ts'
 import { checkoutRouter } from './routes/checkout.ts'
 import { memoriesRouter } from './routes/memories.ts'
 import { printsRouter, productsRouter } from './routes/products.ts'
+import { tasksRouter } from './routes/tasks.ts'
 import { webhookRouter } from './routes/webhook.ts'
 
 export function createApp(): Express {
@@ -73,6 +74,8 @@ export function createApp(): Express {
   app.use('/api/memories', memoriesRouter)
   app.use('/api/checkout', checkoutRouter)
   app.use('/api/admin/auth', adminAuthRouter)
+  /* Driven by a scheduler with a shared secret, not by the admin session. */
+  app.use('/api/tasks', tasksRouter)
   /* Mounted before the catch-all admin router so its own paths win. */
   app.use('/api/admin/memories', adminMemoriesRouter)
   app.use('/api/admin', adminRouter)

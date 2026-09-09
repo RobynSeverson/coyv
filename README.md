@@ -139,6 +139,7 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET` | `/api/admin/subscriptions` | subscriber list mirrored from Stripe |
 | `GET` | `/api/admin/fulfillments` | the packing queue, filtered by status |
 | `PATCH` | `/api/admin/fulfillments/:id` | mark sent / back to queue, tracking |
+| `POST` | `/api/tasks/daily-digest` | scheduler-only, `x-tasks-secret` header |
 
 ### Product types
 
@@ -211,6 +212,56 @@ pending.
 
 "Print packing slips" prints the queue through a `@media print` stylesheet that
 drops the site chrome and gives each slip its own page.
+
+### Email
+
+Transactional mail goes through [Brevo](https://www.brevo.com). Buyers get a
+confirmation when an order is paid, a note for every monthly subscription
+charge, and a "it is in the post" note when a parcel is marked sent. The studio
+gets one digest a day listing what still has to go out.
+
+**`BREVO_API_KEY` is optional on purpose.** A missing key — or one that still
+contains a placeholder marker like `REPLACE_ME` — is treated as "not
+configured": the app boots normally and every send becomes a log line saying
+who it *would* have emailed. That way a half-configured deploy never turns a
+paid order into a 500.
+
+Every email is at-most-once. `sendEmail` claims a unique `dedupeKey` in the
+`emaillogs` collection *before* calling Brevo and releases it again if the call
+fails, so a replayed webhook, a retried schedule, and two Lambdas racing each
+other cannot double-send, while a genuine provider blip can still be retried.
+The keys are `order-confirmation:<orderId>`, `subscription-charge:<sourceKey>`,
+`shipped:<fulfillmentId>` and `fulfillment-digest:<YYYY-MM-DD>`.
+
+Sends never throw. They happen on paths that have already taken money, and
+failing the Stripe webhook would replay the stock decrement rather than fix the
+email.
+
+#### The daily digest
+
+`POST /api/tasks/daily-digest` builds and sends it. It is authorised by a shared
+`x-tasks-secret` header rather than the admin cookie, because a scheduler is
+calling it; if `TASKS_SECRET` is unset the endpoint 404s rather than running
+unauthenticated.
+
+- Nothing outstanding means **no email** — a daily "nothing to do" trains you to
+  ignore the ones that matter.
+- A subscription line carries the month it was charged for, e.g.
+  *"October 2026 — heavenly dispatch"*, so a renewal reads as a job rather than
+  a puzzle.
+- Anything pending for more than `FULFILLMENT_PAST_DUE_DAYS` (default 3) is
+  flagged past due, and the subject says how many.
+- Over `DIGEST_MAX_ITEMS` (default 10) the list is dropped entirely in favour of
+  a link to the queue, since a 60-row email is not a to-do list.
+
+The link deep-links into the admin at
+`?tab=fulfillment&filter=past-due`, which opens the fulfillment tab with the
+past-due filter already applied. "Past due" is computed once, server-side, in
+`isPastDue()`, so the email and the page can never disagree.
+
+Scheduling is not wired up yet. Once the real key is in place, point any daily
+scheduler (EventBridge Scheduler → API destination) at that endpoint with the
+`x-tasks-secret` header; running it more than once a day is harmless.
 
 ### Admin panel
 
