@@ -10,7 +10,7 @@ import {
 import { CART_MAX_PER_ITEM } from "./constants";
 
 export type CartLine = {
-  printId: string;
+  productId: string;
   slug: string;
   title: string;
   priceCents: number;
@@ -19,7 +19,9 @@ export type CartLine = {
   quantity: number;
 };
 
-const STORAGE_KEY = "coyv.cart.v1";
+/* v2: lines used to be keyed by printId, which no longer exists. Bumping
+   the key drops a stale cart instead of trying to migrate one. */
+const STORAGE_KEY = "coyv.cart.v2";
 const MAX_PER_ITEM = CART_MAX_PER_ITEM;
 
 function readStoredCart(): CartLine[] {
@@ -34,7 +36,7 @@ function readStoredCart(): CartLine[] {
       (line): line is CartLine =>
         typeof line === "object" &&
         line !== null &&
-        typeof (line as CartLine).printId === "string" &&
+        typeof (line as CartLine).productId === "string" &&
         typeof (line as CartLine).quantity === "number",
     );
   } catch {
@@ -48,8 +50,8 @@ type CartValue = {
   subtotalCents: number;
   currency: string;
   add: (line: Omit<CartLine, "quantity">, quantity?: number) => void;
-  setQuantity: (printId: string, quantity: number) => void;
-  remove: (printId: string) => void;
+  setQuantity: (productId: string, quantity: number) => void;
+  remove: (productId: string) => void;
   clear: () => void;
 };
 
@@ -64,32 +66,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback((line: Omit<CartLine, "quantity">, quantity = 1) => {
     setLines((current) => {
-      const existing = current.find((entry) => entry.printId === line.printId);
+      const existing = current.find((entry) => entry.productId === line.productId);
       if (!existing) {
         return [...current, { ...line, quantity: Math.min(quantity, MAX_PER_ITEM) }];
       }
       return current.map((entry) =>
-        entry.printId === line.printId
+        entry.productId === line.productId
           ? { ...entry, ...line, quantity: Math.min(entry.quantity + quantity, MAX_PER_ITEM) }
           : entry,
       );
     });
   }, []);
 
-  const setQuantity = useCallback((printId: string, quantity: number) => {
+  const setQuantity = useCallback((productId: string, quantity: number) => {
     setLines((current) =>
       quantity <= 0
-        ? current.filter((entry) => entry.printId !== printId)
+        ? current.filter((entry) => entry.productId !== productId)
         : current.map((entry) =>
-            entry.printId === printId
+            entry.productId === productId
               ? { ...entry, quantity: Math.min(quantity, MAX_PER_ITEM) }
               : entry,
           ),
     );
   }, []);
 
-  const remove = useCallback((printId: string) => {
-    setLines((current) => current.filter((entry) => entry.printId !== printId));
+  const remove = useCallback((productId: string) => {
+    setLines((current) => current.filter((entry) => entry.productId !== productId));
   }, []);
 
   const clear = useCallback(() => setLines([]), []);

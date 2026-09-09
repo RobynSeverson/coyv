@@ -35,6 +35,7 @@ Docker must be running for `dev:db`. To use a MongoDB you already have, set
 - `src/pages/Home.tsx` / `Home.css` — `/home`, prints & photos tiles
 - `src/pages/Collection.tsx` / `Collection.css` — `/memories`
 - `src/pages/Vault.tsx` / `Vault.css` — `/vault`, the shop (`/prints` redirects here)
+- `src/pages/Subscribe.tsx` — `/subscribe/:slug`, on-site recurring signup
 - `src/pages/Checkout.tsx`, `OrderStatus.tsx` — Stripe Payment Element and receipt
 - `src/pages/admin/` — the unlinked admin panel
 - `src/lib/api.ts` — typed client for the API in `server/`
@@ -121,21 +122,43 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | `/api/health` | 503 while Mongo is unreachable |
-| `GET` | `/api/prints` | published prints only |
-| `GET` | `/api/prints/:slug` | |
+| `GET` | `/api/products` | published products of every type |
+| `GET` | `/api/products/:slug` | |
+| `GET` | `/api/prints` | deprecated alias; one-off prints only |
 | `GET` | `/api/memories` | published memories, in gallery order |
 | `POST` | `/api/checkout/intent` | prices the cart, returns a client secret |
-| `GET` | `/api/checkout/orders/lookup` | order status after the Stripe redirect |
+| `GET` | `/api/checkout/orders/lookup` | order status, authorised by the client secret |
+| `POST` | `/api/checkout/subscription` | starts an incomplete subscription |
+| `GET` | `/api/checkout/subscriptions/lookup` | subscription status after payment |
 | `POST` | `/api/stripe/webhook` | signature-verified, raw body |
 | `POST` | `/api/admin/auth/login` `/logout` `/password` | |
 | `GET` | `/api/admin/auth/me` | returns `{ admin: null }` when signed out |
-| `GET/POST/PATCH/DELETE` | `/api/admin/prints…` | catalogue + image upload |
+| `GET/POST/PATCH/DELETE` | `/api/admin/products…` | catalogue + image upload |
 | `GET/POST/PATCH/DELETE` | `/api/admin/memories…` | gallery upload, captions, order |
 | `GET` | `/api/admin/orders` | |
+| `GET` | `/api/admin/subscriptions` | subscriber list mirrored from Stripe |
+
+### Product types
+
+A product is either a **print** — a one-off purchase with optional stock — or a
+**monthly print subscription**, billed every month until cancelled. The type is
+chosen when the product is created and cannot be changed afterwards, because it
+decides how the thing is billed.
+
+Both types live in the same collection and both appear in the vault. A
+subscription has no stock and is never "sold out"; it also cannot go in the
+cart, since a recurring charge and a one-off basket are different transactions.
+
+Saving a subscription creates or updates its recurring price in Stripe over the
+API, so **the catalogue is only ever managed from this admin panel, never from
+the Stripe dashboard**. Stripe prices are immutable, so changing the amount
+archives the old price and mints a new one; existing subscribers keep billing
+on the price they signed up at.
 
 ### How payments work
 
-1. `/vault` lists published prints; adding one puts it in a `localStorage` cart.
+1. `/vault` lists published products; adding a print puts it in a
+   `localStorage` cart.
 2. `/checkout` posts the cart to `POST /api/checkout/intent`. The server looks
    every price up in Mongo, checks stock, creates a `pending` Order and a
    Stripe PaymentIntent carrying the order id in its metadata. **No amount
@@ -150,6 +173,15 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
    until the webhook has landed. The client secret in the URL is what
    authorises the lookup, so an order id on its own reveals nothing.
 
+Subscriptions follow the same shape and never leave the site. `/subscribe/:slug`
+collects an email, and `POST /api/checkout/subscription` finds or creates the
+Stripe customer and creates the subscription with `payment_behavior:
+'default_incomplete'`. The first invoice's PaymentIntent is confirmed by the
+same Payment Element the cart uses, which is what activates the subscription —
+there is no redirect to Stripe-hosted Checkout. The confirmation page
+reconciles straight from Stripe rather than waiting on the webhook, so a slow
+event never leaves a paid subscriber staring at "pending".
+
 Amounts are integer cents everywhere; only the view layer formats them.
 
 ### Admin panel
@@ -159,10 +191,14 @@ nowhere. It is a build-time constant, so changing it means rebuilding the web
 image. Sign-in issues an httpOnly, `SameSite=Strict` JWT cookie; there is no
 signup route, and login attempts are throttled per IP.
 
-From there you can create prints, set prices and stock, upload artwork, and
-publish. A print with no images cannot be published, and deleting one that
-already appears on a real order archives it instead so order history keeps
+The **products** tab is where you create prints and subscriptions, set prices
+and stock, upload artwork, and publish. A product with no images cannot be
+published, and deleting one that already appears on a real order — or that
+someone actively subscribes to — archives it instead, so history keeps
 resolving.
+
+The **subscribers** tab is a read-only mirror of who is subscribed, with their
+status and renewal date, so the studio never needs a Stripe login.
 
 The **memories** tab manages the `/memories` gallery: drop in any number of
 images, give them captions and alt text, reorder them with the arrows, hide one
@@ -172,7 +208,7 @@ too, so it cannot be undone.
 ### S3
 
 Uploads are proxied through the API (`multipart/form-data`, JPEG/PNG/WebP/AVIF,
-`MAX_UPLOAD_BYTES` each) and stored under `prints/<slug>/<uuid>` or
+`MAX_UPLOAD_BYTES` each) and stored under `products/<slug>/<uuid>` or
 `memories/<uuid>`; the client's filename is discarded. The bucket stays
 private — image URLs are presigned GETs minted per request and cached
 in-process until just before they expire.
@@ -260,7 +296,12 @@ in at build time, so changing it means rebuilding and re-uploading the SPA.
 
 The live webhook endpoint points at `https://coyvcastle.com/api/stripe/webhook`
 and subscribes to `payment_intent.succeeded`, `payment_intent.payment_failed`,
-`payment_intent.canceled` and `charge.refunded`.
+`payment_intent.canceled`, `charge.refunded`,
+`customer.subscription.created/updated/deleted`, `invoice.paid` and
+`invoice.payment_failed`.
+
+Products and prices are created through the API by the admin panel, so nothing
+in the catalogue should be edited in the Stripe dashboard.
 
 Local development uses the sandbox keys in `server/.env` and root `.env`, so no
 real charge is possible. Webhooks do not reach localhost on their own; run

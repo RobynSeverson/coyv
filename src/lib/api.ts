@@ -79,7 +79,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   return payload as T;
 }
 
-export type PrintImage = {
+export type ProductImage = {
   id: string;
   url: string;
   alt: string;
@@ -87,27 +87,62 @@ export type PrintImage = {
   height: number | null;
 };
 
-export type Print = {
+export type ProductKind = "print" | "subscription";
+
+export type Product = {
   id: string;
+  kind: ProductKind;
   slug: string;
   title: string;
   description: string;
   priceCents: number;
   currency: string;
+  /* null for a one-off print, "month" for a subscription */
+  interval: string | null;
   stock: number | null;
   soldOut: boolean;
-  images: PrintImage[];
+  /* false while a subscription is still waiting on its Stripe price */
+  available: boolean;
+  images: ProductImage[];
 };
 
-export type AdminPrint = Print & {
+export type AdminProduct = Product & {
   published: boolean;
   sortOrder: number;
+  stripePriceId: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
+export type SubscriptionStatus =
+  | "incomplete"
+  | "incomplete_expired"
+  | "trialing"
+  | "active"
+  | "past_due"
+  | "canceled"
+  | "unpaid"
+  | "paused";
+
+export type Subscription = {
+  id: string;
+  productId: string;
+  slug: string;
+  title: string;
+  status: SubscriptionStatus;
+  unitAmountCents: number;
+  currency: string;
+  interval: string;
+  email: string | null;
+  name: string | null;
+  currentPeriodEnd: string | null;
+  canceledAt: string | null;
+  lastPaymentError: string | null;
+  createdAt: string;
+};
+
 export type OrderItem = {
-  printId: string;
+  productId: string;
   slug: string;
   title: string;
   unitAmountCents: number;
@@ -176,7 +211,7 @@ type MemoryInput = {
 
 export type Admin = { id: string; email: string; displayName: string };
 
-type PrintInput = {
+type ProductInput = {
   title: string;
   description: string;
   priceCents: number;
@@ -185,14 +220,16 @@ type PrintInput = {
   sortOrder: number;
 };
 
-export const api = {
-  listPrints: () => request<{ prints: Print[] }>("/prints"),
+type NewProductInput = ProductInput & { kind: ProductKind };
 
-  getPrint: (slug: string) =>
-    request<{ print: Print }>(`/prints/${encodeURIComponent(slug)}`),
+export const api = {
+  listProducts: () => request<{ products: Product[] }>("/products"),
+
+  getProduct: (slug: string) =>
+    request<{ product: Product }>(`/products/${encodeURIComponent(slug)}`),
 
   createPaymentIntent: (payload: {
-    items: { printId: string; quantity: number }[];
+    items: { productId: string; quantity: number }[];
     orderId?: string;
   }) =>
     request<{
@@ -201,6 +238,22 @@ export const api = {
       amountTotalCents: number;
       currency: string;
     }>("/checkout/intent", { method: "POST", body: payload }),
+
+  /* Subscriptions are confirmed by the same Payment Element as the cart: the
+     secret this returns belongs to the first invoice's PaymentIntent. */
+  startSubscription: (payload: { productId: string; email: string; name?: string }) =>
+    request<{
+      clientSecret: string;
+      amountTotalCents: number;
+      currency: string;
+      interval: string;
+    }>("/checkout/subscription", { method: "POST", body: payload }),
+
+  lookupSubscription: (paymentIntent: string, clientSecret: string) =>
+    request<{ subscription: Subscription; paymentStatus: string }>(
+      `/checkout/subscriptions/lookup?payment_intent=${encodeURIComponent(paymentIntent)}` +
+        `&payment_intent_client_secret=${encodeURIComponent(clientSecret)}`,
+    ),
 
   lookupOrder: (paymentIntent: string, clientSecret: string) =>
     request<{ order: Order; paymentStatus: string }>(
@@ -222,40 +275,44 @@ export const api = {
 
     logout: () => request<{ ok: true }>("/admin/auth/logout", { method: "POST" }),
 
-    listPrints: () => request<{ prints: AdminPrint[] }>("/admin/prints"),
+    listProducts: () => request<{ products: AdminProduct[] }>("/admin/products"),
 
-    createPrint: (payload: PrintInput) =>
-      request<{ print: AdminPrint }>("/admin/prints", {
+    createProduct: (payload: NewProductInput) =>
+      request<{ product: AdminProduct }>("/admin/products", {
         method: "POST",
         body: payload,
       }),
 
-    updatePrint: (id: string, payload: Partial<PrintInput>) =>
-      request<{ print: AdminPrint }>(`/admin/prints/${id}`, {
+    updateProduct: (id: string, payload: Partial<ProductInput>) =>
+      request<{ product: AdminProduct }>(`/admin/products/${id}`, {
         method: "PATCH",
         body: payload,
       }),
 
-    deletePrint: (id: string) =>
-      request<{ deleted?: boolean; archived?: boolean }>(`/admin/prints/${id}`, {
-        method: "DELETE",
-      }),
+    deleteProduct: (id: string) =>
+      request<{ deleted?: boolean; archived?: boolean; product?: AdminProduct }>(
+        `/admin/products/${id}`,
+        { method: "DELETE" },
+      ),
 
     uploadImages: (id: string, files: File[]) => {
       const formData = new FormData();
       for (const file of files) formData.append("images", file);
-      return request<{ print: AdminPrint }>(`/admin/prints/${id}/images`, {
+      return request<{ product: AdminProduct }>(`/admin/products/${id}/images`, {
         method: "POST",
         formData,
       });
     },
 
     deleteImage: (id: string, imageId: string) =>
-      request<{ print: AdminPrint }>(`/admin/prints/${id}/images/${imageId}`, {
+      request<{ product: AdminProduct }>(`/admin/products/${id}/images/${imageId}`, {
         method: "DELETE",
       }),
 
     listOrders: () => request<{ orders: Order[]; total: number }>("/admin/orders"),
+
+    listSubscriptions: () =>
+      request<{ subscriptions: Subscription[]; total: number }>("/admin/subscriptions"),
 
     listMemories: () => request<{ memories: AdminMemory[] }>("/admin/memories"),
 

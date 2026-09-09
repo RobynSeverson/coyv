@@ -208,3 +208,33 @@
 .checkout--empty {
   text-align: center;
 }
+
+/* The subscribe page collects an email itself, because Stripe needs a customer
+   before it will hold a subscription. Styled to sit next to the Payment
+   Element without fighting its appearance settings. */
+.checkout__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.9rem;
+}
+
+.checkout__field span {
+  font-size: 0.78rem;
+  opacity: 0.7;
+}
+
+.checkout__field input {
+  padding: 0.7rem 0.75rem;
+  border: 1px solid rgba(18, 26, 28, 0.18);
+  border-radius: 3px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.95rem;
+  color: #121a1c;
+}
+
+.checkout__field input:focus-visible {
+  outline: 2px solid rgba(18, 26, 28, 0.45);
+  outline-offset: 1px;
+}

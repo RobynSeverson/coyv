@@ -8,7 +8,8 @@ import Home from "./pages/Home";
 import Memories from "./pages/Memories";
 import Vault from "./pages/Vault";
 import Checkout from "./pages/Checkout";
-import OrderStatus from "./pages/OrderStatus";
+import PostPayment from "./pages/PostPayment";
+import Subscribe from "./pages/Subscribe";
 
 /* The admin panel pulls in its own screens and is useless to a visitor, so it
    is split out of the main bundle. */
@@ -36,7 +37,8 @@ export default function App() {
             {/* The shop used to live here; keep shared links working. */}
             <Route path="/prints" element={<Navigate to="/vault" replace />} />
             <Route path="/checkout" element={<Checkout />} />
-            <Route path="/order" element={<OrderStatus />} />
+            <Route path="/subscribe/:slug" element={<Subscribe />} />
+            <Route path="/order" element={<PostPayment />} />
             <Route path="/memories" element={<Memories />} />
           </Route>
         </Routes>

@@ -115,7 +115,7 @@ export default function Checkout() {
 
   /* Re-priced whenever the basket changes; the amount shown always comes back
      from the server rather than from the local subtotal. */
-  const signature = cart.lines.map((line) => `${line.printId}:${line.quantity}`).join(",");
+  const signature = cart.lines.map((line) => `${line.productId}:${line.quantity}`).join(",");
 
   useEffect(() => {
     if (cart.lines.length === 0) {
@@ -129,7 +129,7 @@ export default function Checkout() {
     api
       .createPaymentIntent({
         items: cart.lines.map((line) => ({
-          printId: line.printId,
+          productId: line.productId,
           quantity: line.quantity,
         })),
         orderId: orderIdRef.current,
@@ -172,7 +172,7 @@ export default function Checkout() {
         <section className="checkout__summary" aria-label="Order summary">
           <ul className="checkout__lines">
             {cart.lines.map((line) => (
-              <li key={line.printId} className="checkout__line">
+              <li key={line.productId} className="checkout__line">
                 {line.imageUrl ? (
                   <img className="checkout__thumb" src={line.imageUrl} alt="" />
                 ) : (
@@ -187,24 +187,24 @@ export default function Checkout() {
                 </div>
 
                 <div className="checkout__qty">
-                  <label className="checkout__qtyLabel" htmlFor={`qty-${line.printId}`}>
+                  <label className="checkout__qtyLabel" htmlFor={`qty-${line.productId}`}>
                     qty
                   </label>
                   <input
-                    id={`qty-${line.printId}`}
+                    id={`qty-${line.productId}`}
                     className="checkout__qtyInput"
                     type="number"
                     min={1}
                     max={CART_MAX_PER_ITEM}
                     value={line.quantity}
                     onChange={(event) =>
-                      cart.setQuantity(line.printId, Number(event.target.value) || 1)
+                      cart.setQuantity(line.productId, Number(event.target.value) || 1)
                     }
                   />
                   <button
                     type="button"
                     className="checkout__remove"
-                    onClick={() => cart.remove(line.printId)}
+                    onClick={() => cart.remove(line.productId)}
                     aria-label={`Remove ${line.title}`}
                   >
                     ×

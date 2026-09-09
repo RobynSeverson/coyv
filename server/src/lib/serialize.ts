@@ -1,5 +1,6 @@
-import type { PrintDocument } from '../models/Print.ts'
+import type { ProductDocument } from '../models/Product.ts'
 import type { OrderDocument } from '../models/Order.ts'
+import type { SubscriptionDocument } from '../models/Subscription.ts'
 import type { MemoryDocument } from '../models/Memory.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
 
@@ -11,57 +12,92 @@ export type SerializedImage = {
   height: number | null
 }
 
-export type SerializedPrint = {
+export type SerializedProduct = {
   id: string
+  kind: 'print' | 'subscription'
   slug: string
   title: string
   description: string
   priceCents: number
   currency: string
+  /* Null for a one-off print; "month" for a subscription. */
+  interval: string | null
   stock: number | null
   soldOut: boolean
+  /* A subscription cannot be bought until Stripe has a price for it. */
+  available: boolean
   images: SerializedImage[]
 }
 
-async function serializeImages(print: PrintDocument): Promise<SerializedImage[]> {
+async function serializeImages(product: ProductDocument): Promise<SerializedImage[]> {
   return Promise.all(
-    print.images.map(async (image) => ({
+    product.images.map(async (image) => ({
       id: String(image._id),
       url: await getSignedObjectUrl(image.key),
-      alt: image.alt || print.title,
+      alt: image.alt || product.title,
       width: image.width ?? null,
       height: image.height ?? null,
     })),
   )
 }
 
-export async function serializePrint(print: PrintDocument): Promise<SerializedPrint> {
+export async function serializeProduct(product: ProductDocument): Promise<SerializedProduct> {
+  const isSubscription = product.kind === 'subscription'
+
   return {
-    id: String(print._id),
-    slug: print.slug,
-    title: print.title,
-    description: print.description,
-    priceCents: print.priceCents,
-    currency: print.currency,
-    stock: print.stock ?? null,
-    soldOut: print.stock !== null && print.stock !== undefined && print.stock <= 0,
-    images: await serializeImages(print),
+    id: String(product._id),
+    kind: isSubscription ? 'subscription' : 'print',
+    slug: product.slug,
+    title: product.title,
+    description: product.description,
+    priceCents: product.priceCents,
+    currency: product.currency,
+    interval: isSubscription ? 'month' : null,
+    /* Stock is a print idea; a subscription is never sold out. */
+    stock: isSubscription ? null : (product.stock ?? null),
+    soldOut:
+      !isSubscription &&
+      product.stock !== null &&
+      product.stock !== undefined &&
+      product.stock <= 0,
+    available: !isSubscription || Boolean(product.stripePriceId),
+    images: await serializeImages(product),
   }
 }
 
-export function serializePrints(prints: PrintDocument[]): Promise<SerializedPrint[]> {
-  return Promise.all(prints.map(serializePrint))
+export function serializeProducts(products: ProductDocument[]): Promise<SerializedProduct[]> {
+  return Promise.all(products.map(serializeProduct))
 }
 
 /* The admin view adds the fields the shop front has no business knowing. */
-export async function serializePrintForAdmin(print: PrintDocument) {
+export async function serializeProductForAdmin(product: ProductDocument) {
   return {
-    ...(await serializePrint(print)),
-    published: print.published,
-    sortOrder: print.sortOrder,
-    imageKeys: print.images.map((image) => image.key),
-    createdAt: print.createdAt,
-    updatedAt: print.updatedAt,
+    ...(await serializeProduct(product)),
+    published: product.published,
+    sortOrder: product.sortOrder,
+    imageKeys: product.images.map((image) => image.key),
+    stripePriceId: product.stripePriceId ?? null,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+  }
+}
+
+export function serializeSubscription(subscription: SubscriptionDocument) {
+  return {
+    id: String(subscription._id),
+    productId: String(subscription.product),
+    slug: subscription.slug,
+    title: subscription.title,
+    status: subscription.status,
+    unitAmountCents: subscription.unitAmountCents,
+    currency: subscription.currency,
+    interval: subscription.interval,
+    email: subscription.email,
+    name: subscription.name,
+    currentPeriodEnd: subscription.currentPeriodEnd,
+    canceledAt: subscription.canceledAt,
+    lastPaymentError: subscription.lastPaymentError,
+    createdAt: subscription.createdAt,
   }
 }
 
@@ -75,7 +111,7 @@ export function serializeOrder(order: OrderDocument) {
     shippingName: order.shippingName,
     shippingAddress: order.shippingAddress,
     items: order.items.map((item) => ({
-      printId: String(item.print),
+      productId: String(item.print),
       slug: item.slug,
       title: item.title,
       unitAmountCents: item.unitAmountCents,

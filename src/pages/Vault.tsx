@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
-import { api, type Print } from "../lib/api";
+import { api, type Product } from "../lib/api";
 import { formatMoney } from "../lib/money";
 import "./Collection.css";
 import "./Vault.css";
 
 export default function Vault() {
-  const [prints, setPrints] = useState<Print[] | null>(null);
+  const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
   const cart = useCart();
@@ -16,32 +16,32 @@ export default function Vault() {
     const controller = new AbortController();
 
     api
-      .listPrints()
-      .then(({ prints: loaded }) => {
-        if (!controller.signal.aborted) setPrints(loaded);
+      .listProducts()
+      .then(({ products: loaded }) => {
+        if (!controller.signal.aborted) setProducts(loaded);
       })
       .catch((cause: unknown) => {
         if (controller.signal.aborted) return;
-        setError(cause instanceof Error ? cause.message : "Could not load prints");
-        setPrints([]);
+        setError(cause instanceof Error ? cause.message : "Could not load the vault");
+        setProducts([]);
       });
 
     return () => controller.abort();
   }, []);
 
-  /* The "added" flash is per-print and self-clearing, so the button can
+  /* The "added" flash is per-product and self-clearing, so the button can
      confirm the click without needing a toast system. */
   const addToCart = useCallback(
-    (print: Print) => {
+    (product: Product) => {
       cart.add({
-        printId: print.id,
-        slug: print.slug,
-        title: print.title,
-        priceCents: print.priceCents,
-        currency: print.currency,
-        imageUrl: print.images[0]?.url ?? null,
+        productId: product.id,
+        slug: product.slug,
+        title: product.title,
+        priceCents: product.priceCents,
+        currency: product.currency,
+        imageUrl: product.images[0]?.url ?? null,
       });
-      setJustAdded(print.id);
+      setJustAdded(product.id);
     },
     [cart],
   );
@@ -73,22 +73,23 @@ export default function Vault() {
 
       {error ? <p className="vault__notice">{error}</p> : null}
 
-      {prints === null ? (
+      {products === null ? (
         <ul className="collection__grid">
           {[0, 1, 2, 3, 4, 5].map((index) => (
             <li key={index} className="collection__item vault__skeleton" />
           ))}
         </ul>
-      ) : prints.length === 0 ? (
+      ) : products.length === 0 ? (
         !error ? <p className="vault__notice">Nothing on the wall just yet.</p> : null
       ) : (
         <ul className="vault__grid">
-          {prints.map((print) => {
-            const cover = print.images[0];
-            const inCart = cart.lines.find((line) => line.printId === print.id);
+          {products.map((product) => {
+            const cover = product.images[0];
+            const isSubscription = product.kind === "subscription";
+            const inCart = cart.lines.find((line) => line.productId === product.id);
 
             return (
-              <li key={print.id} className="vault__card">
+              <li key={product.id} className="vault__card">
                 <div className="vault__frame">
                   {cover ? (
                     <img
@@ -101,37 +102,57 @@ export default function Vault() {
                   ) : (
                     <div className="vault__imagePlaceholder" aria-hidden="true" />
                   )}
-                  {print.soldOut ? <span className="vault__flag">sold out</span> : null}
+                  {isSubscription ? (
+                    <span className="vault__flag vault__flag--plan">monthly</span>
+                  ) : product.soldOut ? (
+                    <span className="vault__flag">sold out</span>
+                  ) : null}
                 </div>
 
                 <div className="vault__body">
-                  <h2 className="vault__name">{print.title}</h2>
-                  {print.description ? (
-                    <p className="vault__description">{print.description}</p>
+                  <h2 className="vault__name">{product.title}</h2>
+                  {product.description ? (
+                    <p className="vault__description">{product.description}</p>
                   ) : null}
 
                   <div className="vault__row">
                     <span className="vault__price">
-                      {formatMoney(print.priceCents, print.currency)}
+                      {formatMoney(product.priceCents, product.currency)}
+                      {isSubscription ? (
+                        <span className="vault__interval"> / month</span>
+                      ) : null}
                     </span>
-                    <button
-                      type="button"
-                      className="vault__add"
-                      disabled={print.soldOut}
-                      onClick={() => addToCart(print)}
-                    >
-                      {print.soldOut
-                        ? "sold out"
-                        : justAdded === print.id
-                          ? "added"
-                          : inCart
-                            ? `in cart (${inCart.quantity})`
-                            : "add to cart"}
-                    </button>
+
+                    {isSubscription ? (
+                      product.available ? (
+                        <Link className="vault__add" to={`/subscribe/${product.slug}`}>
+                          subscribe
+                        </Link>
+                      ) : (
+                        <span className="vault__add vault__add--disabled">unavailable</span>
+                      )
+                    ) : (
+                      <button
+                        type="button"
+                        className="vault__add"
+                        disabled={product.soldOut}
+                        onClick={() => addToCart(product)}
+                      >
+                        {product.soldOut
+                          ? "sold out"
+                          : justAdded === product.id
+                            ? "added"
+                            : inCart
+                              ? `in cart (${inCart.quantity})`
+                              : "add to cart"}
+                      </button>
+                    )}
                   </div>
 
-                  {print.stock !== null && print.stock > 0 && print.stock <= 5 ? (
-                    <p className="vault__stock">only {print.stock} left</p>
+                  {isSubscription ? (
+                    <p className="vault__stock">a new print every month · cancel anytime</p>
+                  ) : product.stock !== null && product.stock > 0 && product.stock <= 5 ? (
+                    <p className="vault__stock">only {product.stock} left</p>
                   ) : null}
                 </div>
               </li>

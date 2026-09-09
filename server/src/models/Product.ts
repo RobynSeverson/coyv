@@ -1,8 +1,13 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from 'mongoose'
 
+/* Everything for sale is a product. A print is bought once; a subscription is
+   billed every month by Stripe until it is cancelled. */
+export const PRODUCT_KINDS = ['print', 'subscription'] as const
+export type ProductKind = (typeof PRODUCT_KINDS)[number]
+
 /* An image lives in S3; only the object key is persisted. Public URLs are
    minted on demand as presigned GETs so the bucket can stay private. */
-const printImageSchema = new Schema(
+const productImageSchema = new Schema(
   {
     key: { type: String, required: true, trim: true },
     alt: { type: String, default: '', trim: true },
@@ -14,8 +19,12 @@ const printImageSchema = new Schema(
   { _id: true, timestamps: false },
 )
 
-const printSchema = new Schema(
+const productSchema = new Schema(
   {
+    /* Documents written before subscriptions existed have no kind, and the
+       default fills it in on read, so nothing had to be migrated. */
+    kind: { type: String, enum: PRODUCT_KINDS, default: 'print', index: true },
+
     title: { type: String, required: true, trim: true, maxlength: 160 },
     /* Stable, human-readable id used in URLs. */
     slug: {
@@ -33,10 +42,17 @@ const printSchema = new Schema(
     priceCents: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, lowercase: true, minlength: 3, maxlength: 3 },
 
-    /* null means "made to order", i.e. unlimited. */
+    /* null means "made to order", i.e. unlimited. Meaningless for a
+       subscription, which is never stocked. */
     stock: { type: Number, default: null, min: 0 },
 
-    images: { type: [printImageSchema], default: [] },
+    /* Subscriptions only. Stripe prices are immutable, so changing the amount
+       mints a new price and archives the old one; existing subscribers keep
+       billing against the price they signed up on. */
+    stripeProductId: { type: String, default: null },
+    stripePriceId: { type: String, default: null },
+
+    images: { type: [productImageSchema], default: [] },
 
     /* Unpublished prints are invisible to the public API. */
     published: { type: Boolean, default: false, index: true },
@@ -45,10 +61,12 @@ const printSchema = new Schema(
   { timestamps: true },
 )
 
-printSchema.index({ published: 1, sortOrder: 1, createdAt: -1 })
+productSchema.index({ published: 1, sortOrder: 1, createdAt: -1 })
 
-export type Print = InferSchemaType<typeof printSchema>
-export type PrintDocument = HydratedDocument<Print>
-export type PrintImage = Print['images'][number]
+export type Product = InferSchemaType<typeof productSchema>
+export type ProductDocument = HydratedDocument<Product>
+export type ProductImage = Product['images'][number]
 
-export const PrintModel = model('Print', printSchema)
+/* The collection is still called `prints`: this was a rename in the code, not
+   a change to the data. */
+export const ProductModel = model('Product', productSchema, 'prints')

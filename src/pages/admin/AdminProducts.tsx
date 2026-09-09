@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, type AdminPrint } from "../../lib/api";
+import { api, type AdminProduct, type ProductKind } from "../../lib/api";
 import { formatMoney, parseMoneyToCents } from "../../lib/money";
 import "./admin.css";
+
+const KIND_LABELS: Record<ProductKind, string> = {
+  print: "print",
+  subscription: "monthly print subscription",
+};
 
 type Draft = {
   title: string;
@@ -12,14 +17,14 @@ type Draft = {
   sortOrder: string;
 };
 
-function toDraft(print: AdminPrint): Draft {
+function toDraft(product: AdminProduct): Draft {
   return {
-    title: print.title,
-    description: print.description,
-    price: (print.priceCents / 100).toFixed(2),
-    stock: print.stock === null ? "" : String(print.stock),
-    published: print.published,
-    sortOrder: String(print.sortOrder),
+    title: product.title,
+    description: product.description,
+    price: (product.priceCents / 100).toFixed(2),
+    stock: product.stock === null ? "" : String(product.stock),
+    published: product.published,
+    sortOrder: String(product.sortOrder),
   };
 }
 
@@ -33,8 +38,9 @@ const EMPTY_DRAFT: Draft = {
 };
 
 /* An empty stock box means "made to order"; zero means "sold out". They are
-   different states, so the empty string cannot collapse to 0. */
-function draftToPayload(draft: Draft) {
+   different states, so the empty string cannot collapse to 0. A subscription
+   has no stock at all — the server rejects one, so never send it. */
+function draftToPayload(draft: Draft, kind: ProductKind) {
   const priceCents = parseMoneyToCents(draft.price);
   if (priceCents === null) throw new Error("Enter a valid price");
   if (!draft.title.trim()) throw new Error("Title is required");
@@ -48,27 +54,28 @@ function draftToPayload(draft: Draft) {
     title: draft.title.trim(),
     description: draft.description.trim(),
     priceCents,
-    stock,
+    stock: kind === "subscription" ? null : stock,
     published: draft.published,
     sortOrder: Number.parseInt(draft.sortOrder, 10) || 0,
   };
 }
 
-export default function AdminPrints() {
-  const [prints, setPrints] = useState<AdminPrint[] | null>(null);
+export default function AdminProducts() {
+  const [products, setProducts] = useState<AdminProduct[] | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [newDraft, setNewDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [newKind, setNewKind] = useState<ProductKind>("print");
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const load = useCallback(async () => {
     try {
-      const { prints: loaded } = await api.admin.listPrints();
-      setPrints(loaded);
-      setDrafts(Object.fromEntries(loaded.map((print) => [print.id, toDraft(print)])));
+      const { products: loaded } = await api.admin.listProducts();
+      setProducts(loaded);
+      setDrafts(Object.fromEntries(loaded.map((product) => [product.id, toDraft(product)])));
     } catch (cause: unknown) {
-      setError(cause instanceof Error ? cause.message : "Could not load prints");
+      setError(cause instanceof Error ? cause.message : "Could not load products");
     }
   }, []);
 
@@ -76,13 +83,13 @@ export default function AdminPrints() {
     void load();
   }, [load]);
 
-  /* Every mutation replaces the one print it touched, so the rest of the
+  /* Every mutation replaces the one product it touched, so the rest of the
      table keeps whatever unsaved edits it had. */
-  const replace = useCallback((print: AdminPrint) => {
-    setPrints((current) =>
-      current ? current.map((entry) => (entry.id === print.id ? print : entry)) : current,
+  const replace = useCallback((product: AdminProduct) => {
+    setProducts((current) =>
+      current ? current.map((entry) => (entry.id === product.id ? product : entry)) : current,
     );
-    setDrafts((current) => ({ ...current, [print.id]: toDraft(print) }));
+    setDrafts((current) => ({ ...current, [product.id]: toDraft(product) }));
   }, []);
 
   async function run(id: string, action: () => Promise<void>) {
@@ -110,16 +117,32 @@ export default function AdminPrints() {
         onSubmit={(event) => {
           event.preventDefault();
           void run("new", async () => {
-            const { print } = await api.admin.createPrint(draftToPayload(newDraft));
-            setPrints((current) => (current ? [print, ...current] : [print]));
-            setDrafts((current) => ({ ...current, [print.id]: toDraft(print) }));
+            const { product } = await api.admin.createProduct({
+              ...draftToPayload(newDraft, newKind),
+              kind: newKind,
+            });
+            setProducts((current) => (current ? [product, ...current] : [product]));
+            setDrafts((current) => ({ ...current, [product.id]: toDraft(product) }));
             setNewDraft(EMPTY_DRAFT);
           });
         }}
       >
-        <h2 className="admin__cardTitle">new print</h2>
+        <h2 className="admin__cardTitle">new product</h2>
 
         <div className="admin__grid">
+          {/* Kind decides how the thing is billed, so it is fixed at creation
+              and cannot be edited afterwards. */}
+          <label className="admin__field">
+            <span>type</span>
+            <select
+              value={newKind}
+              onChange={(event) => setNewKind(event.target.value as ProductKind)}
+            >
+              <option value="print">print (one-off)</option>
+              <option value="subscription">monthly print subscription</option>
+            </select>
+          </label>
+
           <label className="admin__field">
             <span>title</span>
             <input
@@ -130,7 +153,7 @@ export default function AdminPrints() {
           </label>
 
           <label className="admin__field">
-            <span>price</span>
+            <span>{newKind === "subscription" ? "price per month" : "price"}</span>
             <input
               required
               inputMode="decimal"
@@ -140,14 +163,16 @@ export default function AdminPrints() {
             />
           </label>
 
-          <label className="admin__field">
-            <span>stock (blank = unlimited)</span>
-            <input
-              inputMode="numeric"
-              value={newDraft.stock}
-              onChange={(event) => setNewDraft({ ...newDraft, stock: event.target.value })}
-            />
-          </label>
+          {newKind === "print" ? (
+            <label className="admin__field">
+              <span>stock (blank = unlimited)</span>
+              <input
+                inputMode="numeric"
+                value={newDraft.stock}
+                onChange={(event) => setNewDraft({ ...newDraft, stock: event.target.value })}
+              />
+            </label>
+          ) : null}
         </div>
 
         <label className="admin__field">
@@ -163,40 +188,52 @@ export default function AdminPrints() {
           {busyId === "new" ? "creating…" : "create"}
         </button>
         <p className="admin__muted">
-          Add images after creating; a print cannot be published without one.
+          Add images after creating; a product cannot be published without one.
+          {newKind === "subscription"
+            ? " Saving a subscription also creates its recurring price in Stripe."
+            : ""}
         </p>
       </form>
 
-      {prints === null ? (
+      {products === null ? (
         <p className="admin__muted">loading…</p>
-      ) : prints.length === 0 ? (
-        <p className="admin__muted">No prints yet.</p>
+      ) : products.length === 0 ? (
+        <p className="admin__muted">No products yet.</p>
       ) : (
-        prints.map((print) => {
-          const draft = drafts[print.id] ?? toDraft(print);
-          const busy = busyId === print.id;
+        products.map((product) => {
+          const draft = drafts[product.id] ?? toDraft(product);
+          const busy = busyId === product.id;
+          const isSubscription = product.kind === "subscription";
 
           return (
-            <article key={print.id} className="admin__card">
+            <article key={product.id} className="admin__card">
               <header className="admin__cardHeader">
-                <h2 className="admin__cardTitle">{print.title}</h2>
-                <span className={`admin__badge${print.published ? " is-live" : ""}`}>
-                  {print.published ? "published" : "draft"}
+                <h2 className="admin__cardTitle">{product.title}</h2>
+                <span className={`admin__badge${product.published ? " is-live" : ""}`}>
+                  {product.published ? "published" : "draft"}
                 </span>
-                <span className="admin__muted">/{print.slug}</span>
+                <span className="admin__badge">{KIND_LABELS[product.kind]}</span>
+                <span className="admin__muted">/{product.slug}</span>
               </header>
 
+              {isSubscription && !product.stripePriceId ? (
+                <p className="admin__error">
+                  Stripe has no price for this plan yet, so nobody can subscribe. Save it
+                  again to retry.
+                </p>
+              ) : null}
+
               <div className="admin__thumbs">
-                {print.images.map((image) => (
+                {product.images.map((image) => (
                   <figure key={image.id} className="admin__thumb">
                     <img src={image.url} alt={image.alt} />
                     <button
                       type="button"
-                      aria-label={`Remove image from ${print.title}`}
+                      aria-label={`Remove image from ${product.title}`}
                       onClick={() =>
-                        run(print.id, async () => {
-                          const { print: updated } = await api.admin.deleteImage(
-                            print.id,
+                        run(product.id, async () => {
+                          const { product: updated } = await api.admin.deleteImage(
+                            product.id,
                             image.id,
                           );
                           replace(updated);
@@ -211,7 +248,7 @@ export default function AdminPrints() {
                 <label className="admin__upload">
                   <input
                     ref={(node) => {
-                      fileInputs.current[print.id] = node;
+                      fileInputs.current[product.id] = node;
                     }}
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/avif"
@@ -219,11 +256,14 @@ export default function AdminPrints() {
                     onChange={(event) => {
                       const files = [...(event.target.files ?? [])];
                       if (files.length === 0) return;
-                      void run(print.id, async () => {
-                        const { print: updated } = await api.admin.uploadImages(print.id, files);
+                      void run(product.id, async () => {
+                        const { product: updated } = await api.admin.uploadImages(
+                          product.id,
+                          files,
+                        );
                         replace(updated);
                         /* Clearing lets the same file be re-picked later. */
-                        const input = fileInputs.current[print.id];
+                        const input = fileInputs.current[product.id];
                         if (input) input.value = "";
                       });
                     }}
@@ -238,33 +278,47 @@ export default function AdminPrints() {
                   <input
                     value={draft.title}
                     onChange={(event) =>
-                      setDrafts({ ...drafts, [print.id]: { ...draft, title: event.target.value } })
+                      setDrafts({
+                        ...drafts,
+                        [product.id]: { ...draft, title: event.target.value },
+                      })
                     }
                   />
                 </label>
 
                 <label className="admin__field">
-                  <span>price ({print.currency.toUpperCase()})</span>
+                  <span>
+                    {isSubscription ? "price per month" : "price"} (
+                    {product.currency.toUpperCase()})
+                  </span>
                   <input
                     inputMode="decimal"
                     value={draft.price}
                     onChange={(event) =>
-                      setDrafts({ ...drafts, [print.id]: { ...draft, price: event.target.value } })
+                      setDrafts({
+                        ...drafts,
+                        [product.id]: { ...draft, price: event.target.value },
+                      })
                     }
                   />
                 </label>
 
-                <label className="admin__field">
-                  <span>stock</span>
-                  <input
-                    inputMode="numeric"
-                    placeholder="unlimited"
-                    value={draft.stock}
-                    onChange={(event) =>
-                      setDrafts({ ...drafts, [print.id]: { ...draft, stock: event.target.value } })
-                    }
-                  />
-                </label>
+                {isSubscription ? null : (
+                  <label className="admin__field">
+                    <span>stock</span>
+                    <input
+                      inputMode="numeric"
+                      placeholder="unlimited"
+                      value={draft.stock}
+                      onChange={(event) =>
+                        setDrafts({
+                          ...drafts,
+                          [product.id]: { ...draft, stock: event.target.value },
+                        })
+                      }
+                    />
+                  </label>
+                )}
 
                 <label className="admin__field">
                   <span>sort order</span>
@@ -274,7 +328,7 @@ export default function AdminPrints() {
                     onChange={(event) =>
                       setDrafts({
                         ...drafts,
-                        [print.id]: { ...draft, sortOrder: event.target.value },
+                        [product.id]: { ...draft, sortOrder: event.target.value },
                       })
                     }
                   />
@@ -289,7 +343,7 @@ export default function AdminPrints() {
                   onChange={(event) =>
                     setDrafts({
                       ...drafts,
-                      [print.id]: { ...draft, description: event.target.value },
+                      [product.id]: { ...draft, description: event.target.value },
                     })
                   }
                 />
@@ -302,11 +356,11 @@ export default function AdminPrints() {
                   onChange={(event) =>
                     setDrafts({
                       ...drafts,
-                      [print.id]: { ...draft, published: event.target.checked },
+                      [product.id]: { ...draft, published: event.target.checked },
                     })
                   }
                 />
-                <span>visible on the prints page</span>
+                <span>visible in the vault</span>
               </label>
 
               <div className="admin__actions">
@@ -315,10 +369,10 @@ export default function AdminPrints() {
                   className="admin__primary"
                   disabled={busy}
                   onClick={() =>
-                    run(print.id, async () => {
-                      const { print: updated } = await api.admin.updatePrint(
-                        print.id,
-                        draftToPayload(draft),
+                    run(product.id, async () => {
+                      const { product: updated } = await api.admin.updateProduct(
+                        product.id,
+                        draftToPayload(draft, product.kind),
                       );
                       replace(updated);
                     })
@@ -332,9 +386,9 @@ export default function AdminPrints() {
                   className="admin__danger"
                   disabled={busy}
                   onClick={() => {
-                    if (!confirm(`Delete "${print.title}"? This cannot be undone.`)) return;
-                    void run(print.id, async () => {
-                      await api.admin.deletePrint(print.id);
+                    if (!confirm(`Delete "${product.title}"? This cannot be undone.`)) return;
+                    void run(product.id, async () => {
+                      await api.admin.deleteProduct(product.id);
                       await load();
                     });
                   }}
@@ -343,8 +397,10 @@ export default function AdminPrints() {
                 </button>
 
                 <span className="admin__muted">
-                  {formatMoney(print.priceCents, print.currency)} ·{" "}
-                  {print.stock === null ? "unlimited" : `${print.stock} in stock`}
+                  {formatMoney(product.priceCents, product.currency)}
+                  {isSubscription
+                    ? " / month"
+                    : ` · ${product.stock === null ? "unlimited" : `${product.stock} in stock`}`}
                 </span>
               </div>
             </article>

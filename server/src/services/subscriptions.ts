@@ -1,0 +1,53 @@
+import type Stripe from 'stripe'
+import {
+  SubscriptionModel,
+  type SubscriptionDocument,
+  type SubscriptionStatus,
+} from '../models/Subscription.ts'
+import { stripe } from './stripe.ts'
+
+/* Stripe owns subscription state; this mirrors it so the studio can show who
+   is subscribed without a Stripe login. Everything here is a straight
+   overwrite from Stripe, which makes replays and races harmless. */
+export async function applySubscriptionState(
+  subscription: Stripe.Subscription,
+): Promise<SubscriptionDocument | null> {
+  const local = await SubscriptionModel.findOne({
+    stripeSubscriptionId: subscription.id,
+  }).exec()
+
+  if (!local) {
+    /* A subscription created outside this site, or one whose checkout row was
+       never written. Stripe still has it; there is nothing to mirror onto. */
+    console.warn(`[stripe] no local record for subscription ${subscription.id}`)
+    return null
+  }
+
+  /* The billing period moved onto the item in recent API versions. */
+  const periodEnd = subscription.items.data[0]?.current_period_end ?? null
+
+  local.set({
+    status: subscription.status as SubscriptionStatus,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : local.currentPeriodEnd,
+    canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+    ...(subscription.status === 'active' ? { lastPaymentError: null } : {}),
+  })
+  await local.save()
+  return local
+}
+
+/* Pulls current state for one subscription. The confirmation page uses this so
+   a subscriber is never told "pending" just because the webhook is slow, or —
+   in local development — because no webhook is being delivered at all. */
+export async function refreshSubscription(
+  stripeSubscriptionId: string,
+): Promise<SubscriptionDocument | null> {
+  try {
+    const remote = await stripe.subscriptions.retrieve(stripeSubscriptionId)
+    return await applySubscriptionState(remote)
+  } catch (cause: unknown) {
+    /* Reconciliation is an optimisation; the webhook is still the backstop. */
+    console.warn(`[stripe] could not refresh subscription ${stripeSubscriptionId}`, cause)
+    return null
+  }
+}

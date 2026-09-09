@@ -30,4 +30,10 @@ export class HttpError extends Error {
   static conflict(message: string, details?: unknown) {
     return new HttpError(409, message, details)
   }
+
+  /* An upstream we depend on (Stripe, S3) answered in a way we cannot use.
+     Not the caller's fault, so it must not read as a 400. */
+  static badGateway(message: string, details?: unknown) {
+    return new HttpError(502, message, details)
+  }
 }

@@ -6,14 +6,14 @@ const TILES = [
   {
     to: "/vault",
     label: "vault",
-    blurb: "Editions on paper",
+    blurb: "save me from salvation",
     /* different crops of the artwork so each tile reads distinctly */
     position: "18% center",
   },
   {
     to: "/memories",
     label: "memories",
-    blurb: "Everything else, kept",
+    blurb: "don't forget me",
     position: "82% center",
   },
 ];

@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, type Admin } from "../../lib/api";
 import AdminLogin from "./AdminLogin";
-import AdminPrints from "./AdminPrints";
+import AdminProducts from "./AdminProducts";
 import AdminOrders from "./AdminOrders";
+import AdminSubscriptions from "./AdminSubscriptions";
 import AdminMemories from "./AdminMemories";
 import "./admin.css";
 
-type Tab = "prints" | "memories" | "orders";
+type Tab = "products" | "memories" | "orders" | "subscribers";
 
 export default function AdminApp() {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [checking, setChecking] = useState(true);
-  const [tab, setTab] = useState<Tab>("prints");
+  const [tab, setTab] = useState<Tab>("products");
 
   const refresh = useCallback(async () => {
     try {
@@ -63,7 +64,7 @@ export default function AdminApp() {
         </div>
 
         <nav className="admin__tabs" aria-label="Admin sections">
-          {(["prints", "memories", "orders"] as Tab[]).map((name) => (
+          {(["products", "memories", "orders", "subscribers"] as Tab[]).map((name) => (
             <button
               key={name}
               type="button"
@@ -87,10 +88,12 @@ export default function AdminApp() {
         </button>
       </header>
 
-      {tab === "prints" ? (
-        <AdminPrints />
+      {tab === "products" ? (
+        <AdminProducts />
       ) : tab === "memories" ? (
         <AdminMemories />
+      ) : tab === "subscribers" ? (
+        <AdminSubscriptions />
       ) : (
         <AdminOrders />
       )}

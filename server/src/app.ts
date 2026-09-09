@@ -7,10 +7,10 @@ import { env } from './env.ts'
 import { errorHandler, notFoundHandler } from './middleware/error.ts'
 import { adminAuthRouter } from './routes/adminAuth.ts'
 import { adminMemoriesRouter } from './routes/adminMemories.ts'
-import { adminRouter } from './routes/adminPrints.ts'
+import { adminRouter } from './routes/adminProducts.ts'
 import { checkoutRouter } from './routes/checkout.ts'
 import { memoriesRouter } from './routes/memories.ts'
-import { printsRouter } from './routes/prints.ts'
+import { printsRouter, productsRouter } from './routes/products.ts'
 import { webhookRouter } from './routes/webhook.ts'
 
 export function createApp(): Express {
@@ -67,6 +67,8 @@ export function createApp(): Express {
     }
   })
 
+  app.use('/api/products', productsRouter)
+  /* Deprecated alias from before subscriptions existed; lists prints only. */
   app.use('/api/prints', printsRouter)
   app.use('/api/memories', memoriesRouter)
   app.use('/api/checkout', checkoutRouter)

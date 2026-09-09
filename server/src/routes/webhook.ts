@@ -2,8 +2,10 @@ import { Router, raw } from 'express'
 import type Stripe from 'stripe'
 import { env } from '../env.ts'
 import { OrderModel, type OrderDocument } from '../models/Order.ts'
-import { PrintModel } from '../models/Print.ts'
+import { ProductModel } from '../models/Product.ts'
+import { SubscriptionModel } from '../models/Subscription.ts'
 import { stripe } from '../services/stripe.ts'
+import { applySubscriptionState } from '../services/subscriptions.ts'
 
 export const webhookRouter: Router = Router()
 
@@ -54,7 +56,7 @@ async function applySuccess(intent: Stripe.PaymentIntent): Promise<void> {
 
   await Promise.all(
     order.items.map((item) =>
-      PrintModel.updateOne(
+      ProductModel.updateOne(
         { _id: item.print, stock: { $ne: null } },
         { $inc: { stock: -item.quantity } },
       ).exec(),
@@ -94,6 +96,48 @@ async function applyRefund(charge: Stripe.Charge): Promise<void> {
   await order.save()
 }
 
+async function applyInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
+  const subscriptionId = subscriptionIdFromInvoice(invoice)
+  if (!subscriptionId) return
+
+  /* Re-read from Stripe rather than trusting the invoice's snapshot, so the
+     status and period always come from one place. */
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  await applySubscriptionState(subscription)
+}
+
+async function applyInvoiceFailure(invoice: Stripe.Invoice): Promise<void> {
+  const subscriptionId = subscriptionIdFromInvoice(invoice)
+  if (!subscriptionId) return
+
+  const local = await SubscriptionModel.findOne({
+    stripeSubscriptionId: subscriptionId,
+  }).exec()
+  if (!local) return
+
+  local.set({
+    status: 'past_due',
+    lastPaymentError: 'The card on file was declined.',
+  })
+  await local.save()
+}
+
+/* The link from invoice to subscription moved into the line items when
+   `invoice.subscription` was removed, so both shapes are checked. */
+function subscriptionIdFromInvoice(invoice: Stripe.Invoice): string | null {
+  const direct = (invoice as unknown as { subscription?: string | { id: string } }).subscription
+  if (typeof direct === 'string') return direct
+  if (direct && typeof direct === 'object') return direct.id
+
+  for (const line of invoice.lines?.data ?? []) {
+    const parent = line.parent
+    const fromLine = parent?.subscription_item_details?.subscription
+    if (typeof fromLine === 'string') return fromLine
+    if (fromLine && typeof fromLine === 'object') return (fromLine as { id: string }).id
+  }
+  return null
+}
+
 /* The raw body is required: the signature is computed over the exact bytes
    Stripe sent, so this route must be mounted before any JSON body parser. */
 webhookRouter.post('/', raw({ type: 'application/json' }), async (req, res) => {
@@ -125,6 +169,17 @@ webhookRouter.post('/', raw({ type: 'application/json' }), async (req, res) => {
         break
       case 'charge.refunded':
         await applyRefund(event.data.object)
+        break
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted':
+        await applySubscriptionState(event.data.object)
+        break
+      case 'invoice.paid':
+        await applyInvoicePaid(event.data.object)
+        break
+      case 'invoice.payment_failed':
+        await applyInvoiceFailure(event.data.object)
         break
       default:
         break

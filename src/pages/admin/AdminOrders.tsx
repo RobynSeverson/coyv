@@ -50,7 +50,7 @@ export default function AdminOrders() {
               </td>
               <td>
                 {order.items.map((item) => (
-                  <div key={item.printId}>
+                  <div key={item.productId}>
                     {item.title} × {item.quantity}
                   </div>
                 ))}

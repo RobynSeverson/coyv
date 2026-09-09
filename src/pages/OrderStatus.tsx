@@ -122,7 +122,7 @@ export default function OrderStatus() {
 
         <ul className="orderStatus__lines">
           {order.items.map((item) => (
-            <li key={item.printId} className="orderStatus__line">
+            <li key={item.productId} className="orderStatus__line">
               <span>
                 {item.title} × {item.quantity}
               </span>
