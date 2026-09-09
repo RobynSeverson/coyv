@@ -123,12 +123,14 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET` | `/api/health` | 503 while Mongo is unreachable |
 | `GET` | `/api/prints` | published prints only |
 | `GET` | `/api/prints/:slug` | |
+| `GET` | `/api/memories` | published memories, in gallery order |
 | `POST` | `/api/checkout/intent` | prices the cart, returns a client secret |
 | `GET` | `/api/checkout/orders/lookup` | order status after the Stripe redirect |
 | `POST` | `/api/stripe/webhook` | signature-verified, raw body |
 | `POST` | `/api/admin/auth/login` `/logout` `/password` | |
 | `GET` | `/api/admin/auth/me` | returns `{ admin: null }` when signed out |
 | `GET/POST/PATCH/DELETE` | `/api/admin/prints…` | catalogue + image upload |
+| `GET/POST/PATCH/DELETE` | `/api/admin/memories…` | gallery upload, captions, order |
 | `GET` | `/api/admin/orders` | |
 
 ### How payments work
@@ -162,12 +164,29 @@ publish. A print with no images cannot be published, and deleting one that
 already appears on a real order archives it instead so order history keeps
 resolving.
 
+The **memories** tab manages the `/memories` gallery: drop in any number of
+images, give them captions and alt text, reorder them with the arrows, hide one
+without deleting it, or delete it for good. A delete removes the files from S3
+too, so it cannot be undone.
+
 ### S3
 
 Uploads are proxied through the API (`multipart/form-data`, JPEG/PNG/WebP/AVIF,
-`MAX_UPLOAD_BYTES` each) and stored under `prints/<slug>/<uuid>`; the client's
-filename is discarded. The bucket stays private — image URLs are presigned
-GETs minted per request and cached in-process until just before they expire.
+`MAX_UPLOAD_BYTES` each) and stored under `prints/<slug>/<uuid>` or
+`memories/<uuid>`; the client's filename is discarded. The bucket stays
+private — image URLs are presigned GETs minted per request and cached
+in-process until just before they expire.
+
+Memories are stored twice: the original, which the lightbox and the download
+link use, and a 900px WebP built with `sharp` on upload that the grid loads
+instead. The originals run 2–4 MB each, so this is the difference between a
+30 MB gallery and a 300 KB one. Downloads are presigned with a
+`Content-Disposition` of their own, because the HTML `download` attribute is
+ignored on a cross-origin URL.
+
+The seven memories that used to ship inside the frontend bundle were moved into
+S3 with `npm run import-memories -- --dir ../src/assets/memories` (run from
+`server/`). It is idempotent, so a re-run skips anything already imported.
 
 ## Production
 
@@ -233,16 +252,52 @@ aws lambda update-function-code --function-name coyv-api \
   --image-uri $REG/coyv-api:lambda
 ```
 
-### Turning on Stripe
+### Stripe
 
-Payments are deployed with placeholder keys, so checkout stays disabled until
-real ones are set. After signing up:
+Live keys are in place: the Lambda holds the live secret key, and the frontend
+bundle carries the live publishable key. `VITE_STRIPE_PUBLISHABLE_KEY` is baked
+in at build time, so changing it means rebuilding and re-uploading the SPA.
+
+The live webhook endpoint points at `https://coyvcastle.com/api/stripe/webhook`
+and subscribes to `payment_intent.succeeded`, `payment_intent.payment_failed`,
+`payment_intent.canceled` and `charge.refunded`.
+
+Local development uses the sandbox keys in `server/.env` and root `.env`, so no
+real charge is possible. Webhooks do not reach localhost on their own; run
+`stripe listen --forward-to localhost:4000/api/stripe/webhook` and paste the
+secret it prints into `STRIPE_WEBHOOK_SECRET`.
+
+To rotate either secret:
 
 ```bash
+aws secretsmanager put-secret-value --secret-id coyv/stripe-secret-key \
+  --secret-string sk_live_...
+# the Lambda reads plain env vars, so it needs the new value too
 aws lambda update-function-configuration --function-name coyv-api \
-  --environment "Variables={...,STRIPE_SECRET_KEY=sk_...,STRIPE_WEBHOOK_SECRET=whsec_...}"
+  --environment "Variables={...,STRIPE_SECRET_KEY=sk_live_...}"
 ```
 
-Point the Stripe webhook endpoint at `https://coyvcastle.com/api/stripe/webhook`
-and use its signing secret. `VITE_STRIPE_PUBLISHABLE_KEY` is baked in at build
-time, so the frontend needs a rebuild and re-upload to pick up the public key.
+### Creating or resetting the admin
+
+There is no signup route, so the account is made from the command line against
+the production database. Never commit the password.
+
+```bash
+export AWS_SHARED_CREDENTIALS_FILE="$(pwd)/.aws-credentials"
+export AWS_PROFILE=coyv-cli AWS_DEFAULT_REGION=us-east-1
+
+cd server
+MONGODB_URI="$(aws secretsmanager get-secret-value \
+    --secret-id coyv/mongodb-uri --query SecretString --output text)" \
+MONGODB_DB_NAME=coyv \
+JWT_SECRET=unused-by-this-script-but-required-to-be-32-chars \
+STRIPE_SECRET_KEY=unused STRIPE_WEBHOOK_SECRET=unused \
+S3_BUCKET=coyv-assets-162956754427 \
+node src/scripts/createAdmin.ts --email you@example.com --name "Your Name"
+```
+
+Omit `--password` and a strong one is generated and printed once. Re-running
+for an existing email resets that account's password. Your machine's IP has to
+be on the Atlas access list for this to connect.
+
+Sign in at `https://coyvcastle.com/studio-back-door`.

@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import gatesArtwork from "../assets/landingDesktop.jpg";
-import type { Artwork } from "../data/memories";
 import "./Collection.css";
+
+export type Artwork = {
+  /* lightweight webp shown in the grid */
+  preview: string;
+  /* original file, loaded only when opened */
+  full: string;
+  /* original again, but as a link that saves rather than navigates */
+  download: string;
+  downloadName: string;
+};
 
 type CollectionProps = {
   title: string;
@@ -126,7 +135,7 @@ export default function Collection({ title, blurb, images }: CollectionProps) {
                 </button>
                 <a
                   className="collection__download"
-                  href={item.full}
+                  href={item.download}
                   download={item.downloadName}
                   aria-label={`Download ${title} ${index + 1}`}
                 >
@@ -220,7 +229,7 @@ export default function Collection({ title, blurb, images }: CollectionProps) {
 
               <a
                 className="lightbox__download"
-                href={openItem.full}
+                href={openItem.download}
                 download={openItem.downloadName}
                 onClick={(event) => event.stopPropagation()}
                 aria-label={`Download ${title} ${(openIndex ?? 0) + 1}`}

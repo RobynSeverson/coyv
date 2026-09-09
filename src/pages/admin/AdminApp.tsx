@@ -3,9 +3,10 @@ import { api, type Admin } from "../../lib/api";
 import AdminLogin from "./AdminLogin";
 import AdminPrints from "./AdminPrints";
 import AdminOrders from "./AdminOrders";
+import AdminMemories from "./AdminMemories";
 import "./admin.css";
 
-type Tab = "prints" | "orders";
+type Tab = "prints" | "memories" | "orders";
 
 export default function AdminApp() {
   const [admin, setAdmin] = useState<Admin | null>(null);
@@ -62,7 +63,7 @@ export default function AdminApp() {
         </div>
 
         <nav className="admin__tabs" aria-label="Admin sections">
-          {(["prints", "orders"] as Tab[]).map((name) => (
+          {(["prints", "memories", "orders"] as Tab[]).map((name) => (
             <button
               key={name}
               type="button"
@@ -86,7 +87,13 @@ export default function AdminApp() {
         </button>
       </header>
 
-      {tab === "prints" ? <AdminPrints /> : <AdminOrders />}
+      {tab === "prints" ? (
+        <AdminPrints />
+      ) : tab === "memories" ? (
+        <AdminMemories />
+      ) : (
+        <AdminOrders />
+      )}
     </main>
   );
 }

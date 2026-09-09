@@ -11,7 +11,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "create-admin": "node --env-file-if-exists=.env src/scripts/createAdmin.ts"
+    "create-admin": "node --env-file-if-exists=.env src/scripts/createAdmin.ts",
+    "import-memories": "node --env-file-if-exists=.env src/scripts/importMemories.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.913.0",
@@ -24,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.20.1",
     "multer": "^2.0.2",
+    "sharp": "^0.35.4",
     "stripe": "^19.2.0",
     "zod": "^4.1.13"
   },

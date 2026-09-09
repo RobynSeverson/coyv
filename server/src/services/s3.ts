@@ -77,21 +77,41 @@ export async function deleteObject(key: string): Promise<void> {
 const urlCache = new Map<string, { url: string; expiresAt: number }>()
 const CACHE_SAFETY_MARGIN_MS = 60_000
 
-export async function getSignedObjectUrl(key: string): Promise<string> {
-  const cached = urlCache.get(key)
+/* Passing a downloadName signs a URL that S3 answers with a Content-Disposition
+   attachment header. The HTML download attribute is ignored cross-origin, so
+   this is the only way a presigned link saves under a name we choose. */
+export async function getSignedObjectUrl(key: string, downloadName?: string): Promise<string> {
+  const cacheKey = `${key}\n${downloadName ?? ''}`
+  const cached = urlCache.get(cacheKey)
   if (cached && cached.expiresAt > Date.now()) return cached.url
 
-  const url = await getSignedUrl(s3, new GetObjectCommand({ Bucket: env.S3_BUCKET, Key: key }), {
-    expiresIn: env.S3_SIGNED_URL_TTL_SECONDS,
-  })
+  const url = await getSignedUrl(
+    s3,
+    new GetObjectCommand({
+      Bucket: env.S3_BUCKET,
+      Key: key,
+      ...(downloadName
+        ? {
+            ResponseContentDisposition: `attachment; filename="${downloadName.replace(
+              /[^a-z0-9._-]/gi,
+              '_',
+            )}"`,
+          }
+        : {}),
+    }),
+    { expiresIn: env.S3_SIGNED_URL_TTL_SECONDS },
+  )
 
-  urlCache.set(key, {
+  urlCache.set(cacheKey, {
     url,
     expiresAt: Date.now() + env.S3_SIGNED_URL_TTL_SECONDS * 1000 - CACHE_SAFETY_MARGIN_MS,
   })
   return url
 }
 
+/* Drops every variant signed for this key, whatever disposition it carried. */
 export function invalidateSignedUrl(key: string): void {
-  urlCache.delete(key)
+  for (const cacheKey of urlCache.keys()) {
+    if (cacheKey === key || cacheKey.startsWith(`${key}\n`)) urlCache.delete(cacheKey)
+  }
 }

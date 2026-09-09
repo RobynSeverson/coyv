@@ -143,6 +143,37 @@ export type Order = {
   paidAt: string | null;
 };
 
+export type Memory = {
+  id: string;
+  title: string;
+  alt: string;
+  /* small webp for the grid */
+  previewUrl: string;
+  /* untouched original, only fetched when the lightbox opens */
+  url: string;
+  /* the original signed to come back as a file save */
+  downloadUrl: string;
+  width: number | null;
+  height: number | null;
+  downloadName: string;
+};
+
+export type AdminMemory = Memory & {
+  published: boolean;
+  sortOrder: number;
+  bytes: number;
+  contentType: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type MemoryInput = {
+  title: string;
+  alt: string;
+  published: boolean;
+  sortOrder: number;
+};
+
 export type Admin = { id: string; email: string; displayName: string };
 
 type PrintInput = {
@@ -176,6 +207,9 @@ export const api = {
       `/checkout/orders/lookup?payment_intent=${encodeURIComponent(paymentIntent)}` +
         `&payment_intent_client_secret=${encodeURIComponent(clientSecret)}`,
     ),
+
+  listMemories: (signal?: AbortSignal) =>
+    request<{ memories: Memory[] }>("/memories", { signal }),
 
   admin: {
     me: () => request<{ admin: Admin | null }>("/admin/auth/me"),
@@ -222,5 +256,36 @@ export const api = {
       }),
 
     listOrders: () => request<{ orders: Order[]; total: number }>("/admin/orders"),
+
+    listMemories: () => request<{ memories: AdminMemory[] }>("/admin/memories"),
+
+    /* Every memory mutation answers with the whole list, so the panel never
+       has to guess how a change reordered things. */
+    uploadMemories: (files: File[]) => {
+      const formData = new FormData();
+      for (const file of files) formData.append("images", file);
+      return request<{ memories: AdminMemory[] }>("/admin/memories", {
+        method: "POST",
+        formData,
+      });
+    },
+
+    updateMemory: (id: string, payload: Partial<MemoryInput>) =>
+      request<{ memories: AdminMemory[] }>(`/admin/memories/${id}`, {
+        method: "PATCH",
+        body: payload,
+      }),
+
+    deleteMemory: (id: string) =>
+      request<{ deleted: boolean; memories: AdminMemory[] }>(
+        `/admin/memories/${id}`,
+        { method: "DELETE" },
+      ),
+
+    reorderMemories: (memoryIds: string[]) =>
+      request<{ memories: AdminMemory[] }>("/admin/memories/order/all", {
+        method: "PATCH",
+        body: { memoryIds },
+      }),
   },
 };

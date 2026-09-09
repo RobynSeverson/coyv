@@ -5,11 +5,10 @@ import SiteLayout from "./components/SiteLayout";
 import { ADMIN_PATH } from "./config";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
-import Collection from "./pages/Collection";
+import Memories from "./pages/Memories";
 import Vault from "./pages/Vault";
 import Checkout from "./pages/Checkout";
 import OrderStatus from "./pages/OrderStatus";
-import { MEMORIES } from "./data/memories";
 
 /* The admin panel pulls in its own screens and is useless to a visitor, so it
    is split out of the main bundle. */
@@ -38,16 +37,7 @@ export default function App() {
             <Route path="/prints" element={<Navigate to="/vault" replace />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/order" element={<OrderStatus />} />
-            <Route
-              path="/memories"
-              element={
-                <Collection
-                  title="memories"
-                  blurb="don't forget me"
-                  images={MEMORIES}
-                />
-              }
-            />
+            <Route path="/memories" element={<Memories />} />
           </Route>
         </Routes>
       </CartProvider>

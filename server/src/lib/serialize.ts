@@ -1,5 +1,6 @@
 import type { PrintDocument } from '../models/Print.ts'
 import type { OrderDocument } from '../models/Order.ts'
+import type { MemoryDocument } from '../models/Memory.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
 
 export type SerializedImage = {
@@ -83,5 +84,64 @@ export function serializeOrder(order: OrderDocument) {
     lastPaymentError: order.lastPaymentError,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
+  }
+}
+
+export type SerializedMemory = {
+  id: string
+  title: string
+  alt: string
+  /* Small webp for the grid; falls back to the original when a preview could
+     not be generated. */
+  previewUrl: string
+  /* Untouched original, fetched only when the lightbox opens. */
+  url: string
+  /* Same object, signed to come back as an attachment under downloadName. */
+  downloadUrl: string
+  width: number | null
+  height: number | null
+  downloadName: string
+}
+
+export async function serializeMemory(
+  memory: MemoryDocument,
+  index: number,
+): Promise<SerializedMemory> {
+  const extension = memory.image.key.split('.').pop()?.toLowerCase() || 'jpg'
+  /* Position-based so a saved file is named the way the page presents it. */
+  const downloadName = `coyv-memory-${index + 1}.${extension}`
+
+  const [url, downloadUrl, previewUrl] = await Promise.all([
+    getSignedObjectUrl(memory.image.key),
+    getSignedObjectUrl(memory.image.key, downloadName),
+    memory.image.previewKey ? getSignedObjectUrl(memory.image.previewKey) : null,
+  ])
+
+  return {
+    id: String(memory._id),
+    title: memory.title,
+    alt: memory.alt || memory.title,
+    previewUrl: previewUrl ?? url,
+    url,
+    downloadUrl,
+    width: memory.image.width ?? null,
+    height: memory.image.height ?? null,
+    downloadName,
+  }
+}
+
+export function serializeMemories(memories: MemoryDocument[]): Promise<SerializedMemory[]> {
+  return Promise.all(memories.map((memory, index) => serializeMemory(memory, index)))
+}
+
+export async function serializeMemoryForAdmin(memory: MemoryDocument, index: number) {
+  return {
+    ...(await serializeMemory(memory, index)),
+    published: memory.published,
+    sortOrder: memory.sortOrder,
+    bytes: memory.image.bytes,
+    contentType: memory.image.contentType,
+    createdAt: memory.createdAt,
+    updatedAt: memory.updatedAt,
   }
 }

@@ -6,8 +6,10 @@ import mongoose from 'mongoose'
 import { env } from './env.ts'
 import { errorHandler, notFoundHandler } from './middleware/error.ts'
 import { adminAuthRouter } from './routes/adminAuth.ts'
+import { adminMemoriesRouter } from './routes/adminMemories.ts'
 import { adminRouter } from './routes/adminPrints.ts'
 import { checkoutRouter } from './routes/checkout.ts'
+import { memoriesRouter } from './routes/memories.ts'
 import { printsRouter } from './routes/prints.ts'
 import { webhookRouter } from './routes/webhook.ts'
 
@@ -66,8 +68,11 @@ export function createApp(): Express {
   })
 
   app.use('/api/prints', printsRouter)
+  app.use('/api/memories', memoriesRouter)
   app.use('/api/checkout', checkoutRouter)
   app.use('/api/admin/auth', adminAuthRouter)
+  /* Mounted before the catch-all admin router so its own paths win. */
+  app.use('/api/admin/memories', adminMemoriesRouter)
   app.use('/api/admin', adminRouter)
 
   app.use(notFoundHandler)
