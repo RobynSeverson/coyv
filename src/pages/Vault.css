@@ -1,0 +1,178 @@
+.vault__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: clamp(1rem, 2.5vw, 1.75rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vault__card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.vault__frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 3px;
+  aspect-ratio: 4 / 5;
+  background: rgba(18, 24, 26, 0.06);
+}
+
+.vault__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 600ms ease;
+}
+
+.vault__card:hover .vault__image {
+  transform: scale(1.03);
+}
+
+.vault__imagePlaceholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(18, 24, 26, 0.08), rgba(18, 24, 26, 0.02));
+}
+
+.vault__flag {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(18, 24, 26, 0.78);
+  color: #f7f9f6;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+}
+
+.vault__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.vault__name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+}
+
+.vault__description {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.65;
+}
+
+.vault__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.vault__price {
+  font-size: 0.95rem;
+  letter-spacing: 0.1em;
+}
+
+.vault__add {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(18, 24, 26, 0.35);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition:
+    background 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.vault__add:hover:not(:disabled) {
+  background: rgba(18, 24, 26, 0.9);
+  border-color: rgba(18, 24, 26, 0.9);
+  color: #f7f9f6;
+}
+
+.vault__add:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.vault__stock {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  opacity: 0.55;
+}
+
+.vault__cartBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: clamp(1.25rem, 4vw, 2rem);
+  padding: 0.7rem 1.1rem;
+  border: 1px solid rgba(18, 24, 26, 0.15);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+}
+
+.vault__checkoutLink {
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(18, 24, 26, 0.9);
+  color: #f7f9f6;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: lowercase;
+}
+
+.vault__notice {
+  margin: 2rem 0;
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  opacity: 0.6;
+}
+
+/* Placeholder tiles while the catalogue is in flight, so the grid does not
+   snap into place from nothing. */
+.vault__skeleton {
+  animation: vaultPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes vaultPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault__skeleton {
+    animation: none;
+  }
+
+  .vault__card:hover .vault__image {
+    transform: none;
+  }
+}

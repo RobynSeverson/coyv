@@ -4,8 +4,8 @@ import "./Home.css";
 
 const TILES = [
   {
-    to: "/prints",
-    label: "prints",
+    to: "/vault",
+    label: "vault",
     blurb: "Editions on paper",
     /* different crops of the artwork so each tile reads distinctly */
     position: "18% center",

@@ -1,35 +1,56 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { CartProvider } from "./cart/CartContext";
 import SiteLayout from "./components/SiteLayout";
+import { ADMIN_PATH } from "./config";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Collection from "./pages/Collection";
+import Vault from "./pages/Vault";
+import Checkout from "./pages/Checkout";
+import OrderStatus from "./pages/OrderStatus";
 import { MEMORIES } from "./data/memories";
+
+/* The admin panel pulls in its own screens and is useless to a visitor, so it
+   is split out of the main bundle. */
+const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
 
 export default function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route element={<SiteLayout />}>
-          <Route path="/home" element={<Home />} />
+      <CartProvider>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+
           <Route
-            path="/prints"
+            path={ADMIN_PATH}
             element={
-              <Collection title="prints" blurb="save me from salvation" />
+              <Suspense fallback={null}>
+                <AdminApp />
+              </Suspense>
             }
           />
-          <Route
-            path="/memories"
-            element={
-              <Collection
-                title="memories"
-                blurb="don't forget me"
-                images={MEMORIES}
-              />
-            }
-          />
-        </Route>
-      </Routes>
+
+          <Route element={<SiteLayout />}>
+            <Route path="/home" element={<Home />} />
+            <Route path="/vault" element={<Vault />} />
+            {/* The shop used to live here; keep shared links working. */}
+            <Route path="/prints" element={<Navigate to="/vault" replace />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/order" element={<OrderStatus />} />
+            <Route
+              path="/memories"
+              element={
+                <Collection
+                  title="memories"
+                  blurb="don't forget me"
+                  images={MEMORIES}
+                />
+              }
+            />
+          </Route>
+        </Routes>
+      </CartProvider>
     </BrowserRouter>
   );
 }

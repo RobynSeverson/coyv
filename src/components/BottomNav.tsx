@@ -1,10 +1,10 @@
 import { NavLink } from "react-router-dom";
-import homeButton from "../assets/homeButton.jpeg";
-import homeButtonActive from "../assets/homeButtonActive.jpeg";
-import printsButton from "../assets/printsButton.jpeg";
-import printsButtonActive from "../assets/printsButtonActive.jpeg";
-import memoriesButton from "../assets/memoriesButton.jpeg";
-import memoriesButtonActive from "../assets/memoriesButtonActive.jpeg";
+import homeButton from "../assets/homeButton.png";
+import homeButtonActive from "../assets/homeButtonActive.png";
+import vaultButton from "../assets/vaultButton.png";
+import vaultButtonActive from "../assets/vaultButtonActive.png";
+import memoriesButton from "../assets/memoriesButton.png";
+import memoriesButtonActive from "../assets/memoriesButtonActive.png";
 import "./BottomNav.css";
 
 type NavItem = {
@@ -23,10 +23,10 @@ const LINKS: NavItem[] = [
     activeImage: homeButtonActive,
   },
   {
-    to: "/prints",
-    label: "prints",
-    image: printsButton,
-    activeImage: printsButtonActive,
+    to: "/vault",
+    label: "vault",
+    image: vaultButton,
+    activeImage: vaultButtonActive,
   },
   {
     to: "/memories",

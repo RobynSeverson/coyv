@@ -4,7 +4,7 @@
   left: 0;
   right: 0;
   z-index: 20;
-  padding: 0 1rem env(safe-area-inset-bottom);
+  padding: 0.35rem 1rem env(safe-area-inset-bottom);
   /* The marks are pulled up by negative margins to swallow the blank space on
      their plates; clipping keeps that overhang from painting over the page. */
   overflow: hidden;
@@ -99,7 +99,7 @@
   .bottomNav {
     /* Half the inset: enough to clear the home indicator without leaving a
        thick white band under the marks. */
-    padding: 0 0.5rem calc(env(safe-area-inset-bottom) * 0.5);
+    padding: 0.25rem 0.5rem calc(env(safe-area-inset-bottom) * 0.5);
   }
 
   .bottomNav__list {

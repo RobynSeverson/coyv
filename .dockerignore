@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+server
+.git
+.github
+*.log
+.env
+.env.*
+.DS_Store
+*.local
+*.tsbuildinfo
+README.md
