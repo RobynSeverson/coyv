@@ -246,7 +246,7 @@
   padding: 0.4rem 0.75rem;
   border: 1px solid rgba(243, 247, 244, 0.35);
   color: #f3f7f4;
-  background: rgba(12, 16, 18, 0.6);
+  background: var(--hud-panel-soft);
   font-family: var(--hud-font);
   font-size: 0.72rem;
   letter-spacing: 0.18em;
@@ -298,6 +298,11 @@
 .lightbox {
   --hud-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
     monospace;
+  /* A cool slate rather than black. The overlay behind these panels is already
+     near-black, so a true black fill gave them no surface of their own and the
+     lettering looked like it was printed straight onto the void. */
+  --hud-panel: rgba(34, 41, 45, 0.92);
+  --hud-panel-soft: rgba(34, 41, 45, 0.72);
 }
 
 .lightbox__bars,
@@ -354,7 +359,7 @@
   border: 1px solid rgba(243, 247, 244, 0.35);
   border-bottom: 0;
   color: #f3f7f4;
-  background: rgba(6, 8, 9, 0.88);
+  background: var(--hud-panel);
   /* The tag is short and fixed; the slug is what gives way if the pair runs
      out of room, which only happens on the narrowest screens. */
   min-width: 0;
@@ -369,7 +374,7 @@
   border-bottom: 0;
   border-left: 0;
   color: rgba(243, 247, 244, 0.75);
-  background: rgba(6, 8, 9, 0.6);
+  background: var(--hud-panel-soft);
   /* Loose enough to read as a label, but not the wide kanji spacing this
      started with — the Latin and Cyrillic tags are whole words. */
   letter-spacing: 0.16em;
@@ -426,7 +431,7 @@
   padding: 0.4rem 0.9rem;
   border: 1px solid rgba(243, 247, 244, 0.35);
   color: #f3f7f4;
-  background: rgba(6, 8, 9, 0.72);
+  background: var(--hud-panel);
   font-family: var(--hud-font);
   font-size: 0.74rem;
   letter-spacing: 0.08em;
@@ -457,7 +462,7 @@
 .lightbox__nav {
   border-radius: 0;
   border: 1px solid rgba(243, 247, 244, 0.35);
-  background: rgba(6, 8, 9, 0.72);
+  background: var(--hud-panel);
 }
 
 @media (hover: hover) and (pointer: fine) {
