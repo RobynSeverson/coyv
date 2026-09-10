@@ -40,6 +40,7 @@ export default function Memories() {
   return (
     <Collection
       title="memories"
+      slug="memory"
       notice={failed ? "these are lost for a moment" : null}
       images={images?.length ? images : undefined}
     />

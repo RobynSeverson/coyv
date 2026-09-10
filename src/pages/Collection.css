@@ -156,13 +156,12 @@
 }
 
 .lightbox__image {
+  display: block;
   max-width: 100%;
-  /* leave room for the close and download controls */
-  max-height: calc(100dvh - 8rem);
+  /* leave room for the slug above and the HUD bar below */
+  max-height: calc(100dvh - 11rem);
   object-fit: contain;
   cursor: default;
-  border-radius: 2px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
   transition: filter 300ms ease;
   animation: lightboxImageIn 260ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }
@@ -240,24 +239,28 @@
 }
 
 .lightbox__download {
-  position: absolute;
-  bottom: clamp(0.75rem, 3vw, 1.75rem);
-  right: clamp(0.75rem, 3vw, 1.75rem);
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.55rem 1rem;
-  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(243, 247, 244, 0.35);
   color: #f3f7f4;
-  background: rgba(255, 255, 255, 0.14);
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
-  text-transform: lowercase;
+  background: rgba(12, 16, 18, 0.6);
+  font-family: var(--hud-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   text-decoration: none;
   cursor: pointer;
   transition: background-color 200ms ease;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+}
+
+.lightbox__downloadLabel {
+  display: inline-flex;
+  gap: 0.4em;
 }
 
 .lightbox__download .collection__downloadIcon {
@@ -277,11 +280,203 @@
     height: 2.4rem;
   }
 
-  .lightbox__download span {
+  .lightbox__downloadLabel {
     display: none;
   }
 
   .lightbox__download {
-    padding: 0.6rem;
+    padding: 0.5rem;
+  }
+}
+
+/* --- game-terminal chrome ------------------------------------------------
+   The viewer is dressed as an in-game archive readout. All of it is
+   decoration: the lettering is aria-hidden in the markup, and every layer
+   here is non-interactive so it can never swallow a click meant for the
+   backdrop, the artwork or a control. */
+
+.lightbox {
+  --hud-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
+    monospace;
+}
+
+.lightbox__bars,
+.lightbox__scanlines,
+.lightbox__reticle {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Letterboxing. Drawn as gradients rather than solid bars so the artwork is
+   never hard-cropped on a screen whose shape we did not anticipate. */
+.lightbox__bars {
+  inset: 0;
+  background:
+    linear-gradient(rgba(6, 8, 9, 0.92), rgba(6, 8, 9, 0) 18%),
+    linear-gradient(to top, rgba(6, 8, 9, 0.92), rgba(6, 8, 9, 0) 22%);
+}
+
+.lightbox__scanlines {
+  inset: 0;
+  opacity: 0.5;
+  background: repeating-linear-gradient(
+    rgba(0, 0, 0, 0) 0 2px,
+    rgba(0, 0, 0, 0.22) 2px 3px
+  );
+}
+
+.lightbox__stage {
+  position: relative;
+  /* Hugs the artwork, so the slug and reticle sit on the image's own edges
+     rather than floating somewhere in the letterboxed area. */
+  width: fit-content;
+  margin: 0;
+  cursor: default;
+}
+
+/* The file slug, sitting on the top-left corner of the artwork. */
+.lightbox__slug {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  display: flex;
+  align-items: stretch;
+  max-width: 100%;
+  margin-bottom: -1px;
+  font-family: var(--hud-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+}
+
+.lightbox__slugId {
+  padding: 0.25rem 0.7rem;
+  border: 1px solid rgba(243, 247, 244, 0.35);
+  border-bottom: 0;
+  color: #f3f7f4;
+  background: rgba(6, 8, 9, 0.88);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lightbox__slugTag {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(243, 247, 244, 0.35);
+  border-bottom: 0;
+  border-left: 0;
+  color: rgba(243, 247, 244, 0.75);
+  background: rgba(6, 8, 9, 0.6);
+  letter-spacing: 0.3em;
+}
+
+/* Corner brackets, as a single element: four small gradients pinned to the
+   corners, so the artwork reads as a targeted object without four more
+   nodes in the tree. */
+.lightbox__reticle {
+  /* Just outside the artwork, not on it: the memories are pale, and brackets
+     drawn over them disappear entirely against the lighter passages. */
+  inset: -7px;
+  --len: 16px;
+  background:
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      0 0 / var(--len) 1px,
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      0 0 / 1px var(--len),
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      100% 0 / var(--len) 1px,
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      100% 0 / 1px var(--len),
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      0 100% / var(--len) 1px,
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      0 100% / 1px var(--len),
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      100% 100% / var(--len) 1px,
+    linear-gradient(rgba(243, 247, 244, 0.55), rgba(243, 247, 244, 0.55))
+      100% 100% / 1px var(--len);
+  background-repeat: no-repeat;
+}
+
+/* The command bar across the foot of the screen. */
+.lightbox__hud {
+  position: absolute;
+  left: clamp(0.5rem, 3vw, 1.5rem);
+  right: clamp(0.5rem, 3vw, 1.5rem);
+  bottom: clamp(0.75rem, 3vw, 1.5rem);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: default;
+}
+
+.lightbox__readout {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid rgba(243, 247, 244, 0.35);
+  color: #f3f7f4;
+  background: rgba(6, 8, 9, 0.72);
+  font-family: var(--hud-font);
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.lightbox__readout > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lightbox__count {
+  color: rgba(243, 247, 244, 0.6);
+  letter-spacing: 0.16em;
+}
+
+/* Square off the round controls to match the rest of the terminal. The stage
+   is positioned so that it can anchor its overlays, which would otherwise let
+   the artwork paint over the arrows that sit beside it. */
+.lightbox__close,
+.lightbox__nav,
+.lightbox__hud {
+  z-index: 2;
+}
+
+.lightbox__close,
+.lightbox__nav {
+  border-radius: 0;
+  border: 1px solid rgba(243, 247, 244, 0.35);
+  background: rgba(6, 8, 9, 0.72);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .lightbox__close:hover,
+  .lightbox__nav:hover,
+  .lightbox__download:hover {
+    background: rgba(243, 247, 244, 0.2);
+  }
+}
+
+@media (max-width: 480px) {
+  .lightbox__slug,
+  .lightbox__readout {
+    font-size: 0.66rem;
+  }
+
+  /* The count is the first thing to go: the Japanese line is the character
+     of the panel, and the position is already obvious from the artwork. */
+  .lightbox__count {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__scanlines {
+    display: none;
   }
 }

@@ -22,7 +22,25 @@ type CollectionProps = {
   notice?: string | null;
   /* when omitted the page falls back to crops of the landing artwork */
   images?: Artwork[];
+  /* Stem for the viewer's file-slug overlay: "memory" reads as memory_001. */
+  slug?: string;
 };
+
+/* Dressing for the viewer, which is styled after an in-game archive terminal.
+   None of it is content — it is chrome that happens to be lettering — so every
+   element carrying it is hidden from assistive technology, and the line is
+   picked by index rather than at random so it stays put across re-renders and
+   matches on the way back to an image you have already seen. */
+const HUD_LINES = [
+  "記憶を選択してください。",
+  "この記録は失われていない。",
+  "断片を再生しています。",
+  "夢の跡をたどっています。",
+  "保存された記憶：良好。",
+  "接続は安定しています。",
+];
+
+const HUD_TAGS = ["記録", "断片", "残像", "追憶"];
 
 const PLACEHOLDER_POSITIONS = [
   "10% 20%",
@@ -45,7 +63,12 @@ const DownloadIcon = () => (
   </svg>
 );
 
-export default function Collection({ title, notice, images }: CollectionProps) {
+export default function Collection({
+  title,
+  notice,
+  images,
+  slug = "file",
+}: CollectionProps) {
   const items = images?.length ? images : null;
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -172,6 +195,10 @@ export default function Collection({ title, notice, images }: CollectionProps) {
               aria-label={`${title} ${(openIndex ?? 0) + 1} of ${items.length}`}
               onClick={close}
             >
+              {/* Cinematic bars and scanlines, drawn under the controls. */}
+              <span className="lightbox__bars" aria-hidden="true" />
+              <span className="lightbox__scanlines" aria-hidden="true" />
+
               <button
                 type="button"
                 className="lightbox__close"
@@ -222,27 +249,62 @@ export default function Collection({ title, notice, images }: CollectionProps) {
                 </>
               ) : null}
 
-              {/* Clicks on the artwork itself shouldn't dismiss it. */}
-              <img
-                key={openItem.full}
-                className={`lightbox__image${
-                  fullSrc === openItem.full ? "" : " is-loading"
-                }`}
-                src={fullSrc === openItem.full ? openItem.full : openItem.preview}
-                alt={`${title} ${(openIndex ?? 0) + 1}`}
+              {/* Clicks on the artwork itself shouldn't dismiss it. The
+                  wrapper hugs the image so the overlays sit against the
+                  artwork's real edges rather than the letterboxed stage. */}
+              <figure
+                className="lightbox__stage"
                 onClick={(event) => event.stopPropagation()}
-              />
-
-              <a
-                className="lightbox__download"
-                href={openItem.download}
-                download={openItem.downloadName}
-                onClick={(event) => event.stopPropagation()}
-                aria-label={`Download ${title} ${(openIndex ?? 0) + 1}`}
               >
-                <DownloadIcon />
-                <span>download</span>
-              </a>
+                <figcaption className="lightbox__slug" aria-hidden="true">
+                  <span className="lightbox__slugId">
+                    {slug}_{String((openIndex ?? 0) + 1).padStart(3, "0")}
+                  </span>
+                  <span className="lightbox__slugTag">
+                    {HUD_TAGS[(openIndex ?? 0) % HUD_TAGS.length]}
+                  </span>
+                </figcaption>
+
+                <img
+                  key={openItem.full}
+                  className={`lightbox__image${
+                    fullSrc === openItem.full ? "" : " is-loading"
+                  }`}
+                  src={
+                    fullSrc === openItem.full ? openItem.full : openItem.preview
+                  }
+                  alt={`${title} ${(openIndex ?? 0) + 1}`}
+                />
+
+                <span className="lightbox__reticle" aria-hidden="true" />
+              </figure>
+
+              <div
+                className="lightbox__hud"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <p className="lightbox__readout">
+                  <span aria-hidden="true">
+                    {HUD_LINES[(openIndex ?? 0) % HUD_LINES.length]}
+                  </span>
+                  <span className="lightbox__count">
+                    {String((openIndex ?? 0) + 1).padStart(3, "0")} /{" "}
+                    {String(items.length).padStart(3, "0")}
+                  </span>
+                </p>
+
+                <a
+                  className="lightbox__download"
+                  href={openItem.download}
+                  download={openItem.downloadName}
+                  aria-label={`Download ${title} ${(openIndex ?? 0) + 1}`}
+                >
+                  <DownloadIcon />
+                  <span className="lightbox__downloadLabel">
+                    <span aria-hidden="true">保存</span> save
+                  </span>
+                </a>
+              </div>
             </div>,
             document.body,
           )
