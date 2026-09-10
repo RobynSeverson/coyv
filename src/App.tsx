@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { CartProvider } from "./cart/CartContext";
 import SiteLayout from "./components/SiteLayout";
 import { ADMIN_PATH } from "./config";
+import useDocumentTitle from "./lib/useDocumentTitle";
 import useRouteAnalytics from "./lib/useRouteAnalytics";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
@@ -18,8 +19,11 @@ import ManageSubscription from "./pages/ManageSubscription";
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
 
 /* Has to live under the router to read the current location, and renders
-   nothing — it exists only for the effect. */
-function RouteAnalytics() {
+   nothing — it exists only for the effects. The title is set first on
+   purpose: analytics reports document.title, so reversing these would tag
+   every page_view with the previous page's name. */
+function RouteEffects() {
+  useDocumentTitle();
   useRouteAnalytics();
   return null;
 }
@@ -27,7 +31,7 @@ function RouteAnalytics() {
 export default function App() {
   return (
     <BrowserRouter>
-      <RouteAnalytics />
+      <RouteEffects />
       <CartProvider>
         <Routes>
           <Route path="/" element={<Landing />} />

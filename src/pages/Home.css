@@ -16,75 +16,24 @@
   }
 }
 
-.home__tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
-  gap: clamp(1rem, 3vw, 2rem);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.home__tile {
-  position: relative;
+.home__blurb {
   display: block;
-  aspect-ratio: 4 / 3;
-  overflow: hidden;
-  border-radius: 4px;
-  color: #fff;
-  text-decoration: none;
-  box-shadow: 0 6px 22px rgba(18, 24, 26, 0.16);
-}
-
-.home__tileImage {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  transition: transform 700ms ease, filter 400ms ease;
+  height: auto;
+  margin: 0 auto;
 }
 
-.home__tile:hover .home__tileImage,
-.home__tile:focus-visible .home__tileImage {
-  transform: scale(1.05);
-  filter: brightness(0.85);
-}
-
-.home__tile:focus-visible {
-  outline: 2px solid #12181a;
-  outline-offset: 4px;
-}
-
-.home__tileBody {
-  position: absolute;
-  inset: auto 0 0 0;
-  padding: 1.5rem 1.25rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  background: linear-gradient(to top, rgba(8, 12, 14, 0.78), transparent);
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
-}
-
-.home__tileLabel {
-  font-size: 1.4rem;
-  letter-spacing: 0.28em;
-  text-indent: 0.28em;
-  text-transform: lowercase;
-}
-
-.home__tileBlurb {
-  font-size: 0.85rem;
-  letter-spacing: 0.1em;
-  opacity: 0.85;
+/* The desktop artwork is wide and short, and its writing sits in a narrow
+   column in the middle, so the image needs the full container width for the
+   text to read at a comfortable size. */
+@media (min-width: 769px) {
+  .home__blurb {
+    max-width: 68rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home {
     animation: none;
-  }
-
-  .home__tileImage {
-    transition: none;
   }
 }
