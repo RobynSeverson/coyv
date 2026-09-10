@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { CartProvider } from "./cart/CartContext";
 import SiteLayout from "./components/SiteLayout";
 import { ADMIN_PATH } from "./config";
+import useRouteAnalytics from "./lib/useRouteAnalytics";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
 import Memories from "./pages/Memories";
@@ -16,9 +17,17 @@ import ManageSubscription from "./pages/ManageSubscription";
    is split out of the main bundle. */
 const AdminApp = lazy(() => import("./pages/admin/AdminApp"));
 
+/* Has to live under the router to read the current location, and renders
+   nothing — it exists only for the effect. */
+function RouteAnalytics() {
+  useRouteAnalytics();
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
+      <RouteAnalytics />
       <CartProvider>
         <Routes>
           <Route path="/" element={<Landing />} />

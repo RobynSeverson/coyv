@@ -8,8 +8,12 @@ import { imagetools } from 'vite-imagetools'
    a test-mode key, with nothing logged anywhere in our infrastructure. That has
    taken checkout down once already, so a production build refuses to start
    rather than let a non-live key through. */
-function assertLiveStripeKey(mode: string) {
-  if (mode !== 'production') return
+function assertLiveStripeKey(command: string, mode: string) {
+  /* Only the build produces a bundle, and only a bundle can carry the wrong
+     key into production. `vite preview` also runs in production mode but just
+     serves whatever is already in dist/, so gating it there would block a
+     local check for no safety gain. */
+  if (command !== 'build' || mode !== 'production') return
 
   const key = loadEnv(mode, process.cwd(), 'VITE_').VITE_STRIPE_PUBLISHABLE_KEY
 
@@ -32,8 +36,8 @@ function assertLiveStripeKey(mode: string) {
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  assertLiveStripeKey(mode)
+export default defineConfig(({ command, mode }) => {
+  assertLiveStripeKey(command, mode)
 
   return {
     plugins: [react(), imagetools()],
