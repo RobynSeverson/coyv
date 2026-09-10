@@ -80,6 +80,16 @@
   opacity: 1;
 }
 
+/* Mobile draws the marks over the painted backdrop, where dimming the inactive
+   ones reads as them being washed out rather than deliberate. Active state is
+   still legible because those links swap to their own artwork. Matches the
+   breakpoint the backdrop uses in SiteLayout.css. */
+@media (max-width: 768px) {
+  .bottomNav__link--image {
+    opacity: 1;
+  }
+}
+
 .bottomNav__mark {
   /* The artwork sits on a plate with ~13% empty space above and ~6% below;
      pulling that back in stops the bar looking padded. */
