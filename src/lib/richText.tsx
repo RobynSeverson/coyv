@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import "./richText.css";
 
 /* A deliberately small formatting language for product descriptions:
    blank line = new paragraph, single newline = line break, plus **bold**,
@@ -70,5 +71,11 @@ export function renderRichText(value: string): ReactNode[] {
 
 export function RichText({ value, className }: { value: string; className?: string }) {
   if (!value.trim()) return null;
-  return <div className={className}>{renderRichText(value)}</div>;
+  /* The base class is always present so links can be styled in one place,
+     wherever a caller chooses to mount this. */
+  return (
+    <div className={className ? `richText ${className}` : "richText"}>
+      {renderRichText(value)}
+    </div>
+  );
 }

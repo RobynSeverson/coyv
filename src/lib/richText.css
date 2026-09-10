@@ -1,0 +1,24 @@
+/* Anchors inside admin-authored copy. Browser-default blue is jarring against
+   a page built out of greyscale artwork, so links take the surrounding colour
+   and rely on an underline to read as links — which keeps them distinguishable
+   without colour alone, the way the rest of the site works. */
+.richText a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: rgba(18, 24, 26, 0.4);
+  transition: text-decoration-color 200ms ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .richText a:hover {
+    text-decoration-color: currentColor;
+  }
+}
+
+.richText a:focus-visible {
+  outline: 2px solid #12181a;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
