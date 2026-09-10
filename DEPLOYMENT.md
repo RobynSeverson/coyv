@@ -4,6 +4,10 @@ Everything ships to AWS account `162956754427` in `us-east-1`. See
 [README](README.md#production) for how the pieces fit together; this file is the
 runbook and the list of things that have already gone wrong.
 
+The `deploy` skill in `.github/skills/deploy/` carries the same procedure in the
+order it is actually performed, so Copilot sessions pick it up automatically.
+Update both when the process changes.
+
 ## Before anything
 
 ```bash
