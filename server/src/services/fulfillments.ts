@@ -1,4 +1,4 @@
-import { FulfillmentModel } from '../models/Fulfillment.ts'
+import { FulfillmentModel, type FulfillmentDocument } from '../models/Fulfillment.ts'
 import type { OrderDocument } from '../models/Order.ts'
 import type { SubscriptionDocument } from '../models/Subscription.ts'
 
@@ -6,18 +6,24 @@ import type { SubscriptionDocument } from '../models/Subscription.ts'
    from a webhook, a replay of that webhook, and a reconciliation racing it:
    the first caller wins and the rest are no-ops. Nothing here overwrites an
    existing row, so a parcel already marked sent stays sent. */
-async function ensure(sourceKey: string, fields: Record<string, unknown>): Promise<boolean> {
+async function ensure(
+  sourceKey: string,
+  fields: Record<string, unknown>,
+): Promise<{ created: boolean; fulfillment: FulfillmentDocument | null }> {
   const result = await FulfillmentModel.updateOne(
     { sourceKey },
     { $setOnInsert: { sourceKey, ...fields } },
     { upsert: true },
   ).exec()
 
-  return result.upsertedCount > 0
+  const fulfillment = await FulfillmentModel.findOne({ sourceKey }).exec()
+  return { created: result.upsertedCount > 0, fulfillment }
 }
 
-export async function ensureOrderFulfillment(order: OrderDocument): Promise<void> {
-  const created = await ensure(`order:${String(order._id)}`, {
+export async function ensureOrderFulfillment(
+  order: OrderDocument,
+): Promise<{ created: boolean; fulfillment: FulfillmentDocument | null }> {
+  const result = await ensure(`order:${String(order._id)}`, {
     kind: 'order',
     order: order._id,
     title: order.items.map((item) => item.title).join(', ') || 'Order',
@@ -28,7 +34,8 @@ export async function ensureOrderFulfillment(order: OrderDocument): Promise<void
     status: 'pending',
   })
 
-  if (created) console.log(`[fulfillment] queued order ${String(order._id)}`)
+  if (result.created) console.log(`[fulfillment] queued order ${String(order._id)}`)
+  return result
 }
 
 function periodLabel(periodStart: number | null): string {
@@ -46,8 +53,8 @@ export async function ensureSubscriptionFulfillment(
   subscription: SubscriptionDocument,
   invoiceId: string,
   periodStart: number | null,
-): Promise<void> {
-  const created = await ensure(`invoice:${invoiceId}`, {
+): Promise<{ created: boolean; fulfillment: FulfillmentDocument | null }> {
+  const result = await ensure(`invoice:${invoiceId}`, {
     kind: 'subscription',
     subscription: subscription._id,
     periodLabel: periodLabel(periodStart),
@@ -59,7 +66,9 @@ export async function ensureSubscriptionFulfillment(
     status: 'pending',
   })
 
-  if (created) {
+  if (result.created) {
     console.log(`[fulfillment] queued subscription ${String(subscription._id)} (${invoiceId})`)
   }
+
+  return result
 }

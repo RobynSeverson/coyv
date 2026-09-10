@@ -10,6 +10,7 @@ import Vault from "./pages/Vault";
 import Checkout from "./pages/Checkout";
 import PostPayment from "./pages/PostPayment";
 import Subscribe from "./pages/Subscribe";
+import ManageSubscription from "./pages/ManageSubscription";
 
 /* The admin panel pulls in its own screens and is useless to a visitor, so it
    is split out of the main bundle. */
@@ -40,6 +41,8 @@ export default function App() {
             <Route path="/subscribe/:slug" element={<Subscribe />} />
             <Route path="/order" element={<PostPayment />} />
             <Route path="/memories" element={<Memories />} />
+            {/* Unlinked from the site: subscribers arrive here from an email. */}
+            <Route path="/manage-subscription" element={<ManageSubscription />} />
           </Route>
         </Routes>
       </CartProvider>

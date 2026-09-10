@@ -139,6 +139,12 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET` | `/api/admin/subscriptions` | subscriber list mirrored from Stripe |
 | `GET` | `/api/admin/fulfillments` | the packing queue, filtered by status |
 | `PATCH` | `/api/admin/fulfillments/:id` | mark sent / back to queue, tracking |
+| `POST` | `/api/tasks/daily-digest` | scheduler-only, `x-tasks-secret` header |
+| `POST` | `/api/manage/request-link` | emails a one-time link; always `{ok:true}` |
+| `POST` | `/api/manage/redeem` `/signout` | spends the link, opens a 30-minute session |
+| `GET` | `/api/manage/subscriptions` | the caller's own subscriptions |
+| `PATCH` | `/api/manage/subscriptions/:id/address` | also moves pending parcels |
+| `POST` | `/api/manage/subscriptions/:id/cancel` `/resume` | at period end |
 
 ### Product types
 
@@ -211,6 +217,127 @@ pending.
 
 "Print packing slips" prints the queue through a `@media print` stylesheet that
 drops the site chrome and gives each slip its own page.
+
+### Email
+
+Transactional mail goes through [Brevo](https://www.brevo.com). Buyers get a
+confirmation when an order is paid, a note for every monthly subscription
+charge, and a "it is in the post" note when a parcel is marked sent. The studio
+gets one digest a day listing what still has to go out.
+
+**`BREVO_API_KEY` is optional on purpose.** A missing key — or one that still
+contains a placeholder marker like `REPLACE_ME` — is treated as "not
+configured": the app boots normally and every send becomes a log line saying
+who it *would* have emailed. That way a half-configured deploy never turns a
+paid order into a 500. **Local development is meant to stay on the
+placeholder**; a real key in `server/.env` sends real mail to real customers.
+
+#### Sending domain
+
+`coyvcastle.com` is authenticated with Brevo, so mail is DKIM-signed and passes
+DMARC alignment. The records live in Route53 (`Z083055312X6V0JWHT7FQ`):
+
+| Host | Type | Value |
+| --- | --- | --- |
+| `brevo1._domainkey` | CNAME | `b1.coyvcastle-com.dkim.brevo.com` |
+| `brevo2._domainkey` | CNAME | `b2.coyvcastle-com.dkim.brevo.com` |
+| `@` | TXT | `brevo-code:…` (ownership proof) |
+| `@` | TXT | `v=spf1 include:spf.brevo.com ~all` |
+| `_dmarc` | TXT | `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com` |
+
+DMARC starts at `p=none`, which reports without quarantining. Tighten it to
+`quarantine` only after the aggregate reports come back clean.
+
+There are two senders, both on the authenticated domain:
+
+- **`orders@`** (`BREVO_SENDER_EMAIL`) — customer mail: confirmations,
+  renewals, shipping notices. A human might reasonably reply to these.
+- **`noreply@`** (`BREVO_NOREPLY_EMAIL`) — automated mail: sign-in links and
+  the admin digest.
+
+**The domain sends but does not receive.** There is no MX record, so nothing
+`@coyvcastle.com` is a real mailbox. Two consequences: `ADMIN_NOTIFICATION_EMAILS`
+must point at an inbox that actually exists, and a customer who hits reply on an
+order confirmation reaches nobody unless `SUPPORT_REPLY_TO` is set to a real
+address. Mail from `noreply@` is deliberately left without a Reply-To.
+
+Every email is at-most-once. `sendEmail` claims a unique `dedupeKey` in the
+`emaillogs` collection *before* calling Brevo and releases it again if the call
+fails, so a replayed webhook, a retried schedule, and two Lambdas racing each
+other cannot double-send, while a genuine provider blip can still be retried.
+The keys are `order-confirmation:<orderId>`, `subscription-charge:<sourceKey>`,
+`shipped:<fulfillmentId>` and `fulfillment-digest:<YYYY-MM-DD>`.
+
+Sends never throw. They happen on paths that have already taken money, and
+failing the Stripe webhook would replay the stock decrement rather than fix the
+email.
+
+#### The daily digest
+
+`POST /api/tasks/daily-digest` builds and sends it. It is authorised by a shared
+`x-tasks-secret` header rather than the admin cookie, because a scheduler is
+calling it; if `TASKS_SECRET` is unset the endpoint 404s rather than running
+unauthenticated.
+
+- Nothing outstanding means **no email** — a daily "nothing to do" trains you to
+  ignore the ones that matter.
+- A subscription line carries the month it was charged for, e.g.
+  *"October 2026 — heavenly dispatch"*, so a renewal reads as a job rather than
+  a puzzle.
+- Anything pending for more than `FULFILLMENT_PAST_DUE_DAYS` (default 3) is
+  flagged past due, and the subject says how many.
+- Over `DIGEST_MAX_ITEMS` (default 10) the list is dropped entirely in favour of
+  a link to the queue, since a 60-row email is not a to-do list.
+
+The link deep-links into the admin at
+`?tab=fulfillment&filter=past-due`, which opens the fulfillment tab with the
+past-due filter already applied. "Past due" is computed once, server-side, in
+`isPastDue()`, so the email and the page can never disagree.
+
+Scheduling is not wired up yet. Once the real key is in place, point any daily
+scheduler (EventBridge Scheduler → API destination) at that endpoint with the
+`x-tasks-secret` header; running it more than once a day is harmless.
+
+### Subscribers managing themselves
+
+`/manage-subscription` is unlinked from the site; subscribers arrive from the
+footer of a renewal email. It lets them change their posting address, cancel, or
+un-cancel without an account and without emailing us.
+
+There are no passwords and no signup. You enter your email, and if it has a live
+subscription we email a one-time link:
+
+- The credential is a 32-byte random token carried in the link, not a 6-digit
+  code. A short numeric code is guessable at a few thousand tries, which would
+  mean also building attempt caps and lockouts; a long token sidesteps all of it.
+- Only a SHA-256 hash of the token is stored, so the database never holds
+  anything that can be replayed.
+- Redemption is a single atomic `findOneAndUpdate` filtered on `usedAt: null`,
+  so a link works exactly once even if two requests land together.
+- Tokens last 20 minutes and the session that replaces them lasts 30, both on a
+  TTL index that removes spent rows on its own.
+- `request-link` answers `{ok: true}` for addresses we have never seen, so the
+  form cannot be used to test whether somebody is a customer. It is throttled per
+  IP and per address.
+- The page spends the token on arrival and strips it from the URL, so a
+  screenshot or a shared link is worthless.
+
+Two behaviours worth knowing:
+
+- **An address change also moves parcels already queued.** Updating the address
+  rewrites any `pending` fulfillment for that subscription as well as Stripe and
+  the subscription record. Without that, a change made after a renewal would
+  apply "from next month" and this month's print would still go to the old house.
+  Parcels already marked sent keep the address they were sent to.
+- **Cancelling sets `cancel_at_period_end`,** never an instant cancel — they
+  paid for the month, so they get the month. "keep it going" reverses it, so a
+  misclick is not a support email.
+
+Admin and subscriber sessions are signed with the same `JWT_SECRET`, so each is
+issued and verified with a distinct JWT `audience` (`coyv:admin` vs
+`coyv:manage`). Without that, a subscriber token would be a structurally valid
+admin cookie. **Consequence:** admin cookies issued before this change have no
+`aud` and are rejected, so everyone signs in once more after it ships.
 
 ### Admin panel
 

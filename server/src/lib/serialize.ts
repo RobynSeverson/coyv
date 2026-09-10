@@ -3,6 +3,7 @@ import type { OrderDocument } from '../models/Order.ts'
 import type { SubscriptionDocument } from '../models/Subscription.ts'
 import type { MemoryDocument } from '../models/Memory.ts'
 import type { FulfillmentDocument } from '../models/Fulfillment.ts'
+import { env } from '../env.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
 
 export type SerializedImage = {
@@ -100,10 +101,23 @@ export function serializeSubscription(subscription: SubscriptionDocument) {
     email: subscription.email,
     name: subscription.name,
     currentPeriodEnd: subscription.currentPeriodEnd,
+    cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
     canceledAt: subscription.canceledAt,
     lastPaymentError: subscription.lastPaymentError,
     createdAt: subscription.createdAt,
   }
+}
+
+/* A parcel is past due once it has sat unsent for longer than the configured
+   window. Defined once, here, so the admin list, the digest email and its
+   deep link cannot drift apart. */
+export function isPastDue(fulfillment: FulfillmentDocument, now = new Date()): boolean {
+  if (fulfillment.status !== 'pending') return false
+  const created = fulfillment.createdAt as Date | undefined
+  if (!created) return false
+
+  const cutoff = now.getTime() - env.FULFILLMENT_PAST_DUE_DAYS * 24 * 60 * 60 * 1000
+  return created.getTime() < cutoff
 }
 
 export function serializeFulfillment(fulfillment: FulfillmentDocument) {
@@ -126,6 +140,9 @@ export function serializeFulfillment(fulfillment: FulfillmentDocument) {
     trackingNumber: fulfillment.trackingNumber,
     notes: fulfillment.notes,
     createdAt: fulfillment.createdAt,
+    /* Computed here so "past due" means one thing everywhere — the admin
+       list, the digest email and its deep link all read the same flag. */
+    pastDue: isPastDue(fulfillment),
   }
 }
 

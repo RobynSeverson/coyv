@@ -124,7 +124,8 @@
 }
 
 .admin__badge--failed,
-.admin__badge--canceled {
+.admin__badge--canceled,
+.admin__badge.is-danger {
   background: rgba(176, 42, 42, 0.12);
   color: #8f2323;
 }

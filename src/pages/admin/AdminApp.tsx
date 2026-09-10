@@ -10,10 +10,29 @@ import "./admin.css";
 
 type Tab = "products" | "memories" | "fulfillment" | "orders" | "subscribers";
 
+const TABS: Tab[] = ["products", "memories", "fulfillment", "orders", "subscribers"];
+
+/* The digest email links straight at ?tab=fulfillment&filter=past-due, so the
+   opening tab is read from the URL rather than always starting on products. */
+function initialTab(): Tab {
+  const requested = new URLSearchParams(window.location.search).get("tab");
+  return TABS.includes(requested as Tab) ? (requested as Tab) : "products";
+}
+
 export default function AdminApp() {
   const [admin, setAdmin] = useState<Admin | null>(null);
   const [checking, setChecking] = useState(true);
-  const [tab, setTab] = useState<Tab>("products");
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  /* Keeps the address bar honest so a tab can be linked to or reloaded, without
+     pushing history entries for what is really just a view toggle. */
+  function selectTab(name: Tab) {
+    setTab(name);
+    const url = new URL(window.location.href);
+    url.searchParams.set("tab", name);
+    if (name !== "fulfillment") url.searchParams.delete("filter");
+    window.history.replaceState(null, "", url);
+  }
 
   const refresh = useCallback(async () => {
     try {
@@ -65,12 +84,12 @@ export default function AdminApp() {
         </div>
 
         <nav className="admin__tabs" aria-label="Admin sections">
-          {(["products", "memories", "fulfillment", "orders", "subscribers"] as Tab[]).map((name) => (
+          {TABS.map((name) => (
             <button
               key={name}
               type="button"
               className={`admin__tab${tab === name ? " is-active" : ""}`}
-              onClick={() => setTab(name)}
+              onClick={() => selectTab(name)}
             >
               {name}
             </button>

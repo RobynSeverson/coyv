@@ -18,6 +18,9 @@ function formatAddress(fulfillment: Fulfillment): string[] {
 
 export default function AdminFulfillment() {
   const [tab, setTab] = useState<FulfillmentStatus>("pending");
+  const [pastDueOnly, setPastDueOnly] = useState(
+    () => new URLSearchParams(window.location.search).get("filter") === "past-due",
+  );
   const [fulfillments, setFulfillments] = useState<Fulfillment[] | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -69,6 +72,24 @@ export default function AdminFulfillment() {
     });
   }
 
+  /* Keeps the URL matching what is actually on screen, so a reload or a copied
+     link shows the same list rather than silently re-applying the filter. */
+  function togglePastDue() {
+    const next = !pastDueOnly;
+    setPastDueOnly(next);
+    const url = new URL(window.location.href);
+    if (next) url.searchParams.set("filter", "past-due");
+    else url.searchParams.delete("filter");
+    window.history.replaceState(null, "", url);
+  }
+
+  /* Filtering client-side keeps the past-due toggle instant and means the
+     count stays truthful while rows are marked sent without a refetch. */
+  const pastDueTotal = (fulfillments ?? []).filter((entry) => entry.pastDue).length;
+  const visible = (fulfillments ?? []).filter(
+    (entry) => !(tab === "pending" && pastDueOnly) || entry.pastDue,
+  );
+
   return (
     <section className="admin__section">
       {error ? (
@@ -95,7 +116,17 @@ export default function AdminFulfillment() {
           </button>
         </nav>
 
-        {tab === "pending" && fulfillments && fulfillments.length > 0 ? (
+        {tab === "pending" && pastDueTotal > 0 ? (
+          <button
+            type="button"
+            className={`admin__tab${pastDueOnly ? " is-active" : ""}`}
+            onClick={() => togglePastDue()}
+          >
+            past due ({pastDueTotal})
+          </button>
+        ) : null}
+
+        {tab === "pending" && visible.length > 0 ? (
           <button type="button" className="admin__primary" onClick={() => window.print()}>
             print packing slips
           </button>
@@ -104,13 +135,17 @@ export default function AdminFulfillment() {
 
       {fulfillments === null ? (
         <p className="admin__muted">loading…</p>
-      ) : fulfillments.length === 0 ? (
+      ) : visible.length === 0 ? (
         <p className="admin__muted">
-          {tab === "pending" ? "Nothing waiting to be sent." : "Nothing sent yet."}
+          {tab === "sent"
+            ? "Nothing sent yet."
+            : pastDueOnly
+              ? "Nothing is past due."
+              : "Nothing waiting to be sent."}
         </p>
       ) : (
         <div className="fulfil__list">
-          {fulfillments.map((fulfillment) => {
+          {visible.map((fulfillment) => {
             const busy = busyId === fulfillment.id;
             const address = formatAddress(fulfillment);
 
@@ -123,6 +158,9 @@ export default function AdminFulfillment() {
                   </span>
                   {fulfillment.periodLabel ? (
                     <span className="admin__badge is-live">{fulfillment.periodLabel}</span>
+                  ) : null}
+                  {fulfillment.pastDue ? (
+                    <span className="admin__badge is-danger">past due</span>
                   ) : null}
                 </header>
 
