@@ -16,6 +16,15 @@ That check is worth doing. The SDK falls back to whatever ambient profile the
 machine has, and on a laptop with other AWS accounts configured you can deploy —
 or sign S3 URLs — as entirely the wrong identity without any error.
 
+Both exports matter. `coyv-cli` is defined in the repo-local
+`.aws-credentials`, not in `~/.aws`, so setting only `AWS_PROFILE` fails with
+"The config profile (coyv-cli) could not be found". Skipping the block entirely
+is worse: the commands run as the ambient identity and fail with `AccessDenied`
+naming a user in a **different account** (`arn:aws:iam::813423893927:...`),
+which reads like a permissions problem rather than the missing export it is.
+Any AWS error mentioning an account other than `162956754427` means this block
+was skipped — each shell needs it again, since exports do not persist.
+
 ## What to deploy
 
 | Changed | Deploy |
@@ -49,6 +58,34 @@ hashes, which `--delete` has just removed, and the site white-screens.
 `VITE_*` variables are inlined at build time, not read at runtime. Changing
 `VITE_STRIPE_PUBLISHABLE_KEY` or `VITE_ADMIN_PATH` means a fresh `npm run build`
 and re-upload; setting them on the Lambda does nothing.
+
+### The build does not pick up the live Stripe key on its own
+
+`.env` in the repo root holds a **`pk_test`** key for local work, and `npm run
+build` will happily inline it. Production once served a `pk_test` bundle against
+an `sk_live` Lambda, and because Stripe refuses to confirm a live
+`client_secret` with a test-mode key, live checkout was broken with no error
+anywhere in AWS. A routine rebuild reintroduces this every time unless the live
+key is passed explicitly:
+
+```bash
+curl -s https://coyvcastle.com/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
+curl -s https://coyvcastle.com/assets/index-<hash>.js \
+  | grep -o 'pk_live_[A-Za-z0-9]\+' | head -1 > /tmp/pk.txt
+
+VITE_STRIPE_PUBLISHABLE_KEY="$(cat /tmp/pk.txt)" npm run build
+```
+
+The currently deployed bundle is the source of truth for the key, so this needs
+no dashboard login. Confirm before uploading — the test key must be gone:
+
+```bash
+grep -c pk_live_ dist/assets/index-*.js   # expect 1
+grep -c pk_test_ dist/assets/index-*.js   # expect 0
+```
+
+Publishable and secret keys must also be from the same Stripe account; compare
+the account fragment that follows `pk_live_`/`sk_live_`.
 
 ## API
 
