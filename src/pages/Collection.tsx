@@ -28,19 +28,33 @@ type CollectionProps = {
 
 /* Dressing for the viewer, which is styled after an in-game archive terminal.
    None of it is content — it is chrome that happens to be lettering — so every
-   element carrying it is hidden from assistive technology, and the line is
+   element carrying it is hidden from assistive technology, and the entry is
    picked by index rather than at random so it stays put across re-renders and
-   matches on the way back to an image you have already seen. */
-const HUD_LINES = [
-  "記憶を選択してください。",
-  "この記録は失われていない。",
-  "断片を再生しています。",
-  "夢の跡をたどっています。",
-  "保存された記憶：良好。",
-  "接続は安定しています。",
-];
+   matches on the way back to an image you have already seen.
 
-const HUD_TAGS = ["記録", "断片", "残像", "追憶"];
+   Tag and line travel together so a single overlay never mixes scripts, and
+   the languages are interleaved rather than grouped, so consecutive memories
+   land on different ones. */
+const HUD_ENTRIES = [
+  { lang: "ja", tag: "記録", line: "記憶を選択してください。" },
+  { lang: "ru", tag: "ЗАПИСЬ", line: "Выберите воспоминание." },
+  { lang: "es", tag: "REGISTRO", line: "Selecciona un recuerdo." },
+  { lang: "ja", tag: "断片", line: "この記録は失われていない。" },
+  { lang: "ru", tag: "ФРАГМЕНТ", line: "Эта запись не потеряна." },
+  { lang: "es", tag: "FRAGMENTO", line: "Este registro no se ha perdido." },
+  { lang: "ja", tag: "残像", line: "断片を再生しています。" },
+  { lang: "ru", tag: "ОСТАТОК", line: "Воспроизведение фрагмента." },
+  { lang: "es", tag: "RESTO", line: "Reproduciendo un fragmento." },
+  { lang: "ja", tag: "追憶", line: "夢の跡をたどっています。" },
+  { lang: "ru", tag: "ПАМЯТЬ", line: "Следы сна сохранены." },
+  { lang: "es", tag: "MEMORIA", line: "Siguiendo el rastro de un sueño." },
+  { lang: "ja", tag: "保存", line: "保存された記憶：良好。" },
+  { lang: "ru", tag: "АРХИВ", line: "Состояние архива: норма." },
+  { lang: "es", tag: "ARCHIVO", line: "Estado del archivo: correcto." },
+  { lang: "ja", tag: "接続", line: "接続は安定しています。" },
+  { lang: "ru", tag: "СВЯЗЬ", line: "Соединение стабильно." },
+  { lang: "es", tag: "ENLACE", line: "La conexión es estable." },
+];
 
 const PLACEHOLDER_POSITIONS = [
   "10% 20%",
@@ -105,6 +119,8 @@ export default function Collection({
   }, [openIndex, close, step]);
 
   const openItem = openIndex === null ? null : (items?.[openIndex] ?? null);
+
+  const hud = HUD_ENTRIES[(openIndex ?? 0) % HUD_ENTRIES.length];
 
   /* The lightbox shows the grid's preview straight away and swaps in the
      original once it has loaded, so opening never waits on a large file.
@@ -260,8 +276,8 @@ export default function Collection({
                   <span className="lightbox__slugId">
                     {slug}_{String((openIndex ?? 0) + 1).padStart(3, "0")}
                   </span>
-                  <span className="lightbox__slugTag">
-                    {HUD_TAGS[(openIndex ?? 0) % HUD_TAGS.length]}
+                  <span className="lightbox__slugTag" lang={hud.lang}>
+                    {hud.tag}
                   </span>
                 </figcaption>
 
@@ -284,8 +300,8 @@ export default function Collection({
                 onClick={(event) => event.stopPropagation()}
               >
                 <p className="lightbox__readout">
-                  <span aria-hidden="true">
-                    {HUD_LINES[(openIndex ?? 0) % HUD_LINES.length]}
+                  <span aria-hidden="true" lang={hud.lang}>
+                    {hud.line}
                   </span>
                   <span className="lightbox__count">
                     {String((openIndex ?? 0) + 1).padStart(3, "0")} /{" "}

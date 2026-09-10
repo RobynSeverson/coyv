@@ -355,18 +355,24 @@
   border-bottom: 0;
   color: #f3f7f4;
   background: rgba(6, 8, 9, 0.88);
+  /* The tag is short and fixed; the slug is what gives way if the pair runs
+     out of room, which only happens on the narrowest screens. */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .lightbox__slugTag {
+  flex: none;
   padding: 0.25rem 0.6rem;
   border: 1px solid rgba(243, 247, 244, 0.35);
   border-bottom: 0;
   border-left: 0;
   color: rgba(243, 247, 244, 0.75);
   background: rgba(6, 8, 9, 0.6);
-  letter-spacing: 0.3em;
+  /* Loose enough to read as a label, but not the wide kanji spacing this
+     started with — the Latin and Cyrillic tags are whole words. */
+  letter-spacing: 0.16em;
 }
 
 /* Corner brackets, as a single element: four small gradients pinned to the
