@@ -8,11 +8,11 @@
   /* The marks are pulled up by negative margins to swallow the blank space on
      their plates; clipping keeps that overhang from painting over the page. */
   overflow: hidden;
-  border-top: 1px solid rgba(18, 24, 26, 0.12);
+  /* border-top: 1px solid rgba(18, 24, 26, 0.12); */
   /* background: rgba(245, 248, 245, 0.82); */
-  background: white;
+  /* background: white;
   backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); */
 }
 
 .bottomNav__list {
