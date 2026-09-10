@@ -16,27 +16,6 @@
   }
 }
 
-.home__header {
-  margin-bottom: clamp(2rem, 6vw, 3.5rem);
-  text-align: center;
-}
-
-.home__title {
-  margin: 0 0 0.5rem;
-  font-size: clamp(2.2rem, 7vw, 4rem);
-  font-weight: 300;
-  letter-spacing: 0.3em;
-  text-indent: 0.3em;
-  text-transform: lowercase;
-}
-
-.home__subtitle {
-  margin: 0;
-  font-size: 0.95rem;
-  letter-spacing: 0.14em;
-  opacity: 0.6;
-}
-
 .home__tiles {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
@@ -54,7 +33,7 @@
   border-radius: 4px;
   color: #fff;
   text-decoration: none;
-  box-shadow: 0 10px 30px -18px rgba(10, 16, 18, 0.7);
+  box-shadow: 0 6px 22px rgba(18, 24, 26, 0.16);
 }
 
 .home__tileImage {

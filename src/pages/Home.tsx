@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import gatesArtwork from "../assets/landingDesktop.jpg";
+import PageHeader from "../components/PageHeader";
 import "./Home.css";
 
 const TILES = [
@@ -21,10 +22,7 @@ const TILES = [
 export default function Home() {
   return (
     <main className="home">
-      <header className="home__header">
-        <h1 className="home__title">coyv</h1>
-        <p className="home__subtitle">past the threshold.</p>
-      </header>
+      <PageHeader title="coyv" />
 
       <ul className="home__tiles">
         {TILES.map((tile) => (

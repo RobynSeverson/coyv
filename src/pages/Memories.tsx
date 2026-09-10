@@ -40,7 +40,7 @@ export default function Memories() {
   return (
     <Collection
       title="memories"
-      blurb={failed ? "these are lost for a moment" : "don't forget me"}
+      notice={failed ? "these are lost for a moment" : null}
       images={images?.length ? images : undefined}
     />
   );

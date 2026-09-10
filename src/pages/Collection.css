@@ -16,22 +16,9 @@
   }
 }
 
-.collection__header {
-  margin-bottom: clamp(1.5rem, 5vw, 3rem);
+.collection__notice {
+  margin: 0 0 clamp(1rem, 3vw, 1.75rem);
   text-align: center;
-}
-
-.collection__title {
-  margin: 0 0 0.5rem;
-  font-size: clamp(1.9rem, 6vw, 3rem);
-  font-weight: 300;
-  letter-spacing: 0.3em;
-  text-indent: 0.3em;
-  text-transform: lowercase;
-}
-
-.collection__blurb {
-  margin: 0;
   font-size: 0.95rem;
   letter-spacing: 0.14em;
   opacity: 0.6;
@@ -51,7 +38,10 @@
   overflow: hidden;
   border-radius: 3px;
   aspect-ratio: 1;
-  background: rgba(18, 24, 26, 0.06);
+  /* Opaque for the same reason as .vault__frame: the mobile backdrop must not
+     show through artwork that has transparency. */
+  background: #f1f2f1;
+  box-shadow: 0 6px 22px rgba(18, 24, 26, 0.16);
 }
 
 .collection__open {

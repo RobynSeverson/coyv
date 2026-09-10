@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import gatesArtwork from "../assets/landingDesktop.jpg";
+import PageHeader from "../components/PageHeader";
 import "./Collection.css";
 
 export type Artwork = {
@@ -15,7 +16,10 @@ export type Artwork = {
 
 type CollectionProps = {
   title: string;
-  blurb: string;
+  /* Shown under the wordmark only when there is something the visitor needs
+     to know — a load failure, say. The decorative subheading it replaced now
+     lives in the header artwork. */
+  notice?: string | null;
   /* when omitted the page falls back to crops of the landing artwork */
   images?: Artwork[];
 };
@@ -41,7 +45,7 @@ const DownloadIcon = () => (
   </svg>
 );
 
-export default function Collection({ title, blurb, images }: CollectionProps) {
+export default function Collection({ title, notice, images }: CollectionProps) {
   const items = images?.length ? images : null;
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -110,10 +114,12 @@ export default function Collection({ title, blurb, images }: CollectionProps) {
 
   return (
     <main className="collection">
-      <header className="collection__header">
-        <h1 className="collection__title">{title}</h1>
-        <p className="collection__blurb">{blurb}</p>
-      </header>
+      <PageHeader title={title} />
+      {notice ? (
+        <p className="collection__notice" role="status">
+          {notice}
+        </p>
+      ) : null}
 
       <ul className="collection__grid">
         {items

@@ -443,6 +443,9 @@ Lambda's environment.
 
 ### Deploying a change
 
+The full runbook — including the traps that have taken production down before —
+is in [DEPLOYMENT.md](DEPLOYMENT.md). The short version:
+
 ```bash
 export AWS_SHARED_CREDENTIALS_FILE="$(pwd)/.aws-credentials"
 export AWS_PROFILE=coyv-cli AWS_DEFAULT_REGION=us-east-1
@@ -463,6 +466,12 @@ docker buildx build --platform linux/amd64 --provenance=false --sbom=false \
 aws lambda update-function-code --function-name coyv-api \
   --image-uri $REG/coyv-api:lambda
 ```
+
+Three things bite repeatedly, all covered in detail in DEPLOYMENT.md:
+`--platform linux/amd64` is mandatory or the API 500s on every request;
+`LastUpdateStatus: Successful` does not mean the image runs, so always curl
+`/api/health`; and `update-function-configuration --environment` replaces the
+whole variable map rather than merging into it.
 
 ### Stripe
 

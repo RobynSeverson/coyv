@@ -4,6 +4,7 @@ import { useCart } from "../cart/CartContext";
 import { api, type Product } from "../lib/api";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
+import PageHeader from "../components/PageHeader";
 import "./Collection.css";
 import "./Vault.css";
 
@@ -63,10 +64,7 @@ export default function Vault() {
 
   return (
     <main className="collection">
-      <header className="collection__header">
-        <h1 className="collection__title">vault</h1>
-        <p className="collection__blurb">save me from salvation</p>
-      </header>
+      <PageHeader title="vault" />
 
       {cart.itemCount > 0 ? (
         <div className="vault__cartBar">
