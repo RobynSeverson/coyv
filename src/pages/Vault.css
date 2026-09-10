@@ -17,14 +17,45 @@
   position: relative;
   overflow: hidden;
   border-radius: 3px;
-  aspect-ratio: 4 / 5;
-  /* Frosted rather than a solid plate. The whole artwork is shown now, so the
-     frame is usually taller or wider than the image itself, and the leftover
-     space blurs whatever sits behind it instead of flattening to a colour. */
   border: 1px solid rgba(18, 24, 26, 0.18);
-  background: rgba(255, 255, 255, 0.28);
-  -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 6px 22px rgba(18, 24, 26, 0.16);
+  /* Phone screens have no room to spare, so the tile is exactly the size of
+     the artwork rather than a fixed window with the print letterboxed inside
+     it. Nothing is left over, so there is nothing to frost either. */
+  width: fit-content;
+  margin-inline: auto;
+}
+
+.vault__image {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  /* A very tall print would otherwise run off the bottom of the screen; the
+     cap trades width for height so the whole thing stays visible at once. */
+  max-height: 70dvh;
+  transition: transform 600ms ease;
+}
+
+/* Wider than a phone the grid wants tiles of a consistent shape, so the frame
+   becomes a fixed 4:5 window with the artwork contained inside it and the
+   leftover space frosted rather than flattened to a plate. */
+@media (min-width: 769px) {
+  .vault__frame {
+    width: auto;
+    aspect-ratio: 4 / 5;
+    background: rgba(255, 255, 255, 0.28);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  .vault__image {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    /* Contain, not cover: prints are not all the same ratio and cropping one
+       to fill the tile hides part of what is being sold. */
+    object-fit: contain;
+  }
 }
 
 /* The standard property lives in @supports because the CSS minifier drops a
@@ -32,18 +63,11 @@
    Firefox. Inside a feature query it survives, and browsers without support
    fall back to the translucent background alone. */
 @supports (backdrop-filter: blur(1px)) {
-  .vault__frame {
-    backdrop-filter: blur(14px);
+  @media (min-width: 769px) {
+    .vault__frame {
+      backdrop-filter: blur(14px);
+    }
   }
-}
-
-.vault__image {
-  width: 100%;
-  height: 100%;
-  /* Contain, not cover: prints are not all the same ratio and cropping one to
-     fill the tile hides part of what is being sold. */
-  object-fit: contain;
-  transition: transform 600ms ease;
 }
 
 .vault__card:hover .vault__image {
@@ -51,9 +75,19 @@
 }
 
 .vault__imagePlaceholder {
-  width: 100%;
-  height: 100%;
+  /* A percentage width would collapse to nothing inside the shrink-to-fit
+     frame used on phones, so the box is sized from a definite height instead
+     and the desktop rule below restores it to filling the fixed window. */
+  height: 55dvh;
+  aspect-ratio: 4 / 5;
   background: linear-gradient(135deg, rgba(18, 24, 26, 0.08), rgba(18, 24, 26, 0.02));
+}
+
+@media (min-width: 769px) {
+  .vault__imagePlaceholder {
+    width: 100%;
+    height: 100%;
+  }
 }
 
 .vault__flag {

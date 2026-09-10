@@ -103,6 +103,11 @@ export default function Vault() {
                       className="vault__image"
                       src={cover.url}
                       alt={cover.alt}
+                      /* The mobile tile is sized by the artwork rather than a
+                         fixed ratio, so the intrinsic dimensions are needed to
+                         reserve the right box before a lazy image arrives. */
+                      width={cover.width ?? undefined}
+                      height={cover.height ?? undefined}
                       loading="lazy"
                       decoding="async"
                       draggable={false}
