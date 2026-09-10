@@ -229,7 +229,37 @@ gets one digest a day listing what still has to go out.
 contains a placeholder marker like `REPLACE_ME` — is treated as "not
 configured": the app boots normally and every send becomes a log line saying
 who it *would* have emailed. That way a half-configured deploy never turns a
-paid order into a 500.
+paid order into a 500. **Local development is meant to stay on the
+placeholder**; a real key in `server/.env` sends real mail to real customers.
+
+#### Sending domain
+
+`coyvcastle.com` is authenticated with Brevo, so mail is DKIM-signed and passes
+DMARC alignment. The records live in Route53 (`Z083055312X6V0JWHT7FQ`):
+
+| Host | Type | Value |
+| --- | --- | --- |
+| `brevo1._domainkey` | CNAME | `b1.coyvcastle-com.dkim.brevo.com` |
+| `brevo2._domainkey` | CNAME | `b2.coyvcastle-com.dkim.brevo.com` |
+| `@` | TXT | `brevo-code:…` (ownership proof) |
+| `@` | TXT | `v=spf1 include:spf.brevo.com ~all` |
+| `_dmarc` | TXT | `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com` |
+
+DMARC starts at `p=none`, which reports without quarantining. Tighten it to
+`quarantine` only after the aggregate reports come back clean.
+
+There are two senders, both on the authenticated domain:
+
+- **`orders@`** (`BREVO_SENDER_EMAIL`) — customer mail: confirmations,
+  renewals, shipping notices. A human might reasonably reply to these.
+- **`noreply@`** (`BREVO_NOREPLY_EMAIL`) — automated mail: sign-in links and
+  the admin digest.
+
+**The domain sends but does not receive.** There is no MX record, so nothing
+`@coyvcastle.com` is a real mailbox. Two consequences: `ADMIN_NOTIFICATION_EMAILS`
+must point at an inbox that actually exists, and a customer who hits reply on an
+order confirmation reaches nobody unless `SUPPORT_REPLY_TO` is set to a real
+address. Mail from `noreply@` is deliberately left without a Reply-To.
 
 Every email is at-most-once. `sendEmail` claims a unique `dedupeKey` in the
 `emaillogs` collection *before* calling Brevo and releases it again if the call

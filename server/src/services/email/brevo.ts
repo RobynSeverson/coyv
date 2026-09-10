@@ -26,6 +26,14 @@ export type OutgoingEmail = {
   dedupeKey?: string
   kind: string
   replyTo?: Recipient
+  /* Defaults to BREVO_SENDER_EMAIL. Automated mail overrides it with
+     noreplySender() so replies are not invited to an unwatched address. */
+  from?: Recipient
+}
+
+/* The From: for mail that nobody should answer. */
+export function noreplySender(): Recipient {
+  return { email: env.BREVO_NOREPLY_EMAIL, name: env.BREVO_SENDER_NAME }
 }
 
 export type SendResult =
@@ -34,6 +42,15 @@ export type SendResult =
   | { status: 'failed'; error: string }
 
 async function postToBrevo(email: OutgoingEmail): Promise<string | null> {
+  const sender = email.from ?? { email: env.BREVO_SENDER_EMAIL, name: env.BREVO_SENDER_NAME }
+  /* An explicit replyTo always wins. Otherwise customer mail picks up the
+     support address when one is configured, while noreply@ mail stays
+     reply-less — inviting a reply to a sign-in link would be a lie. */
+  const isNoreply = sender.email === env.BREVO_NOREPLY_EMAIL
+  const fallbackReplyTo =
+    env.SUPPORT_REPLY_TO && !isNoreply ? { email: env.SUPPORT_REPLY_TO } : undefined
+  const replyTo = email.replyTo ?? fallbackReplyTo
+
   const response = await fetch(BREVO_ENDPOINT, {
     method: 'POST',
     headers: {
@@ -42,12 +59,12 @@ async function postToBrevo(email: OutgoingEmail): Promise<string | null> {
       accept: 'application/json',
     },
     body: JSON.stringify({
-      sender: { email: env.BREVO_SENDER_EMAIL, name: env.BREVO_SENDER_NAME },
+      sender: { email: sender.email, name: sender.name },
       to: email.to.map((entry) => ({ email: entry.email, name: entry.name })),
       subject: email.subject,
       htmlContent: email.html,
       textContent: email.text,
-      ...(email.replyTo ? { replyTo: email.replyTo } : {}),
+      ...(replyTo ? { replyTo } : {}),
     }),
   })
 

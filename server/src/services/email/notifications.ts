@@ -1,6 +1,6 @@
 import type { FulfillmentDocument } from '../../models/Fulfillment.ts'
 import type { OrderDocument } from '../../models/Order.ts'
-import { sendEmail } from './brevo.ts'
+import { noreplySender, sendEmail } from './brevo.ts'
 import {
   manageLink,
   orderConfirmation,
@@ -62,6 +62,7 @@ export async function sendManageLink(email: string, link: string): Promise<void>
   await sendEmail({
     kind: 'manage-link',
     to: [{ email }],
+    from: noreplySender(),
     ...template,
   })
 }

@@ -49,6 +49,15 @@ const schema = z.object({
   BREVO_API_KEY: trimmed.optional(),
   BREVO_SENDER_EMAIL: trimmed.email().default('orders@coyvcastle.com'),
   BREVO_SENDER_NAME: trimmed.default('coyv'),
+  /* Automated mail nobody should reply to — sign-in links and the admin
+     digest — goes out as noreply@ so that orders@ stays the address a
+     customer can sensibly answer. Both are authenticated senders on the
+     same DKIM-signed domain. */
+  BREVO_NOREPLY_EMAIL: trimmed.email().default('noreply@coyvcastle.com'),
+  /* Optional Reply-To for customer mail. coyvcastle.com has no inbound mail,
+     so without this a customer replying to an order confirmation is talking
+     to a mailbox that does not exist. Point it at somewhere real. */
+  SUPPORT_REPLY_TO: trimmed.email().optional(),
   /* Where the fulfillment digest goes. Comma-separated; blank disables it. */
   ADMIN_NOTIFICATION_EMAILS: trimmed
     .default('')

@@ -1,7 +1,7 @@
 import { env } from '../../env.ts'
 import { isPastDue } from '../../lib/serialize.ts'
 import { FulfillmentModel, type FulfillmentDocument } from '../../models/Fulfillment.ts'
-import { sendEmail } from './brevo.ts'
+import { noreplySender, sendEmail } from './brevo.ts'
 import { adminDigest, type DigestEntry } from './templates.ts'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -79,6 +79,7 @@ export async function sendFulfillmentDigest(now = new Date()): Promise<DigestOut
     kind: 'fulfillment-digest',
     dedupeKey: `fulfillment-digest:${dayKey(now)}`,
     to: env.ADMIN_NOTIFICATION_EMAILS.map((email) => ({ email })),
+    from: noreplySender(),
     ...template,
   })
 
