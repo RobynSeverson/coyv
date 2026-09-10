@@ -61,12 +61,16 @@ and re-upload; setting them on the Lambda does nothing.
 
 ### The build does not pick up the live Stripe key on its own
 
-`.env` in the repo root holds a **`pk_test`** key for local work, and `npm run
-build` will happily inline it. Production once served a `pk_test` bundle against
-an `sk_live` Lambda, and because Stripe refuses to confirm a live
-`client_secret` with a test-mode key, live checkout was broken with no error
-anywhere in AWS. A routine rebuild reintroduces this every time unless the live
-key is passed explicitly:
+Production is **always** in live mode. `.env` in the repo root holds a
+**`pk_test`** key for local work, and `npm run build` would happily inline it.
+Production once served a `pk_test` bundle against an `sk_live` Lambda, and
+because Stripe refuses to confirm a live `client_secret` with a test-mode key,
+live checkout was broken with no error anywhere in AWS.
+
+`vite.config.ts` now refuses to complete a production build unless
+`VITE_STRIPE_PUBLISHABLE_KEY` starts with `pk_live_`, so this cannot ship
+silently again — but that means a bare `npm run build` fails by design. Pass the
+live key:
 
 ```bash
 curl -s https://coyvcastle.com/ | grep -o 'assets/index-[A-Za-z0-9_-]*\.js'
@@ -77,7 +81,8 @@ VITE_STRIPE_PUBLISHABLE_KEY="$(cat /tmp/pk.txt)" npm run build
 ```
 
 The currently deployed bundle is the source of truth for the key, so this needs
-no dashboard login. Confirm before uploading — the test key must be gone:
+no dashboard login. The key is publishable, so it is safe to read this way, but
+it is still not committed — every `.env*` is ignored. Confirm before uploading:
 
 ```bash
 grep -c pk_live_ dist/assets/index-*.js   # expect 1
@@ -85,7 +90,8 @@ grep -c pk_test_ dist/assets/index-*.js   # expect 0
 ```
 
 Publishable and secret keys must also be from the same Stripe account; compare
-the account fragment that follows `pk_live_`/`sk_live_`.
+the account fragment that follows `pk_live_`/`sk_live_`. The guard cannot check
+this — it only knows the key is live, not whose.
 
 ## API
 
