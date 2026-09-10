@@ -4,23 +4,20 @@ import { ADMIN_PATH } from "../config";
 
 declare global {
   interface Window {
-    dataLayer?: Record<string, unknown>[];
+    dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
-/* Tag Manager only sees the first load of a single-page app: React Router
+/* Analytics only sees the first load of a single-page app: React Router
    changes the URL without a document load, so every page after the landing
-   one would go uncounted. This pushes a page_view for each navigation,
-   including the first.
-   
-   Because the first load is pushed here too, the GA4 tag in the container
-   should fire on this custom event rather than on All Pages — pointing it at
-   both would count the landing page twice.
+   one would go uncounted. The gtag snippet in index.html is configured with
+   send_page_view: false and this sends the page_view instead, once per
+   route including the first.
 
-   In development each page_view appears twice: StrictMode deliberately
-   double-invokes effects to surface unsafe ones. Production builds fire
-   once (verified against a preview of the real bundle), so there is no
-   deduplication guard here. */
+   In development each one fires twice: StrictMode deliberately double-invokes
+   effects to surface unsafe ones. Production builds fire once (verified
+   against a preview of the real bundle), so there is no dedup guard here. */
 export default function useRouteAnalytics() {
   const location = useLocation();
 
@@ -29,9 +26,11 @@ export default function useRouteAnalytics() {
        visitor's, so it stays out of the numbers entirely. */
     if (location.pathname.startsWith(ADMIN_PATH)) return;
 
-    window.dataLayer = window.dataLayer ?? [];
-    window.dataLayer.push({
-      event: "page_view",
+    /* gtag.js is loaded async, so on a cold start the first navigation can
+       land before the script defines window.gtag. The inline snippet defines
+       the queue-backed stub synchronously, but guard anyway rather than
+       throw inside an effect. */
+    window.gtag?.("event", "page_view", {
       page_path: `${location.pathname}${location.search}`,
       page_location: window.location.href,
       page_title: document.title,
