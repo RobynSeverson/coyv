@@ -210,10 +210,11 @@ export default function Memories() {
     [firstSlideOf],
   );
 
-  /* A deep link lands on the list, brings its row to the middle of the screen
-     and opens it. The scroll is instant rather than smooth because the
-     lightbox goes straight up over it and locks the page — the point of the
-     scroll is where the row sits once the viewer is closed again. */
+  /* A deep link lands on the list, walks its row to the middle of the screen
+     and only then opens it, so the viewer arrives over a page that has
+     visibly travelled to the memory rather than cutting to it. The pause is
+     also what lets the smooth scroll finish: opening locks body scrolling,
+     which would strand it halfway. */
   const linkHandled = useRef<string | null>(null);
 
   useEffect(() => {
@@ -235,11 +236,15 @@ export default function Memories() {
       return;
     }
 
-    listRef.current
-      ?.querySelector(`[data-memory="${target.slug}"]`)
-      ?.scrollIntoView({ block: "center" });
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    setOpenIndex(firstSlideOf.get(target.id) ?? 0);
+    listRef.current?.querySelector(`[data-memory="${target.slug}"]`)?.scrollIntoView({
+      block: "center",
+      behavior: still ? "auto" : "smooth",
+    });
+
+    const open = setTimeout(() => setOpenIndex(firstSlideOf.get(target.id) ?? 0), still ? 0 : 700);
+    return () => clearTimeout(open);
   }, [linkedSlug, memories, firstSlideOf, navigate]);
 
   const step = useCallback(
