@@ -68,6 +68,12 @@ const ShareIcon = () => (
   </svg>
 );
 
+const shareParams = (memory: Memory) => ({
+  memory_slug: memory.slug,
+  memory_kind: memory.kind,
+  memory_tag: memory.tag,
+});
+
 /* Fixed-width fields, because the column only reads as a file listing if
    every row's date occupies exactly the same space. */
 function formatStamp(value: string | null): string {
@@ -224,34 +230,39 @@ export default function Memories() {
   );
 
   /* Sharing hands over the deep link rather than the page, so the recipient
-     lands with the memory already open. The native sheet is used where there
-     is one; elsewhere the link goes to the clipboard and the button says so,
-     because a control that looks like it did nothing reads as broken. */
+     lands with the memory already open. Phones and tablets get their own
+     share sheet; on desktop the link goes to the clipboard instead, and the
+     button says so, because a control that looks like it did nothing reads as
+     broken. Desktop Chrome does expose `navigator.share`, so the pointer is
+     what decides, not the API's presence.
+
+     The sheet has to be opened before the first await or the browser no
+     longer counts the tap as user activation and refuses. */
   const shareMemory = useCallback(async (memory: Memory) => {
     const url = `${window.location.origin}/memories/${memory.slug}`;
-    let method = "clipboard";
+    const handheld = window.matchMedia("(pointer: coarse)").matches;
+    const sheet = handheld
+      ? navigator.share?.({ title: memory.slug, text: memory.slug, url })
+      : undefined;
 
-    try {
-      if (navigator.share) {
-        method = "native";
-        await navigator.share({ title: memory.slug, url });
-      } else {
-        await navigator.clipboard.writeText(url);
-        setShareNote("link copied");
+    if (sheet) {
+      try {
+        await sheet;
+        trackEvent("memory_share", { ...shareParams(memory), share_method: "native" });
+        return;
+      } catch (error) {
+        /* Dismissing the sheet rejects, and is not a failure worth a fallback. */
+        if (error instanceof DOMException && error.name === "AbortError") return;
       }
-    } catch (error) {
-      /* Dismissing the share sheet rejects, and is not a failure. */
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setShareNote("copy failed");
-      return;
     }
 
-    trackEvent("memory_share", {
-      memory_slug: memory.slug,
-      memory_kind: memory.kind,
-      memory_tag: memory.tag,
-      share_method: method,
-    });
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareNote("link copied");
+      trackEvent("memory_share", { ...shareParams(memory), share_method: "clipboard" });
+    } catch {
+      setShareNote("copy failed");
+    }
   }, []);
 
   useEffect(() => {
