@@ -68,6 +68,37 @@ const ShareIcon = () => (
   </svg>
 );
 
+/* Must be called from the tap's own tick. The async clipboard is missing or
+   blocked on older and locked-down mobile browsers, where selecting a
+   throwaway field and copying it still works. */
+function copyText(text: string): Promise<boolean> {
+  if (navigator.clipboard) {
+    return navigator.clipboard.writeText(text).then(
+      () => true,
+      () => legacyCopy(text),
+    );
+  }
+  return Promise.resolve(legacyCopy(text));
+}
+
+function legacyCopy(text: string): boolean {
+  const field = document.createElement("textarea");
+  field.value = text;
+  field.setAttribute("readonly", "");
+  field.style.cssText = "position:fixed;top:0;opacity:0";
+  document.body.append(field);
+  field.select();
+  field.setSelectionRange(0, text.length);
+
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    field.remove();
+  }
+}
+
 const shareParams = (memory: Memory) => ({
   memory_slug: memory.slug,
   memory_kind: memory.kind,
@@ -233,14 +264,19 @@ export default function Memories() {
      lands with the memory already open. Phones and tablets get their own
      share sheet; on desktop the link goes to the clipboard instead, and the
      button says so, because a control that looks like it did nothing reads as
-     broken. Desktop Chrome does expose `navigator.share`, so the pointer is
+     broken. Desktop Chrome exposes `navigator.share` too, so the pointer is
      what decides, not the API's presence.
 
-     The sheet has to be opened before the first await or the browser no
-     longer counts the tap as user activation and refuses. */
+     Both calls are made in the tap's own tick. Safari only allows the sheet
+     and the clipboard while the user activation lasts, and awaiting the sheet
+     outlives it — a copy attempted after a failed share is always denied,
+     which is what made the fallback report "copy failed" on iOS. */
   const shareMemory = useCallback(async (memory: Memory) => {
     const url = `${window.location.origin}/memories/${memory.slug}`;
     const handheld = window.matchMedia("(pointer: coarse)").matches;
+
+    const copied = copyText(url);
+
     const sheet = handheld
       ? navigator.share?.({ title: memory.slug, text: memory.slug, url })
       : undefined;
@@ -251,16 +287,16 @@ export default function Memories() {
         trackEvent("memory_share", { ...shareParams(memory), share_method: "native" });
         return;
       } catch (error) {
-        /* Dismissing the sheet rejects, and is not a failure worth a fallback. */
+        /* Dismissing the sheet rejects, and is not a failure. The link is on
+           the clipboard either way, so say nothing. */
         if (error instanceof DOMException && error.name === "AbortError") return;
       }
     }
 
-    try {
-      await navigator.clipboard.writeText(url);
+    if (await copied) {
       setShareNote("link copied");
       trackEvent("memory_share", { ...shareParams(memory), share_method: "clipboard" });
-    } catch {
+    } else {
       setShareNote("copy failed");
     }
   }, []);
