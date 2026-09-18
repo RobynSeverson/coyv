@@ -57,13 +57,13 @@ const DownloadIcon = () => (
 /* Fixed-width fields, because the column only reads as a file listing if
    every row's date occupies exactly the same space. */
 function formatStamp(value: string | null): string {
-  if (!value) return "----.--.-- --:--";
+  if (!value) return "----/--/-- --:--";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "----.--.-- --:--";
+  if (Number.isNaN(date.getTime())) return "----/--/-- --:--";
 
   const pad = (part: number) => String(part).padStart(2, "0");
   return (
-    `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}` +
+    `${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())}` +
     ` ${pad(date.getHours())}:${pad(date.getMinutes())}`
   );
 }

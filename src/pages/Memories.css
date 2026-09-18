@@ -5,8 +5,15 @@
   animation: archiveIn 700ms ease-out both;
   --archive-ink: #12181a;
   --archive-rule: rgba(18, 24, 26, 0.24);
-  --archive-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
-    monospace;
+  /* System faces only, the way the rest of the site is set. Squarer and more
+     mechanical than the body Helvetica, which is what makes the listing read
+     as a machine's own index rather than as prose. Digits are set tabular so
+     the date column still lines up without a monospace family. */
+  /* 'Avenir Next' sits ahead of 'DIN Alternate' because it ships genuine Light
+     and Ultra Light faces; DIN Alternate has Regular and Bold only, so the
+     lighter weights below would silently round back up to Regular. */
+  --archive-font: 'Eurostile', 'Bahnschrift', 'Avenir Next', 'DIN Alternate',
+    Futura, system-ui, sans-serif;
 }
 
 @keyframes archiveIn {
@@ -83,6 +90,14 @@
     0 1px 1px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(18, 24, 26, 0.22);
 }
 
+/* The file name is the largest lettering on the page, and the dark half of
+   the halo above reads as extra weight at that size — the light face is lost
+   under it. It keeps the white separation only. */
+.archive__name {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.95),
+    0 1px 1px rgba(255, 255, 255, 0.95);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .archive__open:hover {
     border-color: var(--archive-rule);
@@ -155,7 +170,9 @@
   border-bottom: 1px solid var(--archive-rule);
   font-family: var(--archive-font);
   font-size: 1.05rem;
-  letter-spacing: 0.1em;
+  font-weight: 300;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
   text-transform: lowercase;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -170,7 +187,7 @@
 .archive__stamp {
   font-family: var(--archive-font);
   font-size: 0.8rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.16em;
   opacity: 0.5;
   font-variant-numeric: tabular-nums;
 }
