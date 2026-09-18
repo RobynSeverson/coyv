@@ -1,7 +1,10 @@
 .vault__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
-  gap: clamp(1rem, 2.5vw, 1.75rem);
+  /* The reference lays a product out as one narrow column and lets the page
+     breathe around it; the vault holds several, so the column width is kept
+     and repeated rather than stretched. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: clamp(2rem, 4vw, 3.5rem);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -10,52 +13,32 @@
 .vault__card {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 0.6rem;
 }
 
 .vault__frame {
   position: relative;
   overflow: hidden;
-  border-radius: 3px;
-  border: 1px solid rgba(18, 24, 26, 0.18);
-  box-shadow: 0 6px 22px rgba(18, 24, 26, 0.16);
-  /* Phone screens have no room to spare, so the tile is exactly the size of
-     the artwork rather than a fixed window with the print letterboxed inside
-     it. Nothing is left over, so there is nothing to frost either. */
-  width: fit-content;
-  margin-inline: auto;
+  /* A flat square window with the artwork sitting inside it, the way a record
+     sleeve is shown: every card is the same shape whatever the print's ratio,
+     and the leftover space is frosted rather than cropped away. */
+  aspect-ratio: 1 / 1;
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(14px);
+  /* The painted backdrop is nearly white, so the panel needs a shadow rather
+     than a fill to read as a panel at all. */
+  box-shadow: 0 1px 2px rgba(18, 24, 26, 0.16), 0 4px 14px rgba(18, 24, 26, 0.22);
 }
 
 .vault__image {
   display: block;
-  width: auto;
-  height: auto;
-  max-width: 100%;
-  /* A very tall print would otherwise run off the bottom of the screen; the
-     cap trades width for height so the whole thing stays visible at once. */
-  max-height: 70dvh;
-  transition: transform 600ms ease;
-}
-
-/* Wider than a phone the grid wants tiles of a consistent shape, so the frame
-   becomes a fixed 4:5 window with the artwork contained inside it and the
-   leftover space frosted rather than flattened to a plate. */
-@media (min-width: 769px) {
-  .vault__frame {
-    width: auto;
-    aspect-ratio: 4 / 5;
-    background: rgba(255, 255, 255, 0.28);
-    -webkit-backdrop-filter: blur(14px);
-  }
-
-  .vault__image {
-    width: 100%;
-    height: 100%;
-    max-height: none;
-    /* Contain, not cover: prints are not all the same ratio and cropping one
-       to fill the tile hides part of what is being sold. */
-    object-fit: contain;
-  }
+  width: 100%;
+  height: 100%;
+  /* Contain, not cover: prints are not all the same ratio and cropping one
+     to fill the tile hides part of what is being sold. */
+  object-fit: contain;
+  padding: clamp(1.25rem, 5%, 2.25rem);
+  box-sizing: border-box;
 }
 
 /* The standard property lives in @supports because the CSS minifier drops a
@@ -63,31 +46,64 @@
    Firefox. Inside a feature query it survives, and browsers without support
    fall back to the translucent background alone. */
 @supports (backdrop-filter: blur(1px)) {
-  @media (min-width: 769px) {
-    .vault__frame {
-      backdrop-filter: blur(14px);
-    }
+  .vault__frame,
+  .vault__thumb {
+    backdrop-filter: blur(14px);
   }
-}
-
-.vault__card:hover .vault__image {
-  transform: scale(1.03);
 }
 
 .vault__imagePlaceholder {
-  /* A percentage width would collapse to nothing inside the shrink-to-fit
-     frame used on phones, so the box is sized from a definite height instead
-     and the desktop rule below restores it to filling the fixed window. */
-  height: 55dvh;
-  aspect-ratio: 4 / 5;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(135deg, rgba(18, 24, 26, 0.08), rgba(18, 24, 26, 0.02));
 }
 
-@media (min-width: 769px) {
-  .vault__imagePlaceholder {
-    width: 100%;
-    height: 100%;
-  }
+/* The remaining images, small and in a row under the main one. */
+.vault__thumbs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vault__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 0;
+  background: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 1px 2px rgba(18, 24, 26, 0.14), 0 3px 10px rgba(18, 24, 26, 0.18);
+  cursor: pointer;
+  opacity: 0.75;
+  transition: opacity 200ms ease;
+}
+
+.vault__thumb[aria-current="true"],
+.vault__thumb:hover,
+.vault__thumb:focus-visible {
+  opacity: 1;
+}
+
+.vault__thumbImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 0.35rem;
+  box-sizing: border-box;
+}
+
+/* Right-aligned under the strip, the way a contact sheet numbers its frames. */
+.vault__counter {
+  margin: 0;
+  text-align: right;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  opacity: 0.55;
 }
 
 .vault__flag {
@@ -108,26 +124,27 @@
 .vault__body {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.65rem;
 }
 
-/* Only mobile paints a backdrop behind the grid, and copy set directly on that
-   artwork is hard to read. A translucent panel lifts the text off it without
-   hiding the art; desktop keeps the plain white page and needs none of this. */
-@media (max-width: 768px) {
-  .vault__body {
-    padding: 0.85rem 0.95rem;
-    border: 1px solid rgba(18, 24, 26, 0.18);
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.72);
-  }
+/* Both breakpoints paint a backdrop behind the grid now, and copy set directly
+   on that artwork is hard to read. A white halo separates the lettering
+   without a panel covering the painting, matching the archive. */
+.vault__name,
+.vault__price,
+.vault__counter,
+.vault__stock,
+.vault__description,
+.vault__add {
+  text-shadow: 0 0 6px rgba(255, 255, 255, 1), 0 0 14px rgba(255, 255, 255, 0.95),
+    0 1px 1px rgba(255, 255, 255, 0.95);
 }
 
 .vault__name {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.88rem;
   font-weight: 400;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.12em;
   text-transform: lowercase;
 }
 
@@ -135,7 +152,7 @@
 .vault__description {
   font-size: 0.85rem;
   line-height: 1.5;
-  opacity: 0.65;
+  opacity: 0.75;
 }
 
 .vault__description p {
@@ -146,39 +163,38 @@
   margin-bottom: 0;
 }
 
+/* The action sits alone on its own line at the end of the card, opposite the
+   left-aligned copy above it. */
 .vault__row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 0.4rem;
 }
 
 .vault__price {
-  font-size: 0.95rem;
+  margin: 0;
+  font-size: 0.85rem;
   letter-spacing: 0.1em;
 }
 
 .vault__add {
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(18, 24, 26, 0.35);
-  border-radius: 999px;
+  padding: 0;
+  border: 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 0.78rem;
-  letter-spacing: 0.14em;
+  font-size: 0.85rem;
+  letter-spacing: 0.12em;
   text-transform: lowercase;
   cursor: pointer;
-  transition:
-    background 200ms ease,
-    color 200ms ease,
-    border-color 200ms ease;
+  opacity: 0.8;
+  transition: opacity 200ms ease;
 }
 
 .vault__add:hover:not(:disabled) {
-  background: rgba(18, 24, 26, 0.9);
-  border-color: rgba(18, 24, 26, 0.9);
-  color: #f7f9f6;
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
 }
 
 .vault__add:disabled {
@@ -245,10 +261,6 @@
   .vault__skeleton {
     animation: none;
   }
-
-  .vault__card:hover .vault__image {
-    transform: none;
-  }
 }
 
 /* A subscription tile is priced per month and is never sold out, so it gets
@@ -263,12 +275,9 @@
   opacity: 0.7;
 }
 
-/* The subscribe control is a link, not a button, so it needs the button's
-   own box back. */
+/* The subscribe control is a link, not a button, so it needs the same plain
+   lettering the button falls back to. */
 a.vault__add {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   text-decoration: none;
 }
 
@@ -279,7 +288,8 @@ a.vault__add {
 
 /* Artwork is not meant to be dragged out, selected, or long-pressed into a
    save sheet. The real protection is that only a downscaled copy is served. */
-.vault__image {
+.vault__image,
+.vault__thumbImage {
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;

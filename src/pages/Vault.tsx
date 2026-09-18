@@ -20,6 +20,9 @@ export default function Vault() {
   const [products, setProducts] = useState<Product[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState<string | null>(null);
+  /* Which image each card is showing. Keyed by product rather than held per
+     card so the list stays a single flat render with no child component. */
+  const [shown, setShown] = useState<Record<string, number>>({});
   const cart = useCart();
 
   useEffect(() => {
@@ -91,21 +94,23 @@ export default function Vault() {
       ) : (
         <ul className="vault__grid">
           {products.map((product) => {
-            const cover = product.images[0];
+            const index = Math.min(shown[product.id] ?? 0, Math.max(product.images.length - 1, 0));
+            const cover = product.images[index];
             const isSubscription = product.kind === "subscription";
             const inCart = cart.lines.find((line) => line.productId === product.id);
 
             return (
               <li key={product.id} className="vault__card">
+                <h2 className="vault__name">{product.title}</h2>
+
                 <div className="vault__frame">
                   {cover ? (
                     <img
                       className="vault__image"
                       src={cover.url}
                       alt={cover.alt}
-                      /* The mobile tile is sized by the artwork rather than a
-                         fixed ratio, so the intrinsic dimensions are needed to
-                         reserve the right box before a lazy image arrives. */
+                      /* The frame is a fixed window, but the intrinsic size
+                         still lets the browser decode without a reflow. */
                       width={cover.width ?? undefined}
                       height={cover.height ?? undefined}
                       loading="lazy"
@@ -127,18 +132,55 @@ export default function Vault() {
                   ) : null}
                 </div>
 
+                {product.images.length > 1 ? (
+                  <>
+                    <ul className="vault__thumbs">
+                      {product.images.map((image, position) => (
+                        <li key={image.id}>
+                          <button
+                            type="button"
+                            className="vault__thumb"
+                            aria-label={`view image ${position + 1} of ${product.images.length}`}
+                            aria-current={position === index}
+                            onClick={() =>
+                              setShown((current) => ({ ...current, [product.id]: position }))
+                            }
+                          >
+                            <img
+                              className="vault__thumbImage"
+                              src={image.url}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              draggable={false}
+                              onContextMenu={blockCapture}
+                              onDragStart={blockCapture}
+                            />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="vault__counter">
+                      {index + 1}/{product.images.length}
+                    </p>
+                  </>
+                ) : null}
+
                 <div className="vault__body">
-                  <h2 className="vault__name">{product.title}</h2>
+                  <p className="vault__price">
+                    {formatMoney(product.priceCents, product.currency)}
+                    {isSubscription ? <span className="vault__interval"> / month</span> : null}
+                  </p>
+
                   <RichText className="vault__description" value={product.description} />
 
-                  <div className="vault__row">
-                    <span className="vault__price">
-                      {formatMoney(product.priceCents, product.currency)}
-                      {isSubscription ? (
-                        <span className="vault__interval"> / month</span>
-                      ) : null}
-                    </span>
+                  {isSubscription ? (
+                    <p className="vault__stock">a new print every month · cancel anytime</p>
+                  ) : product.stock !== null && product.stock > 0 && product.stock <= 5 ? (
+                    <p className="vault__stock">only {product.stock} left</p>
+                  ) : null}
 
+                  <div className="vault__row">
                     {isSubscription ? (
                       product.available ? (
                         <Link className="vault__add" to={`/subscribe/${product.slug}`}>
@@ -164,12 +206,6 @@ export default function Vault() {
                       </button>
                     )}
                   </div>
-
-                  {isSubscription ? (
-                    <p className="vault__stock">a new print every month · cancel anytime</p>
-                  ) : product.stock !== null && product.stock > 0 && product.stock <= 5 ? (
-                    <p className="vault__stock">only {product.stock} left</p>
-                  ) : null}
                 </div>
               </li>
             );
