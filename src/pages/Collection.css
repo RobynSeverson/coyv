@@ -139,11 +139,24 @@
   display: grid;
   place-items: center;
   padding: clamp(1rem, 4vw, 3rem);
-  background: rgba(12, 16, 18, 0.92);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: linear-gradient(
+    155deg,
+    rgba(58, 78, 98, 0.62),
+    rgba(24, 34, 46, 0.72) 55%,
+    rgba(44, 62, 80, 0.66)
+  );
+  -webkit-backdrop-filter: blur(14px);
   cursor: zoom-out;
   animation: lightboxIn 220ms ease-out both;
+}
+
+/* The minifier drops an unprefixed `backdrop-filter` sitting beside the
+   prefixed one, which silently loses the frost in Firefox. Tidying this back
+   into the block above reintroduces that bug. */
+@supports (backdrop-filter: blur(1px)) {
+  .lightbox {
+    backdrop-filter: blur(14px);
+  }
 }
 
 @keyframes lightboxIn {
@@ -298,11 +311,11 @@
 .lightbox {
   --hud-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
     monospace;
-  /* A cool slate rather than black. The overlay behind these panels is already
-     near-black, so a true black fill gave them no surface of their own and the
-     lettering looked like it was printed straight onto the void. */
-  --hud-panel: rgba(34, 41, 45, 0.92);
-  --hud-panel-soft: rgba(34, 41, 45, 0.72);
+  /* A cool slate rather than black. The overlay behind these panels is
+     translucent, so the fill is kept light enough to read as glass over the
+     artwork rather than as a solid chip laid on top of it. */
+  --hud-panel: rgba(62, 80, 98, 0.52);
+  --hud-panel-soft: rgba(62, 80, 98, 0.38);
 }
 
 .lightbox__bars,
