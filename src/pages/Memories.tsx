@@ -475,6 +475,19 @@ export default function Memories() {
                     href={openSlide.image.downloadUrl}
                     download={openSlide.image.downloadName}
                     aria-label={`Download ${openSlide.memory.slug}`}
+                    /* The navigation is the browser's, so this only reports
+                       the intent — a cancelled or failed save still counts. */
+                    onClick={() =>
+                      trackEvent("memory_download", {
+                        memory_slug: openSlide.memory.slug,
+                        memory_kind: openSlide.memory.kind,
+                        memory_tag: openSlide.memory.tag,
+                        file_name: openSlide.image.downloadName,
+                        /* Which image of the memory, for memories holding
+                           more than one. */
+                        image_position: openSlide.position + 1,
+                      })
+                    }
                   >
                     <DownloadIcon />
                     <span className="lightbox__downloadLabel">
