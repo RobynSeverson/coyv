@@ -86,16 +86,19 @@
 .archive__stamp,
 .archive__tag,
 .archive__thumbBlank {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.95),
-    0 1px 1px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(18, 24, 26, 0.22);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 1), 0 0 14px rgba(255, 255, 255, 0.95),
+    0 1px 1px rgba(255, 255, 255, 0.95), 0 2px 5px rgba(18, 24, 26, 0.38),
+    0 4px 10px rgba(18, 24, 26, 0.24);
 }
 
-/* The file name is the largest lettering on the page, and the dark half of
-   the halo above reads as extra weight at that size — the light face is lost
-   under it. It keeps the white separation only. */
+/* The file name is the largest lettering on the page. A tight dark offset
+   reads as extra stroke weight at that size and buries the light face, so the
+   drop below is soft and wide instead: it separates the letters from the
+   backdrop without thickening them. */
 .archive__name {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.95),
-    0 1px 1px rgba(255, 255, 255, 0.95);
+  text-shadow: 0 0 6px rgba(255, 255, 255, 1), 0 0 14px rgba(255, 255, 255, 1),
+    0 0 26px rgba(255, 255, 255, 0.9), 0 2px 6px rgba(18, 24, 26, 0.4),
+    0 4px 12px rgba(18, 24, 26, 0.28);
 }
 
 @media (hover: hover) and (pointer: fine) {
