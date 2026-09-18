@@ -1,13 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { ADMIN_PATH } from "../config";
-
-declare global {
-  interface Window {
-    dataLayer?: unknown[];
-    gtag?: (...args: unknown[]) => void;
-  }
-}
+import { trackEvent } from "./analytics";
 
 /* Analytics only sees the first load of a single-page app: React Router
    changes the URL without a document load, so every page after the landing
@@ -27,10 +21,8 @@ export default function useRouteAnalytics() {
     if (location.pathname.startsWith(ADMIN_PATH)) return;
 
     /* gtag.js is loaded async, so on a cold start the first navigation can
-       land before the script defines window.gtag. The inline snippet defines
-       the queue-backed stub synchronously, but guard anyway rather than
-       throw inside an effect. */
-    window.gtag?.("event", "page_view", {
+       land before the script defines window.gtag. trackEvent guards for it. */
+    trackEvent("page_view", {
       page_path: `${location.pathname}${location.search}`,
       page_location: window.location.href,
       page_title: document.title,

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import PageHeader from "../components/PageHeader";
 import { RichText } from "../lib/richText";
 import { api, type Memory, type MemoryImage } from "../lib/api";
+import { trackEvent } from "../lib/analytics";
 /* The viewer chrome is shared with the vault's grid, which is why these
    styles are not in Memories.css. */
 import "./Collection.css";
@@ -171,6 +172,27 @@ export default function Memories() {
 
   const close = useCallback(() => setOpenIndex(null), []);
 
+  /* Opening a memory is the only thing to measure on this page — there is no
+     add-to-cart and nothing to sign up for — so the row click reports which
+     one was picked and where it sat in the list. `memory_open` is a custom
+     event, so its parameters need registering as custom dimensions in GA4
+     before they show up as anything other than an event count. */
+  const openMemory = useCallback(
+    (memory: Memory, position: number) => {
+      setOpenIndex(firstSlideOf.get(memory.id) ?? 0);
+
+      trackEvent("memory_open", {
+        memory_slug: memory.slug,
+        memory_kind: memory.kind,
+        memory_tag: memory.tag,
+        memory_images: memory.images.length,
+        /* One-based so it reads like the list does. */
+        list_position: position + 1,
+      });
+    },
+    [firstSlideOf],
+  );
+
   const step = useCallback(
     (delta: number) =>
       setOpenIndex((current) => {
@@ -262,7 +284,7 @@ export default function Memories() {
                 </span>
               </li>
             ))
-          : memories.map((memory) => {
+          : memories.map((memory, position) => {
               const cover = memory.images[0] ?? null;
               const extra = memory.images.length - 1;
 
@@ -271,7 +293,7 @@ export default function Memories() {
                   <button
                     type="button"
                     className="archive__open"
-                    onClick={() => setOpenIndex(firstSlideOf.get(memory.id) ?? 0)}
+                    onClick={() => openMemory(memory, position)}
                   >
                     <span className="archive__thumb">
                       {cover ? (
