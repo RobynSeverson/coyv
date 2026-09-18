@@ -141,9 +141,9 @@
   padding: clamp(1rem, 4vw, 3rem);
   background: linear-gradient(
     155deg,
-    rgba(58, 78, 98, 0.62),
-    rgba(24, 34, 46, 0.72) 55%,
-    rgba(44, 62, 80, 0.66)
+    rgba(96, 116, 138, 0.46),
+    rgba(52, 68, 86, 0.56) 55%,
+    rgba(78, 98, 120, 0.5)
   );
   -webkit-backdrop-filter: blur(14px);
   cursor: zoom-out;
@@ -314,8 +314,8 @@
   /* A cool slate rather than black. The overlay behind these panels is
      translucent, so the fill is kept light enough to read as glass over the
      artwork rather than as a solid chip laid on top of it. */
-  --hud-panel: rgba(62, 80, 98, 0.52);
-  --hud-panel-soft: rgba(62, 80, 98, 0.38);
+  --hud-panel: rgba(104, 124, 146, 0.4);
+  --hud-panel-soft: rgba(104, 124, 146, 0.28);
 }
 
 .lightbox__bars,
