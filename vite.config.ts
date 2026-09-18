@@ -42,6 +42,9 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [react(), imagetools()],
     server: {
+      /* `npm run dev:tunnel` fronts this server with an ngrok hostname, which
+         Vite otherwise rejects as a DNS-rebinding attempt. */
+      allowedHosts: [".ngrok-free.app", ".ngrok-free.dev", ".ngrok.app", ".ngrok.io"],
       /* Same-origin in dev, so the admin session cookie (SameSite=Strict) works
          exactly as it does behind nginx in production. */
       proxy: {

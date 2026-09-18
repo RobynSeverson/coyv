@@ -217,35 +217,53 @@ export type Order = {
   paidAt: string | null;
 };
 
-export type Memory = {
+export type MemoryKind = "photo" | "journal";
+
+export type MemoryImage = {
   id: string;
-  title: string;
-  alt: string;
-  /* small webp for the grid */
+  /* small webp for the list */
   previewUrl: string;
   /* untouched original, only fetched when the lightbox opens */
   url: string;
   /* the original signed to come back as a file save */
   downloadUrl: string;
+  downloadName: string;
   width: number | null;
   height: number | null;
-  downloadName: string;
+};
+
+export type Memory = {
+  id: string;
+  kind: MemoryKind;
+  /* the archive's own name for the file, memory_007, assigned by position */
+  slug: string;
+  /* extension printed in the corner of a row */
+  tag: string;
+  title: string;
+  alt: string;
+  /* markdown, only ever set on a journal entry */
+  body: string;
+  capturedAt: string | null;
+  images: MemoryImage[];
 };
 
 export type AdminMemory = Memory & {
   published: boolean;
   sortOrder: number;
   bytes: number;
-  contentType: string;
+  contentType: string | null;
   createdAt: string;
   updatedAt: string;
 };
 
 type MemoryInput = {
+  kind: MemoryKind;
   title: string;
   alt: string;
+  body: string;
   published: boolean;
   sortOrder: number;
+  capturedAt: string | null;
 };
 
 export type Admin = { id: string; email: string; displayName: string };
@@ -416,14 +434,39 @@ export const api = {
 
     /* Every memory mutation answers with the whole list, so the panel never
        has to guess how a change reordered things. */
-    uploadMemories: (files: File[]) => {
+    /* `grouped` puts every file in one memory instead of making one memory
+       each. It is appended before the files because multer only exposes text
+       fields the route has already parsed past. */
+    uploadMemories: (files: File[], grouped = false) => {
       const formData = new FormData();
+      formData.append("grouped", String(grouped));
       for (const file of files) formData.append("images", file);
       return request<{ memories: AdminMemory[] }>("/admin/memories", {
         method: "POST",
         formData,
       });
     },
+
+    createJournalMemory: (payload: { title: string; body: string }) =>
+      request<{ memories: AdminMemory[] }>("/admin/memories/journal", {
+        method: "POST",
+        body: payload,
+      }),
+
+    addMemoryImages: (id: string, files: File[]) => {
+      const formData = new FormData();
+      for (const file of files) formData.append("images", file);
+      return request<{ memories: AdminMemory[] }>(`/admin/memories/${id}/images`, {
+        method: "POST",
+        formData,
+      });
+    },
+
+    deleteMemoryImage: (id: string, imageId: string) =>
+      request<{ memories: AdminMemory[] }>(
+        `/admin/memories/${id}/images/${imageId}`,
+        { method: "DELETE" },
+      ),
 
     updateMemory: (id: string, payload: Partial<MemoryInput>) =>
       request<{ memories: AdminMemory[] }>(`/admin/memories/${id}`, {

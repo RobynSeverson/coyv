@@ -28,6 +28,13 @@ npm run dev:web   # just Vite
 Docker must be running for `dev:db`. To use a MongoDB you already have, set
 `MONGODB_URI` in `server/.env` and run `npm run dev:api` / `npm run dev:web`.
 
+To preview a local session from another machine or phone, `npm run dev:remote`
+runs the usual three plus `ngrok http 5173`; the public URL is printed in the
+`tunnel` output. Only Vite is tunnelled — the API is reached through Vite's
+`/api` proxy, so it stays same-origin and the admin cookie keeps working.
+`vite.config.ts` allows the ngrok hostnames explicitly; without that Vite
+rejects them as a DNS-rebinding attempt and serves a blank page.
+
 ## Structure
 
 - `src/assets/` — landing artwork and the nav button PNGs

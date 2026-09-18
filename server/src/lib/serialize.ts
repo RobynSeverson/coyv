@@ -1,7 +1,7 @@
 import type { ProductDocument } from '../models/Product.ts'
 import type { OrderDocument } from '../models/Order.ts'
 import type { SubscriptionDocument } from '../models/Subscription.ts'
-import type { MemoryDocument } from '../models/Memory.ts'
+import { memoryImages, type MemoryDocument, type MemoryKind } from '../models/Memory.ts'
 import type { FulfillmentDocument } from '../models/Fulfillment.ts'
 import { env } from '../env.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
@@ -168,46 +168,90 @@ export function serializeOrder(order: OrderDocument) {
   }
 }
 
-export type SerializedMemory = {
+export type SerializedMemoryImage = {
   id: string
-  title: string
-  alt: string
-  /* Small webp for the grid; falls back to the original when a preview could
+  /* Small webp for the list; falls back to the original when a preview could
      not be generated. */
   previewUrl: string
   /* Untouched original, fetched only when the lightbox opens. */
   url: string
   /* Same object, signed to come back as an attachment under downloadName. */
   downloadUrl: string
+  downloadName: string
   width: number | null
   height: number | null
-  downloadName: string
+}
+
+export type SerializedMemory = {
+  id: string
+  kind: MemoryKind
+  /* The archive's own name for the file — memory_007 — assigned by position
+     so the label a visitor sees matches the order they are reading in. */
+  slug: string
+  /* Extension the list prints in the corner of a row. */
+  tag: string
+  title: string
+  alt: string
+  body: string
+  capturedAt: string | null
+  images: SerializedMemoryImage[]
+}
+
+/* A journal entry is text first, so it is tagged as a log even when images
+   are attached to it. */
+function memoryTag(kind: MemoryKind, images: { key: string }[]): string {
+  if (kind === 'journal') return 'log'
+  const extension = images[0]?.key.split('.').pop()?.toLowerCase()
+  return extension && extension.length <= 4 ? extension : 'jpg'
 }
 
 export async function serializeMemory(
   memory: MemoryDocument,
   index: number,
 ): Promise<SerializedMemory> {
-  const extension = memory.image.key.split('.').pop()?.toLowerCase() || 'jpg'
-  /* Position-based so a saved file is named the way the page presents it. */
-  const downloadName = `coyv-memory-${index + 1}.${extension}`
+  const images = memoryImages(memory)
+  const slug = `memory_${String(index + 1).padStart(3, '0')}`
+  const kind = (memory.kind ?? 'photo') as MemoryKind
 
-  const [url, downloadUrl, previewUrl] = await Promise.all([
-    getSignedObjectUrl(memory.image.key),
-    getSignedObjectUrl(memory.image.key, downloadName),
-    memory.image.previewKey ? getSignedObjectUrl(memory.image.previewKey) : null,
-  ])
+  const serializedImages = await Promise.all(
+    images.map(async (image, imageIndex) => {
+      const extension = image.key.split('.').pop()?.toLowerCase() || 'jpg'
+      /* Position-based so a saved file is named the way the page presents it,
+         and suffixed only past the first so single-image memories keep the
+         filename they have always downloaded as. */
+      const downloadName =
+        imageIndex === 0
+          ? `coyv-${slug}.${extension}`
+          : `coyv-${slug}-${imageIndex + 1}.${extension}`
+
+      const [url, downloadUrl, previewUrl] = await Promise.all([
+        getSignedObjectUrl(image.key),
+        getSignedObjectUrl(image.key, downloadName),
+        image.previewKey ? getSignedObjectUrl(image.previewKey) : null,
+      ])
+
+      return {
+        id: String(image._id),
+        previewUrl: previewUrl ?? url,
+        url,
+        downloadUrl,
+        downloadName,
+        width: image.width ?? null,
+        height: image.height ?? null,
+      }
+    }),
+  )
 
   return {
     id: String(memory._id),
+    kind,
+    slug,
+    tag: memoryTag(kind, images),
     title: memory.title,
     alt: memory.alt || memory.title,
-    previewUrl: previewUrl ?? url,
-    url,
-    downloadUrl,
-    width: memory.image.width ?? null,
-    height: memory.image.height ?? null,
-    downloadName,
+    body: memory.body ?? '',
+    capturedAt: memory.capturedAt ? memory.capturedAt.toISOString() : null,
+    images: serializedImages,
   }
 }
 
@@ -216,12 +260,14 @@ export function serializeMemories(memories: MemoryDocument[]): Promise<Serialize
 }
 
 export async function serializeMemoryForAdmin(memory: MemoryDocument, index: number) {
+  const images = memoryImages(memory)
+
   return {
     ...(await serializeMemory(memory, index)),
     published: memory.published,
     sortOrder: memory.sortOrder,
-    bytes: memory.image.bytes,
-    contentType: memory.image.contentType,
+    bytes: images.reduce((total, image) => total + image.bytes, 0),
+    contentType: images[0]?.contentType ?? null,
     createdAt: memory.createdAt,
     updatedAt: memory.updatedAt,
   }

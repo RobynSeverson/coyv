@@ -23,12 +23,12 @@
   margin: 0 auto;
 }
 
-/* The desktop artwork is wide and short, and its writing sits in a narrow
-   column in the middle, so the image needs the full container width for the
-   text to read at a comfortable size. */
+/* The desktop artwork is nearly square with the writing filling the sheet, so
+   it is capped well below the container width — at full width the letter runs
+   past the fold before a line of it can be read. */
 @media (min-width: 769px) {
   .home__blurb {
-    max-width: 68rem;
+    max-width: 40rem;
   }
 }
 

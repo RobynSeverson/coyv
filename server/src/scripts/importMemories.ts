@@ -2,7 +2,7 @@ import { readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { parseArgs } from 'node:util'
 import { connectToDatabase, disconnectFromDatabase } from '../db.ts'
-import { MemoryModel } from '../models/Memory.ts'
+import { MemoryModel, randomCapturedAt } from '../models/Memory.ts'
 import { buildPreview, readDimensions } from '../services/images.ts'
 import { buildObjectKey, uploadObject } from '../services/s3.ts'
 
@@ -60,17 +60,21 @@ async function main(): Promise<void> {
     }
 
     await MemoryModel.create({
+      kind: 'photo',
       title: '',
       alt: '',
       importedFrom: name,
-      image: {
-        key,
-        previewKey,
-        contentType,
-        bytes: body.byteLength,
-        width: dimensions.width,
-        height: dimensions.height,
-      },
+      images: [
+        {
+          key,
+          previewKey,
+          contentType,
+          bytes: body.byteLength,
+          width: dimensions.width,
+          height: dimensions.height,
+        },
+      ],
+      capturedAt: randomCapturedAt(),
       published: true,
       sortOrder,
     })

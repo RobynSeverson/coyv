@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "dev:web": "vite --host",
     "dev:api": "npm --prefix server run dev",
-    "dev:db": "node scripts/dev-mongo.mjs"
+    "dev:db": "node scripts/dev-mongo.mjs",
+    "dev:tunnel": "ngrok http 5173 --log=stdout",
+    "dev:remote": "concurrently -k -n db,api,web,tunnel -c gray,magenta,cyan,yellow \"npm:dev:db\" \"npm:dev:api\" \"npm:dev:web\" \"npm:dev:tunnel\""
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^6.9.0",

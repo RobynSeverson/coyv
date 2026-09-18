@@ -31,6 +31,25 @@
   }
 }
 
+/* Desktop gets its own landscape crop of the artwork, declared in its own
+   media query so mobile never downloads it either. */
+@media (min-width: 769px) {
+  .siteLayout::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: linear-gradient(
+        rgba(255, 255, 255, 0.55),
+        rgba(255, 255, 255, 0.55)
+      ),
+      url('../assets/mainBackgroundDesktop.webp');
+    background-size: cover;
+    background-position: center center;
+  }
+}
+
 .siteLayout__content {
   /* leave room for the fixed bottom nav */
   padding-bottom: calc(3.5rem + env(safe-area-inset-bottom));

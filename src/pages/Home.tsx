@@ -9,7 +9,7 @@ import "./Home.css";
    search engines some other way. This is a transcription, not a description. */
 const BLURB_TEXT = [
   "welcome to my castle. i've opened the gates.",
-  "i'm not perfect, but i want to try. try. try. try.",
+  "i'm not perfect. but i want to try. try. try. try.",
   "if we all stop trying, what are we?",
   "humans, maybe, are tied to trying. to experimenting. to making something",
   "even when we don't know what it will become.",
@@ -29,8 +29,8 @@ export default function Home() {
           media="(min-width: 769px)"
           type="image/webp"
           srcSet={`${blurbDesktop} 1x, ${blurbDesktop2x} 2x`}
-          width={1100}
-          height={642}
+          width={1000}
+          height={1035}
         />
         <img
           className="home__blurb"
@@ -39,7 +39,7 @@ export default function Home() {
           /* intrinsic size of the default source keeps the page from
              reflowing while the artwork loads */
           width={700}
-          height={1013}
+          height={1245}
           alt={BLURB_TEXT}
           /* this is the page's main content, so it should never be deferred */
           fetchPriority="high"

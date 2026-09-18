@@ -135,6 +135,21 @@ runs.** Always curl `/api/health` afterwards.
 - `update-function-code --image-uri` rejects a combined `repo:tag@sha256:…`
   reference. Pass either `repo:tag` or `repo@sha256:…`, never both.
 
+### Memories need a one-off migration after the archive rewrite
+
+Memories used to hold a single `image`; they now hold an `images` array, a
+`kind` (`photo` or `journal`), a markdown `body` and a `capturedAt` date. The
+serializer still reads the old single-image shape, so the gallery keeps working
+whether or not this has been run — but until it is, those records have no date,
+show `----.--.-- --:--` in the list, and cannot be edited in the admin panel.
+
+Run it once against production after the API is deployed. It is safe to re-run.
+
+```bash
+# from server/, with the production MONGODB_URI in the environment
+node --env-file-if-exists=.env src/scripts/migrateMemoryImages.ts
+```
+
 ## Environment variables
 
 `update-function-configuration --environment` **replaces the entire variable

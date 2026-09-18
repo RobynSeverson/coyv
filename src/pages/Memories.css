@@ -1,0 +1,303 @@
+.archive {
+  max-width: 54rem;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 8vw, 5rem) clamp(1rem, 4vw, 2.5rem) 0;
+  animation: archiveIn 700ms ease-out both;
+  --archive-ink: #12181a;
+  --archive-rule: rgba(18, 24, 26, 0.24);
+  --archive-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
+    monospace;
+}
+
+@keyframes archiveIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.archive__notice {
+  margin: 0 0 clamp(1rem, 3vw, 1.75rem);
+  text-align: center;
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  opacity: 0.6;
+}
+
+.archive__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Set by the page as the list scrolls: 1 for the row crossing the middle of
+   the viewport, falling to 0 half a viewport out. The default keeps every row
+   full size if the script never runs. */
+.archive__row {
+  --row-focus: 1;
+  transform: scale(calc(0.86 + 0.14 * var(--row-focus)));
+  /* Scaling from the left keeps the thumbnail column on one vertical line, so
+     the list still reads as a column of files rather than a fan. */
+  transform-origin: left center;
+  opacity: calc(0.62 + 0.38 * var(--row-focus));
+  will-change: transform, opacity;
+}
+
+.archive__open {
+  display: grid;
+  /* Fixed thumbnail column, so every row's text starts on the same line and
+     the list reads as a file browser rather than a stack of cards. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: clamp(0.75rem, 2vw, 1.1rem);
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: var(--archive-ink);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 180ms ease, border-color 180ms ease,
+    transform 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* The rows sit straight on the painted backdrop, so the lettering carries its
+   own separation instead: a white halo lifts it off the busier passages of the
+   artwork, and a faint dark offset under that gives it an edge. */
+.archive__name,
+.archive__stamp,
+.archive__tag,
+.archive__thumbBlank {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.95),
+    0 1px 1px rgba(255, 255, 255, 0.95), 0 1px 2px rgba(18, 24, 26, 0.22);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .archive__open:hover {
+    border-color: var(--archive-rule);
+    transform: translateX(2px);
+  }
+}
+
+.archive__open:focus-visible {
+  outline: 2px solid var(--archive-ink);
+  outline-offset: 2px;
+}
+
+.archive__open:active {
+  transform: translateX(2px) scale(0.997);
+}
+
+.archive__thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* Preset size rather than the image's own aspect: the left column has to be
+     a grid of identical rectangles for the listing to line up. */
+  width: 9.5rem;
+  height: 6rem;
+  overflow: hidden;
+  border-radius: 2px;
+  /* Opaque for the same reason as .collection__item: the mobile backdrop must
+     not show through artwork that has transparency. */
+  background: #eceeed;
+  box-shadow: 0 1px 2px rgba(18, 24, 26, 0.16), 0 4px 14px rgba(18, 24, 26, 0.22);
+}
+
+.archive__thumbImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.archive__thumbBlank {
+  font-size: 1.5rem;
+  line-height: 1;
+  opacity: 0.35;
+}
+
+.archive__count {
+  position: absolute;
+  right: 0.25rem;
+  bottom: 0.2rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 2px;
+  color: #f3f7f4;
+  background: rgba(18, 24, 26, 0.72);
+  font-family: var(--archive-font);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+}
+
+.archive__meta {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.archive__name {
+  display: block;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--archive-rule);
+  font-family: var(--archive-font);
+  font-size: 1.05rem;
+  letter-spacing: 0.1em;
+  text-transform: lowercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.archive__title {
+  opacity: 0.55;
+  letter-spacing: 0.04em;
+}
+
+.archive__stamp {
+  font-family: var(--archive-font);
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bottom-right of the row, the way a file listing prints its type. */
+.archive__tag {
+  align-self: end;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--archive-rule);
+  border-radius: 2px;
+  font-family: var(--archive-font);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: lowercase;
+  opacity: 0.65;
+}
+
+.archive__srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Placeholder rows, drawn before the archive answers so the page does not
+   collapse and then shove the bottom nav down. */
+.archive__row.is-loading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: clamp(0.75rem, 2vw, 1.1rem);
+  padding: 0.7rem 0.9rem;
+  opacity: 0.4;
+}
+
+.archive__row.is-loading .archive__name {
+  height: 1.05rem;
+  background: var(--archive-rule);
+}
+
+.archive__row.is-loading .archive__stamp {
+  width: 10rem;
+  height: 0.8rem;
+  background: var(--archive-rule);
+  opacity: 0.6;
+}
+
+@media (max-width: 768px) {
+  .archive__thumb {
+    width: 6.75rem;
+    height: 4.25rem;
+  }
+
+  .archive__name {
+    font-size: 0.92rem;
+    letter-spacing: 0.06em;
+  }
+
+  .archive__stamp {
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+  }
+
+  /* The caption competes with the file name for a line that is already tight
+     on a phone, and the name is the part that identifies the row. */
+  .archive__title {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archive {
+    animation: none;
+  }
+
+  .archive__open {
+    transition: none;
+  }
+
+  /* The page skips measuring rows under this preference, but the rule above
+     would still be holding whatever the last scroll wrote, so the taper is
+     undone here too. */
+  .archive__row {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* A journal entry opens in the same viewer as a photograph, standing in for
+   the image on the lightbox stage. */
+.lightbox__entry {
+  max-width: 44rem;
+  max-height: calc(100dvh - 11rem);
+  overflow-y: auto;
+  padding: clamp(1.5rem, 4vw, 2.75rem);
+  color: #f3f7f4;
+  background: var(--hud-panel);
+  border: 1px solid rgba(243, 247, 244, 0.22);
+  cursor: default;
+  animation: lightboxImageIn 260ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.lightbox__entryTitle {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.1rem, 3vw, 1.45rem);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.lightbox__entryStamp {
+  margin: 0 0 1.25rem;
+  font-family: var(--hud-font);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  opacity: 0.55;
+}
+
+.lightbox__entryBody {
+  font-size: 0.98rem;
+  line-height: 1.75;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__entry {
+    animation: none;
+  }
+}
