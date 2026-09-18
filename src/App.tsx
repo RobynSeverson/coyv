@@ -54,6 +54,9 @@ export default function App() {
             <Route path="/subscribe/:slug" element={<Subscribe />} />
             <Route path="/order" element={<PostPayment />} />
             <Route path="/memories" element={<Memories />} />
+            {/* A single memory, deep-linked. Both memory_001 and 001 resolve,
+                so a number copied out of the list works on its own. */}
+            <Route path="/memories/:slug" element={<Memories />} />
             {/* Unlinked from the site: subscribers arrive here from an email. */}
             <Route path="/manage-subscription" element={<ManageSubscription />} />
           </Route>

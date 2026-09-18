@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import { RichText } from "../lib/richText";
 import { api, type Memory, type MemoryImage } from "../lib/api";
@@ -76,6 +77,15 @@ type Slide =
   | { type: "text"; memory: Memory; key: string }
   | { type: "image"; memory: Memory; image: MemoryImage; position: number; key: string };
 
+/* The number inside a memory's name, so a link can carry either form the
+   list shows: memory_001, or just the 001 someone copied out of it. Leading
+   zeroes are incidental, so 1 and 001 are the same memory. */
+function memoryNumber(value: string): number | null {
+  const digits = value.trim().replace(/^memory[_-]?/i, "");
+  if (!/^\d+$/.test(digits)) return null;
+  return Number(digits);
+}
+
 function toSlides(memories: Memory[]): Slide[] {
   return memories.flatMap((memory) => {
     const images = memory.images.map<Slide>((image, index) => ({
@@ -92,6 +102,8 @@ function toSlides(memories: Memory[]): Slide[] {
 }
 
 export default function Memories() {
+  const { slug: linkedSlug } = useParams();
+  const navigate = useNavigate();
   const [memories, setMemories] = useState<Memory[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
@@ -170,7 +182,12 @@ export default function Memories() {
     return byMemory;
   }, [slides]);
 
-  const close = useCallback(() => setOpenIndex(null), []);
+  /* Closing returns to the plain list, so a deep link does not leave the URL
+     pointing at a memory that is no longer on screen. */
+  const close = useCallback(() => {
+    setOpenIndex(null);
+    if (linkedSlug) navigate("/memories", { replace: true });
+  }, [linkedSlug, navigate]);
 
   /* Opening a memory is the only thing to measure on this page — there is no
      add-to-cart and nothing to sign up for — so the row click reports which
@@ -192,6 +209,38 @@ export default function Memories() {
     },
     [firstSlideOf],
   );
+
+  /* A deep link lands on the list, brings its row to the middle of the screen
+     and opens it. The scroll is instant rather than smooth because the
+     lightbox goes straight up over it and locks the page — the point of the
+     scroll is where the row sits once the viewer is closed again. */
+  const linkHandled = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!linkedSlug || !memories) return;
+    if (linkHandled.current === linkedSlug) return;
+    linkHandled.current = linkedSlug;
+
+    const wanted = memoryNumber(linkedSlug);
+    const target = memories.find(
+      (memory) =>
+        memory.slug.toLowerCase() === linkedSlug.toLowerCase() ||
+        (wanted !== null && memoryNumber(memory.slug) === wanted),
+    );
+
+    /* A link to something that has since been taken down still lands
+       somewhere sensible rather than on an empty viewer. */
+    if (!target) {
+      navigate("/memories", { replace: true });
+      return;
+    }
+
+    listRef.current
+      ?.querySelector(`[data-memory="${target.slug}"]`)
+      ?.scrollIntoView({ block: "center" });
+
+    setOpenIndex(firstSlideOf.get(target.id) ?? 0);
+  }, [linkedSlug, memories, firstSlideOf, navigate]);
 
   const step = useCallback(
     (delta: number) =>
@@ -289,7 +338,7 @@ export default function Memories() {
               const extra = memory.images.length - 1;
 
               return (
-                <li key={memory.id} className="archive__row">
+                <li key={memory.id} className="archive__row" data-memory={memory.slug}>
                   <button
                     type="button"
                     className="archive__open"
