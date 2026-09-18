@@ -56,6 +56,18 @@ const DownloadIcon = () => (
   </svg>
 );
 
+const ShareIcon = () => (
+  <svg
+    className="collection__downloadIcon"
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path d="M12 16V4.5m0 0 4.25 4.25M12 4.5 7.75 8.75" />
+    <path d="M4.5 16.5v2.25a1.25 1.25 0 0 0 1.25 1.25h12.5a1.25 1.25 0 0 0 1.25-1.25V16.5" />
+  </svg>
+);
+
 /* Fixed-width fields, because the column only reads as a file listing if
    every row's date occupies exactly the same space. */
 function formatStamp(value: string | null): string {
@@ -107,6 +119,7 @@ export default function Memories() {
   const [memories, setMemories] = useState<Memory[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
   useEffect(() => {
@@ -209,6 +222,43 @@ export default function Memories() {
     },
     [firstSlideOf],
   );
+
+  /* Sharing hands over the deep link rather than the page, so the recipient
+     lands with the memory already open. The native sheet is used where there
+     is one; elsewhere the link goes to the clipboard and the button says so,
+     because a control that looks like it did nothing reads as broken. */
+  const shareMemory = useCallback(async (memory: Memory) => {
+    const url = `${window.location.origin}/memories/${memory.slug}`;
+    let method = "clipboard";
+
+    try {
+      if (navigator.share) {
+        method = "native";
+        await navigator.share({ title: memory.slug, url });
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareNote("link copied");
+      }
+    } catch (error) {
+      /* Dismissing the share sheet rejects, and is not a failure. */
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareNote("copy failed");
+      return;
+    }
+
+    trackEvent("memory_share", {
+      memory_slug: memory.slug,
+      memory_kind: memory.kind,
+      memory_tag: memory.tag,
+      share_method: method,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!shareNote) return;
+    const clear = setTimeout(() => setShareNote(null), 2400);
+    return () => clearTimeout(clear);
+  }, [shareNote]);
 
   /* A deep link lands on the list, walks its row to the middle of the screen
      and only then opens it, so the viewer arrives over a page that has
@@ -549,6 +599,26 @@ export default function Memories() {
                     </span>
                   </a>
                 ) : null}
+
+                <button
+                  type="button"
+                  className="lightbox__download"
+                  aria-label={`Share ${openSlide.memory.slug}`}
+                  onClick={() => void shareMemory(openSlide.memory)}
+                >
+                  <ShareIcon />
+                  <span
+                    className={`lightbox__downloadLabel${shareNote ? " lightbox__shareNote" : ""}`}
+                  >
+                    {shareNote ? (
+                      shareNote
+                    ) : (
+                      <>
+                        <span aria-hidden="true">共有</span> share
+                      </>
+                    )}
+                  </span>
+                </button>
               </div>
             </div>,
             document.body,

@@ -321,3 +321,18 @@
     animation: none;
   }
 }
+
+/* The share control borrows the save button's styling, so it only needs the
+   button-element resets Safari would otherwise apply. */
+button.lightbox__download {
+  border-radius: 0;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* The labels collapse on narrow screens to leave room for the readout, but
+   the copied-to-clipboard note is the only confirmation there is, so it
+   stays. */
+.lightbox__shareNote {
+  display: inline !important;
+}
