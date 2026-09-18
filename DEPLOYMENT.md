@@ -141,14 +141,28 @@ Memories used to hold a single `image`; they now hold an `images` array, a
 `kind` (`photo` or `journal`), a markdown `body` and a `capturedAt` date. The
 serializer still reads the old single-image shape, so the gallery keeps working
 whether or not this has been run — but until it is, those records have no date,
-show `----.--.-- --:--` in the list, and cannot be edited in the admin panel.
+show `----/--/-- --:--` in the list, and cannot be edited in the admin panel.
 
 Run it once against production after the API is deployed. It is safe to re-run.
+It was run on 2026-09-18 and reported `7 memories: 7 moved to images[], 7 dated`.
+
+The script imports `src/env.ts`, which validates the whole server configuration,
+so it will not start on the production URI alone — it also needs `JWT_SECRET`,
+`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` and `S3_BUCKET`. Load the local
+`.env` for those and override only the connection, which works because a shell
+variable wins over `--env-file`:
 
 ```bash
-# from server/, with the production MONGODB_URI in the environment
+# from server/, with the credentials block from the deploy skill exported
+CFG=$(aws lambda get-function-configuration --function-name coyv-api \
+  --query 'Environment.Variables' --output json)
+export MONGODB_URI=$(echo "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['MONGODB_URI'])")
+export MONGODB_DB_NAME=$(echo "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['MONGODB_DB_NAME'])")
 node --env-file-if-exists=.env src/scripts/migrateMemoryImages.ts
 ```
+
+The Lambda's `MONGODB_URI` points at a cluster named `coyvcastle-dev`. Despite
+the name, that **is** production — there is no separate production cluster.
 
 ## Environment variables
 
