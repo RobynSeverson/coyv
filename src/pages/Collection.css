@@ -171,8 +171,9 @@
 .lightbox__image {
   display: block;
   max-width: 100%;
-  /* leave room for the slug above and the HUD bar below */
-  max-height: calc(100dvh - 11rem);
+  /* leave room for the slug above and the HUD bar below, measured against the
+     smallest viewport so an iOS toolbar cannot sit over the controls */
+  max-height: calc(100svh - 11rem);
   object-fit: contain;
   cursor: default;
   transition: filter 300ms ease;

@@ -286,7 +286,7 @@
    the image on the lightbox stage. */
 .lightbox__entry {
   max-width: 44rem;
-  max-height: calc(100dvh - 11rem);
+  max-height: calc(100svh - 11rem);
   overflow-y: auto;
   padding: clamp(1.5rem, 4vw, 2.75rem);
   color: #f3f7f4;

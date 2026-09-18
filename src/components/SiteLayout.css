@@ -3,7 +3,12 @@
   /* Keeps the mobile backdrop below pinned to this element's stacking context
      so its negative z-index cannot slip behind the page entirely. */
   isolation: isolate;
-  min-height: 100dvh;
+  /* `svh`, not `dvh`: Chrome on iOS resolves the dynamic unit to the large
+     viewport, leaving every short page taller than the visible area and
+     scrollable past its own bottom. The smallest viewport is the only one
+     that is never larger than what the user can see, and any strip left
+     below when the toolbar retracts is the same white as `body`. */
+  min-height: 100svh;
   background: #ffffff;
   color: #12181a;
 }
