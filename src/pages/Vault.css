@@ -19,14 +19,13 @@
 .vault__frame {
   position: relative;
   overflow: hidden;
-  /* A flat square window with the artwork sitting inside it, the way a record
-     sleeve is shown: every card is the same shape whatever the print's ratio,
-     and the leftover space is frosted rather than cropped away. */
+  /* A square window the artwork fills edge to edge, the way a record sleeve is
+     shown: every tile is the same shape down the grid. The background is only
+     ever seen while a lazy image is still in flight. */
   aspect-ratio: 1 / 1;
   background: rgba(255, 255, 255, 0.45);
-  -webkit-backdrop-filter: blur(14px);
-  /* The painted backdrop is nearly white, so the panel needs a shadow rather
-     than a fill to read as a panel at all. */
+  /* The painted backdrop is nearly white, so the tile needs a shadow rather
+     than a fill to read as a tile at all. */
   box-shadow: 0 1px 2px rgba(18, 24, 26, 0.16), 0 4px 14px rgba(18, 24, 26, 0.22);
 }
 
@@ -34,22 +33,10 @@
   display: block;
   width: 100%;
   height: 100%;
-  /* Contain, not cover: prints are not all the same ratio and cropping one
-     to fill the tile hides part of what is being sold. */
-  object-fit: contain;
-  padding: clamp(1.25rem, 5%, 2.25rem);
-  box-sizing: border-box;
-}
-
-/* The standard property lives in @supports because the CSS minifier drops a
-   plain `backdrop-filter` next to the prefixed one, which loses the frost in
-   Firefox. Inside a feature query it survives, and browsers without support
-   fall back to the translucent background alone. */
-@supports (backdrop-filter: blur(1px)) {
-  .vault__frame,
-  .vault__thumb {
-    backdrop-filter: blur(14px);
-  }
+  /* Prints are shot square, so the artwork fills the tile edge to edge. A
+     stray off-ratio image is cropped to the square rather than letterboxed,
+     which keeps every tile the same shape down the grid. */
+  object-fit: cover;
 }
 
 .vault__imagePlaceholder {
@@ -75,7 +62,6 @@
   padding: 0;
   border: 0;
   background: rgba(255, 255, 255, 0.45);
-  -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 1px 2px rgba(18, 24, 26, 0.14), 0 3px 10px rgba(18, 24, 26, 0.18);
   cursor: pointer;
   opacity: 0.75;
@@ -92,9 +78,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  padding: 0.35rem;
-  box-sizing: border-box;
+  object-fit: cover;
 }
 
 /* Right-aligned under the strip, the way a contact sheet numbers its frames. */
