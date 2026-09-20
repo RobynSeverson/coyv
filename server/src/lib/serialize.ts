@@ -1,6 +1,7 @@
 import type { ProductDocument } from '../models/Product.ts'
 import type { OrderDocument } from '../models/Order.ts'
 import type { SubscriptionDocument } from '../models/Subscription.ts'
+import type { SubscriptionPaymentDocument } from '../models/SubscriptionPayment.ts'
 import { memoryImages, type MemoryDocument, type MemoryKind } from '../models/Memory.ts'
 import type { FulfillmentDocument } from '../models/Fulfillment.ts'
 import { env } from '../env.ts'
@@ -149,6 +150,10 @@ export function serializeFulfillment(fulfillment: FulfillmentDocument) {
 export function serializeOrder(order: OrderDocument) {
   return {
     id: String(order._id),
+    /* Both a one-off purchase and a month of a subscription are money taken
+       in, so the orders list shows them side by side and this is what tells
+       them apart. */
+    type: 'order' as const,
     status: order.status,
     currency: order.currency,
     amountTotalCents: order.amountTotalCents,
@@ -162,9 +167,41 @@ export function serializeOrder(order: OrderDocument) {
       unitAmountCents: item.unitAmountCents,
       quantity: item.quantity,
     })),
+    periodLabel: '',
     lastPaymentError: order.lastPaymentError,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
+  }
+}
+
+/* Shaped like an order on purpose: the admin list renders one table, and a
+   subscription charge has the same five things a buyer's order does — when,
+   what, how much, where to, who. */
+export function serializeSubscriptionPayment(payment: SubscriptionPaymentDocument) {
+  return {
+    id: String(payment._id),
+    type: 'subscription' as const,
+    status: 'paid' as const,
+    currency: payment.currency,
+    amountTotalCents: payment.amountPaidCents,
+    email: payment.email,
+    shippingName: payment.shippingName,
+    /* The address lives on the subscription and can change between months, so
+       the packing list in Fulfillments is the place that carries it. */
+    shippingAddress: null,
+    items: [
+      {
+        productId: payment.subscription ? String(payment.subscription) : '',
+        slug: payment.slug,
+        title: payment.title,
+        unitAmountCents: payment.amountPaidCents,
+        quantity: 1,
+      },
+    ],
+    periodLabel: payment.periodLabel,
+    lastPaymentError: null,
+    createdAt: payment.paidAt,
+    paidAt: payment.paidAt,
   }
 }
 

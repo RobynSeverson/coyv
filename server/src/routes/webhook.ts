@@ -10,6 +10,7 @@ import {
   ensureSubscriptionFulfillment,
 } from '../services/fulfillments.ts'
 import { applySubscriptionState } from '../services/subscriptions.ts'
+import { recordSubscriptionPayment } from '../services/subscriptionPayments.ts'
 import {
   sendOrderConfirmation,
   sendSubscriptionCharge,
@@ -122,6 +123,10 @@ async function applyInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
   const subscription = await stripe.subscriptions.retrieve(subscriptionId)
   const local = await applySubscriptionState(subscription)
   if (!local) return
+
+  /* Recorded before the parcel is queued, so the studio's earnings and its
+     packing list are always written from the same invoice. */
+  await recordSubscriptionPayment(local, invoice)
 
   /* Every paid invoice is a print to post, including the very first one. */
   const { created, fulfillment } = await ensureSubscriptionFulfillment(

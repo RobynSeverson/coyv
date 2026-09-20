@@ -295,3 +295,68 @@
   text-transform: lowercase;
   opacity: 0.55;
 }
+
+.admin__badge--subscription {
+  background: rgba(52, 86, 140, 0.14);
+  color: #2b4a78;
+}
+
+.admin__earningsHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.admin__toggle {
+  display: inline-flex;
+  border: 1px solid rgba(18, 24, 26, 0.18);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.admin__toggleButton {
+  padding: 0.3rem 0.85rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  color: inherit;
+  cursor: pointer;
+}
+
+.admin__toggleButton[aria-pressed='true'] {
+  background: #121a1c;
+  color: #f7f9f6;
+}
+
+.admin__earningsTotal {
+  margin: 0.85rem 0 0.2rem;
+  font-size: 1.6rem;
+  letter-spacing: 0.04em;
+}
+
+.admin__earningsSplit {
+  margin: 0;
+}
+
+.admin__earningsList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.4rem 1.75rem;
+  margin: 1.1rem 0 0.35rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+}
+
+.admin__earningsList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  border-top: 1px solid rgba(18, 24, 26, 0.08);
+}

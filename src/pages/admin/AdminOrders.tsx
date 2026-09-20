@@ -1,7 +1,89 @@
 import { useEffect, useState } from "react";
-import { api, type Order } from "../../lib/api";
+import { api, type Earnings, type EarningsBucket, type Order } from "../../lib/api";
 import { formatMoney } from "../../lib/money";
 import "./admin.css";
+
+const BUCKETS: { value: EarningsBucket; label: string }[] = [
+  { value: "week", label: "week" },
+  { value: "month", label: "month" },
+  { value: "year", label: "year" },
+];
+
+function EarningsPanel() {
+  const [bucket, setBucket] = useState<EarningsBucket>("month");
+  const [earnings, setEarnings] = useState<Earnings | null>(null);
+
+  useEffect(() => {
+    /* Switching the toggle twice quickly can land the responses out of order,
+       so a stale one is dropped rather than shown. */
+    let current = true;
+
+    api.admin
+      .earnings(bucket)
+      .then((loaded) => {
+        if (current) setEarnings(loaded);
+      })
+      .catch(() => {
+        if (current) setEarnings(null);
+      });
+
+    return () => {
+      current = false;
+    };
+  }, [bucket]);
+
+  const currency = earnings?.currency ?? "usd";
+  const rows = earnings?.rows ?? [];
+  /* The last row is the period being lived in, so it is called out rather than
+     left as the end of a row of equals. */
+  const now = rows.at(-1) ?? null;
+  const earlier = rows.slice(0, -1).reverse();
+
+  return (
+    <section className="admin__section admin__earnings">
+      <header className="admin__earningsHead">
+        <h2 className="admin__cardTitle">earnings</h2>
+        <div className="admin__toggle" role="group" aria-label="Earnings period">
+          {BUCKETS.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className="admin__toggleButton"
+              aria-pressed={bucket === option.value}
+              onClick={() => setBucket(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {now ? (
+        <>
+          <p className="admin__earningsTotal">
+            {formatMoney(now.totalCents, currency)}
+            <span className="admin__muted"> this {bucket}</span>
+          </p>
+          <p className="admin__muted admin__earningsSplit">
+            {formatMoney(now.orderCents, currency)} orders ·{" "}
+            {formatMoney(now.subscriptionCents, currency)} subscriptions
+          </p>
+
+          <ul className="admin__earningsList">
+            {earlier.map((row) => (
+              <li key={row.key}>
+                <span className="admin__muted">{row.label}</span>
+                <span>{formatMoney(row.totalCents, currency)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="admin__muted">loading…</p>
+      )}
+    </section>
+  );
+}
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<Order[] | null>(null);
@@ -24,60 +106,78 @@ export default function AdminOrders() {
     );
   }
 
-  if (orders === null) return <p className="admin__muted">loading…</p>;
-  if (orders.length === 0) return <p className="admin__muted">No orders yet.</p>;
-
   return (
-    <section className="admin__section">
-      <table className="admin__table">
-        <thead>
-          <tr>
-            <th>placed</th>
-            <th>status</th>
-            <th>items</th>
-            <th>total</th>
-            <th>ship to</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <tr key={order.id}>
-              <td>{new Date(order.createdAt).toLocaleString()}</td>
-              <td>
-                <span className={`admin__badge admin__badge--${order.status}`}>
-                  {order.status}
-                </span>
-              </td>
-              <td>
-                {order.items.map((item) => (
-                  <div key={item.productId}>
-                    {item.title} × {item.quantity}
-                  </div>
-                ))}
-              </td>
-              <td>{formatMoney(order.amountTotalCents, order.currency)}</td>
-              <td>
-                {order.shippingAddress?.line1 ? (
-                  <>
-                    <div>{order.shippingName}</div>
-                    <div>{order.shippingAddress.line1}</div>
-                    {order.shippingAddress.line2 ? (
-                      <div>{order.shippingAddress.line2}</div>
+    <>
+      <EarningsPanel />
+
+      {orders === null ? (
+        <p className="admin__muted">loading…</p>
+      ) : orders.length === 0 ? (
+        <p className="admin__muted">No orders yet.</p>
+      ) : (
+        <section className="admin__section">
+          <table className="admin__table">
+            <thead>
+              <tr>
+                <th>placed</th>
+                <th>type</th>
+                <th>status</th>
+                <th>items</th>
+                <th>total</th>
+                <th>ship to</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={`${order.type}:${order.id}`}>
+                  <td>{new Date(order.createdAt).toLocaleString()}</td>
+                  <td>
+                    <span className={`admin__badge admin__badge--${order.type}`}>
+                      {order.type}
+                    </span>
+                  </td>
+                  <td>
+                    <span className={`admin__badge admin__badge--${order.status}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td>
+                    {order.items.map((item) => (
+                      <div key={item.productId || item.slug}>
+                        {item.title} × {item.quantity}
+                      </div>
+                    ))}
+                    {order.periodLabel ? (
+                      <div className="admin__muted">{order.periodLabel}</div>
                     ) : null}
-                    <div>
-                      {order.shippingAddress.city} {order.shippingAddress.state}{" "}
-                      {order.shippingAddress.postalCode} {order.shippingAddress.country}
-                    </div>
-                  </>
-                ) : (
-                  <span className="admin__muted">—</span>
-                )}
-                {order.email ? <div className="admin__muted">{order.email}</div> : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </section>
+                  </td>
+                  <td>{formatMoney(order.amountTotalCents, order.currency)}</td>
+                  <td>
+                    {order.shippingAddress?.line1 ? (
+                      <>
+                        <div>{order.shippingName}</div>
+                        <div>{order.shippingAddress.line1}</div>
+                        {order.shippingAddress.line2 ? (
+                          <div>{order.shippingAddress.line2}</div>
+                        ) : null}
+                        <div>
+                          {order.shippingAddress.city} {order.shippingAddress.state}{" "}
+                          {order.shippingAddress.postalCode} {order.shippingAddress.country}
+                        </div>
+                      </>
+                    ) : order.shippingName ? (
+                      <div>{order.shippingName}</div>
+                    ) : (
+                      <span className="admin__muted">—</span>
+                    )}
+                    {order.email ? <div className="admin__muted">{order.email}</div> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+    </>
   );
 }

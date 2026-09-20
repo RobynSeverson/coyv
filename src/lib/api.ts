@@ -203,8 +203,13 @@ export type ShippingAddress = {
   country: string;
 };
 
+export type OrderType = "order" | "subscription";
+
 export type Order = {
   id: string;
+  /* A one-off purchase, or one month of a subscription. Both are money taken
+     in, so the admin list shows them together. */
+  type: OrderType;
   status: OrderStatus;
   currency: string;
   amountTotalCents: number;
@@ -212,9 +217,28 @@ export type Order = {
   shippingName: string | null;
   shippingAddress: ShippingAddress | null;
   items: OrderItem[];
+  /* e.g. "September 2026" for a subscription charge; empty for an order. */
+  periodLabel: string;
   lastPaymentError: string | null;
   createdAt: string;
   paidAt: string | null;
+};
+
+export type EarningsBucket = "week" | "month" | "year";
+
+export type EarningsRow = {
+  key: string;
+  label: string;
+  startsAt: string;
+  orderCents: number;
+  subscriptionCents: number;
+  totalCents: number;
+};
+
+export type Earnings = {
+  bucket: EarningsBucket;
+  currency: string;
+  rows: EarningsRow[];
 };
 
 export type MemoryKind = "photo" | "journal";
@@ -412,6 +436,9 @@ export const api = {
       }),
 
     listOrders: () => request<{ orders: Order[]; total: number }>("/admin/orders"),
+
+    earnings: (bucket: EarningsBucket, buckets = 6) =>
+      request<Earnings>(`/admin/earnings?bucket=${bucket}&buckets=${buckets}`),
 
     listSubscriptions: () =>
       request<{ subscriptions: Subscription[]; total: number }>("/admin/subscriptions"),

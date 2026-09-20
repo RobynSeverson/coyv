@@ -8,11 +8,14 @@ import {
   serializeOrder,
   serializeProductForAdmin,
   serializeSubscription,
+  serializeSubscriptionPayment,
 } from '../lib/serialize.ts'
+import { bucketEarnings, EARNINGS_BUCKETS, type EarningsEntry } from '../lib/earnings.ts'
 import { requireAdmin } from '../middleware/auth.ts'
 import { OrderModel, ORDER_STATUSES } from '../models/Order.ts'
 import { ProductModel, PRODUCT_KINDS } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
+import { SubscriptionPaymentModel } from '../models/SubscriptionPayment.ts'
 import { FulfillmentModel, FULFILLMENT_STATUSES } from '../models/Fulfillment.ts'
 import { ensureSubscriptionPrice, stripe } from '../services/stripe.ts'
 import { sendShippedNotice } from '../services/email/notifications.ts'
@@ -378,13 +381,69 @@ adminRouter.get('/orders', async (req, res) => {
     .parse(req.query)
 
   const filter = query.status ? { status: query.status } : {}
+  /* A recorded subscription charge is money that cleared, so it only belongs
+     in an unfiltered list or one asking for paid. */
+  const withSubscriptions = !query.status || query.status === 'paid'
+  const reach = query.skip + query.limit
 
-  const [orders, total] = await Promise.all([
-    OrderModel.find(filter).sort({ createdAt: -1 }).skip(query.skip).limit(query.limit).exec(),
+  const [orders, orderCount, payments, paymentCount] = await Promise.all([
+    OrderModel.find(filter).sort({ createdAt: -1 }).limit(reach).exec(),
     OrderModel.countDocuments(filter),
+    withSubscriptions
+      ? SubscriptionPaymentModel.find().sort({ paidAt: -1 }).limit(reach).exec()
+      : [],
+    withSubscriptions ? SubscriptionPaymentModel.countDocuments() : 0,
   ])
 
-  res.json({ orders: orders.map(serializeOrder), total })
+  /* Both sides are already sorted, but they interleave, so the merged list is
+     sorted again before the page is cut out of it. */
+  const merged = [
+    ...orders.map(serializeOrder),
+    ...payments.map(serializeSubscriptionPayment),
+  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+  res.json({
+    orders: merged.slice(query.skip, reach),
+    total: orderCount + paymentCount,
+  })
+})
+
+/* What came in, bucketed. Computed in the API rather than the browser because
+   the orders list is paginated and earnings are not: a year's takings must not
+   depend on how many rows the table happens to be showing. */
+adminRouter.get('/earnings', async (req, res) => {
+  const query = z
+    .object({
+      bucket: z.enum(EARNINGS_BUCKETS).default('month'),
+      buckets: z.coerce.number().int().min(1).max(24).default(6),
+    })
+    .parse(req.query)
+
+  const [orders, payments] = await Promise.all([
+    /* Refunded and failed orders are excluded by asking only for paid ones,
+       so money that was given back is never counted as earned. */
+    OrderModel.find({ status: 'paid' }).select('amountTotalCents currency paidAt createdAt').exec(),
+    SubscriptionPaymentModel.find().select('amountPaidCents currency paidAt').exec(),
+  ])
+
+  const entries: EarningsEntry[] = [
+    ...orders.map((order) => ({
+      at: (order.paidAt ?? order.createdAt ?? new Date()) as Date,
+      cents: order.amountTotalCents,
+      kind: 'order' as const,
+    })),
+    ...payments.map((payment) => ({
+      at: payment.paidAt,
+      cents: payment.amountPaidCents,
+      kind: 'subscription' as const,
+    })),
+  ]
+
+  res.json({
+    bucket: query.bucket,
+    currency: orders[0]?.currency ?? payments[0]?.currency ?? 'usd',
+    rows: bucketEarnings(entries, query.bucket, query.buckets),
+  })
 })
 
 adminRouter.get('/orders/:id', async (req, res) => {
