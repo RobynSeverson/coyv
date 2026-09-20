@@ -164,6 +164,33 @@ node --env-file-if-exists=.env src/scripts/migrateMemoryImages.ts
 The Lambda's `MONGODB_URI` points at a cluster named `coyvcastle-dev`. Despite
 the name, that **is** production — there is no separate production cluster.
 
+### `backfill-subscription-payments`
+
+Subscription earnings are read from one record per paid Stripe invoice, written
+by the `invoice.paid` webhook. Invoices that were paid before that webhook hook
+existed have no record, so subscriptions would show no earnings at all for
+them. The script walks every local subscription's Stripe invoices and records
+what is missing; it is keyed on the invoice id, so re-running it changes
+nothing.
+
+It reads **Stripe**, not just Mongo, so the local `.env`'s `sk_test` key would
+find no invoices and report success having done nothing. Override the secret
+key with the live one as well as the connection:
+
+```bash
+# from server/, with the credentials block from the deploy skill exported
+CFG=$(aws lambda get-function-configuration --function-name coyv-api \
+  --query 'Environment.Variables' --output json)
+read_var() { echo "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['$1'])"; }
+export MONGODB_URI=$(read_var MONGODB_URI)
+export MONGODB_DB_NAME=$(read_var MONGODB_DB_NAME)
+export STRIPE_SECRET_KEY=$(read_var STRIPE_SECRET_KEY)   # must start sk_live
+npm run backfill-subscription-payments
+```
+
+Run on 2026-10-01, reporting `1 subscriptions, 1 invoices seen, 1 newly
+recorded`.
+
 ## Environment variables
 
 `update-function-configuration --environment` **replaces the entire variable
