@@ -5,7 +5,7 @@ import {
   type SubscriptionStatus,
 } from '../models/Subscription.ts'
 import { ensureSubscriptionFulfillment } from './fulfillments.ts'
-import { sendSubscriptionCharge } from './email/notifications.ts'
+import { sendSubscriptionCanceled, sendSubscriptionCharge } from './email/notifications.ts'
 import { stripe } from './stripe.ts'
 
 /* Stripe owns subscription state; this mirrors it so the studio can show who
@@ -28,6 +28,12 @@ export async function applySubscriptionState(
   /* The billing period moved onto the item in recent API versions. */
   const periodEnd = subscription.items.data[0]?.current_period_end ?? null
 
+  /* "Ending" covers both shapes a cancellation arrives in: the manage page
+     sets cancel_at_period_end, while cancelling in the Stripe dashboard can
+     jump straight to canceled. Read before the overwrite, so only the event
+     that actually changed it sends mail. */
+  const wasEnding = local.cancelAtPeriodEnd || local.status === 'canceled'
+
   local.set({
     status: subscription.status as SubscriptionStatus,
     currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : local.currentPeriodEnd,
@@ -36,6 +42,14 @@ export async function applySubscriptionState(
     ...(subscription.status === 'active' ? { lastPaymentError: null } : {}),
   })
   await local.save()
+
+  const isEnding = local.cancelAtPeriodEnd || local.status === 'canceled'
+  /* A signup whose first payment never completed was never a subscription to
+     anyone but Stripe, so it is not something to send a cancellation for. */
+  if (!wasEnding && isEnding && local.status !== 'incomplete_expired') {
+    await sendSubscriptionCanceled(local)
+  }
+
   return local
 }
 

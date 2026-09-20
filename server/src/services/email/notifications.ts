@@ -1,10 +1,12 @@
 import type { FulfillmentDocument } from '../../models/Fulfillment.ts'
 import type { OrderDocument } from '../../models/Order.ts'
+import type { SubscriptionDocument } from '../../models/Subscription.ts'
 import { noreplySender, sendEmail } from './brevo.ts'
 import {
   manageLink,
   orderConfirmation,
   shippedNotice,
+  subscriptionCanceled,
   subscriptionCharge,
 } from './templates.ts'
 
@@ -38,6 +40,25 @@ export async function sendSubscriptionCharge(fulfillment: FulfillmentDocument): 
     kind: 'subscription-charge',
     dedupeKey: `subscription-charge:${fulfillment.sourceKey}`,
     to: [{ email: fulfillment.email, name: fulfillment.shippingName ?? undefined }],
+    ...template,
+  })
+}
+
+/* Keyed on when Stripe says the cancellation happened, not on the
+   subscription, so somebody who resumes and later cancels again is told the
+   second time as well — while a replayed webhook for the same cancellation
+   still sends nothing. */
+export async function sendSubscriptionCanceled(
+  subscription: SubscriptionDocument,
+): Promise<void> {
+  if (!subscription.email) return
+
+  const moment = subscription.canceledAt ?? subscription.currentPeriodEnd
+  const template = subscriptionCanceled(subscription)
+  await sendEmail({
+    kind: 'subscription-canceled',
+    dedupeKey: `subscription-canceled:${subscription.stripeSubscriptionId}:${moment ? moment.getTime() : 'now'}`,
+    to: [{ email: subscription.email, name: subscription.shippingName ?? undefined }],
     ...template,
   })
 }

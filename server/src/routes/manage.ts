@@ -15,6 +15,7 @@ import {
   redeemManageToken,
 } from '../services/manageTokens.ts'
 import { stripe } from '../services/stripe.ts'
+import { applySubscriptionState } from '../services/subscriptions.ts'
 
 export const manageRouter: Router = Router()
 
@@ -201,13 +202,13 @@ manageRouter.post('/subscriptions/:id/cancel', async (req, res) => {
     cancel_at_period_end: true,
   })
 
-  subscription.set({
-    cancelAtPeriodEnd: remote.cancel_at_period_end ?? true,
-    status: remote.status,
-  })
-  await subscription.save()
+  /* Mirrored through the shared path rather than by hand: that is what sends
+     the confirmation email, and it is the only place that can tell a state
+     change from a replay. Writing the flag here first would make the webhook
+     that follows look like a no-op and the subscriber would hear nothing. */
+  const updated = (await applySubscriptionState(remote)) ?? subscription
 
-  res.json({ subscription: serializeSubscription(subscription) })
+  res.json({ subscription: serializeSubscription(updated) })
 })
 
 /* The mirror image, so a misclick does not cost somebody their subscription
@@ -222,11 +223,7 @@ manageRouter.post('/subscriptions/:id/resume', async (req, res) => {
     cancel_at_period_end: false,
   })
 
-  subscription.set({
-    cancelAtPeriodEnd: remote.cancel_at_period_end ?? false,
-    status: remote.status,
-  })
-  await subscription.save()
+  const updated = (await applySubscriptionState(remote)) ?? subscription
 
-  res.json({ subscription: serializeSubscription(subscription) })
+  res.json({ subscription: serializeSubscription(updated) })
 })

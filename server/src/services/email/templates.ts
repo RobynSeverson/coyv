@@ -1,6 +1,7 @@
 import { env } from '../../env.ts'
 import type { FulfillmentDocument } from '../../models/Fulfillment.ts'
 import type { OrderDocument } from '../../models/Order.ts'
+import type { SubscriptionDocument } from '../../models/Subscription.ts'
 
 /* Product titles, buyer names and addresses are all free text that ends up
    inside an HTML email, so every interpolation goes through this. Nothing in
@@ -45,8 +46,11 @@ function manageFooterText(): string {
   ].join('\n')
 }
 
+/* Single quotes around the font name, not double: this string is interpolated
+   into a double-quoted style attribute, and a double quote there closes the
+   attribute early and drops every declaration after it. */
 const WRAPPER_STYLE =
-  'font-family:Georgia,"Times New Roman",serif;color:#1c1a1f;line-height:1.6;' +
+  "font-family:Georgia,'Times New Roman',serif;color:#1c1a1f;line-height:1.6;" +
   'max-width:560px;margin:0 auto;padding:32px 24px'
 
 function layout(heading: string, body: string): string {
@@ -151,6 +155,53 @@ ${manageFooterHtml()}`,
     html,
     text,
   }
+}
+
+/* Cancelling stops the next charge but does not end the month already paid
+   for, so this has to say both things. Somebody who reads "cancelled" and
+   assumes the print they bought is gone will write in asking about it. */
+export function subscriptionCanceled(subscription: SubscriptionDocument): Template {
+  const endsOn = subscription.cancelAtPeriodEnd ? subscription.currentPeriodEnd : null
+  const endsOnLabel = endsOn
+    ? endsOn.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })
+    : null
+
+  const stillOwed = endsOnLabel
+    ? `You will not be charged again. The month you have already paid for still stands, so your subscription runs until <strong>${escapeHtml(endsOnLabel)}</strong> and that print will be packed and posted as usual.`
+    : 'You will not be charged again.'
+
+  const resume = endsOnLabel
+    ? `<p>Changed your mind? You can start it up again from the <a href="${manageSubscriptionUrl()}" style="color:#1c1a1f">manage page</a> any time before then, and nothing will have lapsed.</p>`
+    : `<p>You are welcome back whenever you like — a new subscription can be started from <a href="${env.PUBLIC_SITE_URL}/vault" style="color:#1c1a1f">the vault</a>.</p>`
+
+  const html = layout(
+    'your subscription is cancelled',
+    `<p>Your subscription to <strong>${escapeHtml(subscription.title)}</strong> has been cancelled.</p>
+<p>${stillOwed}</p>
+${resume}
+<p style="margin-top:22px">Thank you for having kept it going this long.</p>`,
+  )
+
+  const text = [
+    `Your subscription to ${subscription.title} has been cancelled.`,
+    '',
+    endsOnLabel
+      ? `You will not be charged again. The month you have already paid for still stands, so your subscription runs until ${endsOnLabel} and that print will be packed and posted as usual.`
+      : 'You will not be charged again.',
+    '',
+    endsOnLabel
+      ? `Changed your mind? You can start it up again at ${manageSubscriptionUrl()} any time before then, and nothing will have lapsed.`
+      : `You are welcome back whenever you like — a new subscription can be started at ${env.PUBLIC_SITE_URL}/vault`,
+    '',
+    'Thank you for having kept it going this long.',
+  ].join('\n')
+
+  return { subject: `${subscription.title} — subscription cancelled`, html, text }
 }
 
 export function shippedNotice(fulfillment: FulfillmentDocument): Template {
