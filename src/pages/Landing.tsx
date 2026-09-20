@@ -150,7 +150,7 @@ export default function Landing() {
     gateTimeoutRef.current = window.setTimeout(() => {
       setIsDissolving(true);
       timeoutRef.current = window.setTimeout(
-        () => navigate("/home"),
+        () => navigate("/home", { state: { fromLanding: true } }),
         DISSOLVE_DURATION,
       );
     }, gateDuration);

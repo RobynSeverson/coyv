@@ -5,6 +5,10 @@
   animation: homeIn 700ms ease-out both;
 }
 
+.home.is-settled {
+  animation: none;
+}
+
 @keyframes homeIn {
   from {
     opacity: 0;

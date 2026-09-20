@@ -1,3 +1,4 @@
+import { useLocation } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import blurbMobile from "../assets/homeBlurbMobile.webp";
 import blurbMobile2x from "../assets/homeBlurbMobile@2x.webp";
@@ -20,8 +21,15 @@ const BLURB_TEXT = [
 ].join(" ");
 
 export default function Home() {
+  /* The landing already rendered this page behind its dissolve, so replaying
+     the entrance here would blank the artwork the visitor is looking at and
+     fade it back in — which reads as the site reloading. */
+  const location = useLocation();
+  const settled =
+    (location.state as { fromLanding?: boolean } | null)?.fromLanding === true;
+
   return (
-    <main className="home">
+    <main className={settled ? "home is-settled" : "home"}>
       <PageHeader title="coyv" />
 
       <picture>
