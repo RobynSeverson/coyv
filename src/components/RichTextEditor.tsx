@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { RichText } from "../lib/richText";
+import { RichText, hasImageToken, imageToken, type RichTextImage } from "../lib/richText";
 import "./RichTextEditor.css";
 
 /* A textarea with a small toolbar rather than a contenteditable surface: the
@@ -12,9 +12,18 @@ type Props = {
   onChange: (value: string) => void;
   rows?: number;
   label?: string;
+  /* The images already attached to the record being edited. Offered as
+     thumbnails to drop into the text; the author never types a URL. */
+  images?: RichTextImage[];
 };
 
-export default function RichTextEditor({ value, onChange, rows = 4, label }: Props) {
+export default function RichTextEditor({
+  value,
+  onChange,
+  rows = 4,
+  label,
+  images = [],
+}: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showPreview, setShowPreview] = useState(false);
 
@@ -35,6 +44,25 @@ export default function RichTextEditor({ value, onChange, rows = 4, label }: Pro
     requestAnimationFrame(() => {
       textarea.focus();
       textarea.setSelectionRange(start + before.length, start + before.length + selected.length);
+    });
+  }
+
+  /* Dropped on its own lines, because an image is a block: putting it mid
+     sentence would leave the sentence broken around it in the reader. */
+  function insertImage(position: number) {
+    const textarea = textareaRef.current;
+    const at = textarea ? textarea.selectionStart : value.length;
+    const before = value.slice(0, at).replace(/\s+$/, "");
+    const after = value.slice(at).replace(/^\s+/, "");
+    const token = imageToken(position);
+    const next = `${before}${before ? "\n\n" : ""}${token}${after ? `\n\n${after}` : "\n"}`;
+
+    onChange(next);
+
+    requestAnimationFrame(() => {
+      const caret = (before ? before.length + 2 : 0) + token.length;
+      textarea?.focus();
+      textarea?.setSelectionRange(caret, caret);
     });
   }
 
@@ -75,10 +103,30 @@ export default function RichTextEditor({ value, onChange, rows = 4, label }: Pro
         </div>
       </div>
 
+      {images.length > 0 ? (
+        <div className="rte__images">
+          <span className="rte__label">place an image</span>
+          <div className="rte__imageStrip">
+            {images.map((image, index) => (
+              <button
+                key={image.url}
+                type="button"
+                className={`rte__image${hasImageToken(value, index + 1) ? " is-used" : ""}`}
+                title={`Insert image ${index + 1}`}
+                onClick={() => insertImage(index + 1)}
+              >
+                <img src={image.url} alt="" />
+                <span>{index + 1}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {showPreview ? (
         <div className="rte__preview">
           {value.trim() ? (
-            <RichText value={value} />
+            <RichText value={value} images={images} />
           ) : (
             <p className="rte__empty">Nothing to preview yet.</p>
           )}
@@ -95,6 +143,7 @@ export default function RichTextEditor({ value, onChange, rows = 4, label }: Pro
 
       <p className="rte__hint">
         Blank line starts a paragraph · **bold** · *italic* · [text](https://link)
+        {images.length > 0 ? " · [[image:1]] places an upload" : ""}
       </p>
     </div>
   );

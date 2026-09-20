@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
-import { RichText } from "../lib/richText";
+import { hasImageToken, RichText } from "../lib/richText";
 import { api, type Memory, type MemoryImage } from "../lib/api";
 import { trackEvent } from "../lib/analytics";
 /* The viewer chrome is shared with the vault's grid, which is why these
@@ -137,13 +137,20 @@ function memoryNumber(value: string): number | null {
 
 function toSlides(memories: Memory[]): Slide[] {
   return memories.flatMap((memory) => {
-    const images = memory.images.map<Slide>((image, index) => ({
-      type: "image",
-      memory,
-      image,
-      position: index,
-      key: image.id,
-    }));
+    const images = memory.images
+      /* An image the entry already places inline is not repeated as a slide
+         of its own; the attachments that were never referenced still are. */
+      .filter(
+        (_image, index) =>
+          memory.kind !== "journal" || !hasImageToken(memory.body, index + 1),
+      )
+      .map<Slide>((image, index) => ({
+        type: "image",
+        memory,
+        image,
+        position: index,
+        key: image.id,
+      }));
 
     if (memory.kind !== "journal") return images;
     return [{ type: "text", memory, key: `${memory.id}-text` }, ...images];
@@ -586,6 +593,12 @@ export default function Memories() {
                     <RichText
                       className="lightbox__entryBody"
                       value={openSlide.memory.body}
+                      /* An entry can place its own uploads inline; the token
+                         in the text names them by position. */
+                      images={openSlide.memory.images.map((image) => ({
+                        url: image.url,
+                        alt: openSlide.memory.alt || openSlide.memory.title,
+                      }))}
                     />
                   </div>
                 ) : (

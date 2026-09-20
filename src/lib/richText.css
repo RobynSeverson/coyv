@@ -22,3 +22,22 @@
   outline-offset: 2px;
   border-radius: 2px;
 }
+
+/* An image placed inside the copy. It spans the column rather than sitting
+   beside the text, because the entries are read at phone width as often as
+   not and a floated image there is just a smaller column of text. */
+.richText__figure {
+  margin: 1.25rem 0;
+}
+
+.richText__figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Capped so a tall scan cannot push the rest of the entry out of reach. The
+     entry scrolls, but a full-height image reads as the whole slide rather
+     than as part of the writing. */
+  max-height: 60svh;
+  object-fit: contain;
+  border-radius: 2px;
+}

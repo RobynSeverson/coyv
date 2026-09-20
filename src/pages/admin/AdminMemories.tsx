@@ -329,6 +329,10 @@ export default function AdminMemories() {
                 rows={isJournal ? 8 : 3}
                 value={draft.body}
                 onChange={(value) => patchDraft(memory.id, draft, { body: value })}
+                images={memory.images.map((image) => ({
+                  url: image.previewUrl,
+                  alt: memory.alt || memory.title,
+                }))}
               />
 
               <label className="admin__checkbox">
