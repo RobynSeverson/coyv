@@ -57,18 +57,28 @@ grep -c pk_live_ dist/assets/index-*.js   # expect 1
 grep -c pk_test_ dist/assets/index-*.js   # expect 0
 ```
 
-Then upload. The two steps are deliberate: Vite fingerprints assets so they can
-be cached forever, but `index.html` never changes name and must never be cached,
-or browsers keep requesting bundle hashes that `--delete` has just removed and
-the site white-screens.
+Then upload. The separate steps are deliberate: Vite fingerprints assets so they
+can be cached forever, but `index.html` never changes name and must never be
+cached, or browsers keep requesting bundle hashes that `--delete` has just
+removed and the site white-screens. `robots.txt` and `sitemap.xml` keep their
+names too, and a year-long cache would leave Google reading a stale copy long
+after the file changed.
 
 ```bash
-aws s3 sync dist/ s3://coyv-site-162956754427/ --delete --exclude index.html \
+aws s3 sync dist/ s3://coyv-site-162956754427/ --delete \
+  --exclude index.html --exclude robots.txt --exclude sitemap.xml \
   --cache-control "public,max-age=31536000,immutable"
 aws s3 cp dist/index.html s3://coyv-site-162956754427/index.html \
   --cache-control "no-cache,must-revalidate"
+aws s3 cp dist/robots.txt s3://coyv-site-162956754427/robots.txt \
+  --cache-control "public,max-age=300" --content-type "text/plain; charset=utf-8"
+aws s3 cp dist/sitemap.xml s3://coyv-site-162956754427/sitemap.xml \
+  --cache-control "public,max-age=300" --content-type "application/xml; charset=utf-8"
 aws cloudfront create-invalidation --distribution-id E1J2EEQCJDHQJV --paths "/*"
 ```
+
+`--content-type` is explicit because `s3 cp` guesses from the extension and
+serves `sitemap.xml` as `binary/octet-stream` often enough to matter.
 
 Delete `/tmp/pk.txt` afterwards.
 

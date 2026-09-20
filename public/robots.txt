@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Transactional routes. They are per-visitor, need a cart or a Stripe session
+# to mean anything, and have nothing to show a crawler.
+Disallow: /checkout
+Disallow: /order
+Disallow: /subscribe/
+Disallow: /manage-subscription
+
+# The admin panel is deliberately absent: it lives at an unlinked path, and
+# naming it here would publish that path to anyone who reads this file.
+
+Sitemap: https://coyvcastle.com/sitemap.xml

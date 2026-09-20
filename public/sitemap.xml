@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Hand maintained: the public site is four pages and they do not change
+     names. Deep links like /memories/memory_001 are deliberately left out —
+     they open the same page with one memory already open, so listing them
+     would offer Google several URLs for one document. No <lastmod>, because
+     a date that is never updated is worse than no date at all. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://coyvcastle.com/</loc>
+  </url>
+  <url>
+    <loc>https://coyvcastle.com/home</loc>
+  </url>
+  <url>
+    <loc>https://coyvcastle.com/vault</loc>
+  </url>
+  <url>
+    <loc>https://coyvcastle.com/memories</loc>
+  </url>
+</urlset>

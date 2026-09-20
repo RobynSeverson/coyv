@@ -47,17 +47,26 @@ Changes to `.env.example`, `README.md` or this file ship nothing.
 
 ```bash
 npm run build
-aws s3 sync dist/ s3://coyv-site-162956754427/ --delete --exclude index.html \
+aws s3 sync dist/ s3://coyv-site-162956754427/ --delete \
+  --exclude index.html --exclude robots.txt --exclude sitemap.xml \
   --cache-control "public,max-age=31536000,immutable"
 aws s3 cp dist/index.html s3://coyv-site-162956754427/index.html \
   --cache-control "no-cache,must-revalidate"
+aws s3 cp dist/robots.txt s3://coyv-site-162956754427/robots.txt \
+  --cache-control "public,max-age=300" --content-type "text/plain; charset=utf-8"
+aws s3 cp dist/sitemap.xml s3://coyv-site-162956754427/sitemap.xml \
+  --cache-control "public,max-age=300" --content-type "application/xml; charset=utf-8"
 aws cloudfront create-invalidation --distribution-id E1J2EEQCJDHQJV --paths "/*"
 ```
 
-The two-step upload is deliberate. Vite fingerprints every asset, so those are
-safe to cache forever, but `index.html` is the one file whose name never changes
-and it must never be cached — otherwise browsers keep loading the old bundle
-hashes, which `--delete` has just removed, and the site white-screens.
+The split upload is deliberate. Vite fingerprints every asset, so those are safe
+to cache forever, but `index.html` is the one file whose name never changes and
+it must never be cached — otherwise browsers keep loading the old bundle hashes,
+which `--delete` has just removed, and the site white-screens. `robots.txt` and
+`sitemap.xml` are in the same position: their names are fixed and Google is told
+to re-read them, so a year-long cache would pin whatever was shipped first. The
+explicit `--content-type` is there because `s3 cp` otherwise guesses, and a
+sitemap served as `binary/octet-stream` is rejected.
 
 `VITE_*` variables are inlined at build time, not read at runtime. Changing
 `VITE_STRIPE_PUBLISHABLE_KEY` or `VITE_ADMIN_PATH` means a fresh `npm run build`
@@ -252,3 +261,35 @@ same bucket production serves. Anything uploaded through a local admin session
 is really there. Local test uploads are harmless as long as no production record
 points at them, but they do accumulate, and deleting objects to tidy up will
 break production if a live product or memory still references the key.
+
+## Search Console
+
+The site is a **domain property**, `sc-domain:coyvcastle.com`, verified by a DNS
+TXT record. That covers `www`, bare and both protocols at once, which a URL
+prefix property would not, and it was the easy option because DNS for the domain
+lives in Route 53 in the same account:
+
+```bash
+aws route53 list-hosted-zones --query "HostedZones[?Name=='coyvcastle.com.']"
+# Z083055312X6V0JWHT7FQ
+```
+
+The apex `TXT` also carries Brevo's SPF and its verification code, and a
+`change-resource-record-sets` **replaces the whole record set**, exactly like
+Lambda's environment map. Read the existing values, add to them, then write, or
+outgoing mail stops being deliverable:
+
+```bash
+aws route53 list-resource-record-sets --hosted-zone-id Z083055312X6V0JWHT7FQ \
+  --query "ResourceRecordSets[?Type=='TXT']"
+```
+
+Verified on 2026-09-20. **Do not remove the `google-site-verification=` value**
+— Google re-checks it, and losing it loses the property.
+
+`robots.txt` and `sitemap.xml` are static files in `public/`, so they ship with
+the frontend. The sitemap is hand maintained and lists only the four public
+pages; memory deep links are left out on purpose, because they open the same
+document with one memory already showing. Submitted once at
+`https://coyvcastle.com/sitemap.xml` — Google re-reads it on its own after that,
+so a resubmission is only needed if the file moves.
