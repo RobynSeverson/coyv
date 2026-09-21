@@ -136,6 +136,16 @@ export default function OrderStatus() {
           <span>{formatMoney(order.amountTotalCents, order.currency)}</span>
         </p>
 
+        {/* A basket can hold a subscription as well as prints, in which case
+            the two were paid for on one invoice and only the prints appear
+            above. */}
+        {params.get("withSubscription") === "1" ? (
+          <p className="checkout__fine">
+            Your subscription is set up too, and was charged on the same payment. The manage
+            link is in your email.
+          </p>
+        ) : null}
+
         {order.shippingAddress?.line1 ? (
           <address className="orderStatus__address">
             {order.shippingName ? <span>{order.shippingName}</span> : null}

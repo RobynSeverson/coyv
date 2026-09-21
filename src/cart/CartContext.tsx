@@ -17,6 +17,9 @@ export type CartLine = {
   currency: string;
   imageUrl: string | null;
   quantity: number;
+  /* Absent on lines stored before subscriptions could be carted, which were
+     all one-off prints. */
+  kind?: "print" | "subscription";
 };
 
 /* v2: lines used to be keyed by printId, which no longer exists. Bumping
@@ -49,11 +52,19 @@ type CartValue = {
   itemCount: number;
   subtotalCents: number;
   currency: string;
+  /* The one subscription in the basket, if any. Checkout needs it separately
+     because it is what turns the basket into a Stripe subscription. */
+  subscriptionLine: CartLine | null;
+  printLines: CartLine[];
   add: (line: Omit<CartLine, "quantity">, quantity?: number) => void;
   setQuantity: (productId: string, quantity: number) => void;
   remove: (productId: string) => void;
   clear: () => void;
 };
+
+export function isSubscriptionLine(line: CartLine): boolean {
+  return line.kind === "subscription";
+}
 
 const CartContext = createContext<CartValue | null>(null);
 
@@ -66,6 +77,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const add = useCallback((line: Omit<CartLine, "quantity">, quantity = 1) => {
     setLines((current) => {
+      /* A subscription is a single recurring commitment: it is never stacked,
+         and one basket can only become one Stripe subscription, so adding one
+         replaces any other. */
+      if (line.kind === "subscription") {
+        const rest = current.filter(
+          (entry) => !isSubscriptionLine(entry) && entry.productId !== line.productId,
+        );
+        return [...rest, { ...line, quantity: 1 }];
+      }
+
       const existing = current.find((entry) => entry.productId === line.productId);
       if (!existing) {
         return [...current, { ...line, quantity: Math.min(quantity, MAX_PER_ITEM) }];
@@ -84,7 +105,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ? current.filter((entry) => entry.productId !== productId)
         : current.map((entry) =>
             entry.productId === productId
-              ? { ...entry, quantity: Math.min(quantity, MAX_PER_ITEM) }
+              ? {
+                  ...entry,
+                  quantity: isSubscriptionLine(entry) ? 1 : Math.min(quantity, MAX_PER_ITEM),
+                }
               : entry,
           ),
     );
@@ -102,6 +126,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount: lines.reduce((total, line) => total + line.quantity, 0),
       subtotalCents: lines.reduce((total, line) => total + line.priceCents * line.quantity, 0),
       currency: lines[0]?.currency ?? "usd",
+      subscriptionLine: lines.find(isSubscriptionLine) ?? null,
+      printLines: lines.filter((line) => !isSubscriptionLine(line)),
       add,
       setQuantity,
       remove,

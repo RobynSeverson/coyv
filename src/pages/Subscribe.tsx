@@ -2,6 +2,7 @@ import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-
 import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SubscriberDetailsForm, type SubscriberDetails } from "../components/SubscriberDetails";
 import { api, type Product } from "../lib/api";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
@@ -86,19 +87,6 @@ export default function Subscribe() {
   const { slug } = useParams<{ slug: string }>();
 
   const [product, setProduct] = useState<Product | null>(null);
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  /* A print subscription posts a physical thing every month, so the address is
-     as much a part of signing up as the card is. */
-  const [shipping, setShipping] = useState({
-    shippingName: "",
-    line1: "",
-    line2: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    country: "US",
-  });
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [amountCents, setAmountCents] = useState(0);
   const [currency, setCurrency] = useState("usd");
@@ -137,27 +125,13 @@ export default function Subscribe() {
   /* Stripe needs a customer before it can hold a subscription, so the email is
      collected first and the Payment Element only appears once the (unpaid)
      subscription exists. */
-  async function start(event: React.FormEvent) {
-    event.preventDefault();
+  async function start(details: SubscriberDetails) {
     if (!product) return;
 
     setStarting(true);
     setError(null);
     try {
-      const result = await api.startSubscription({
-        productId: product.id,
-        email: email.trim(),
-        ...(name.trim() ? { name: name.trim() } : {}),
-        shippingName: shipping.shippingName.trim(),
-        shippingAddress: {
-          line1: shipping.line1.trim(),
-          line2: shipping.line2.trim(),
-          city: shipping.city.trim(),
-          state: shipping.state.trim(),
-          postalCode: shipping.postalCode.trim(),
-          country: shipping.country.trim().toUpperCase(),
-        },
-      });
+      const result = await api.startSubscription({ productId: product.id, ...details });
       setClientSecret(result.clientSecret);
       setAmountCents(result.amountTotalCents);
       setCurrency(result.currency);
@@ -235,131 +209,13 @@ export default function Subscribe() {
               <SubscribeForm amountCents={amountCents} currency={currency} />
             </Elements>
           ) : (
-            <form className="checkout__form" onSubmit={start}>
-              <fieldset className="checkout__fieldset" disabled={starting}>
-                <legend className="checkout__legend">contact</legend>
-
-                <label className="checkout__field">
-                  <span>email</span>
-                  <input
-                    required
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </label>
-
-                <label className="checkout__field">
-                  <span>name (optional)</span>
-                  <input
-                    type="text"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                  />
-                </label>
-              </fieldset>
-
-              <fieldset className="checkout__fieldset" disabled={starting}>
-                <legend className="checkout__legend">where to post it</legend>
-
-                <label className="checkout__field">
-                  <span>full name</span>
-                  <input
-                    required
-                    autoComplete="shipping name"
-                    value={shipping.shippingName}
-                    onChange={(event) =>
-                      setShipping({ ...shipping, shippingName: event.target.value })
-                    }
-                  />
-                </label>
-
-                <label className="checkout__field">
-                  <span>address</span>
-                  <input
-                    required
-                    autoComplete="shipping address-line1"
-                    value={shipping.line1}
-                    onChange={(event) => setShipping({ ...shipping, line1: event.target.value })}
-                  />
-                </label>
-
-                <label className="checkout__field">
-                  <span>apartment, suite (optional)</span>
-                  <input
-                    autoComplete="shipping address-line2"
-                    value={shipping.line2}
-                    onChange={(event) => setShipping({ ...shipping, line2: event.target.value })}
-                  />
-                </label>
-
-                <div className="checkout__fieldRow">
-                  <label className="checkout__field">
-                    <span>city</span>
-                    <input
-                      required
-                      autoComplete="shipping address-level2"
-                      value={shipping.city}
-                      onChange={(event) => setShipping({ ...shipping, city: event.target.value })}
-                    />
-                  </label>
-
-                  <label className="checkout__field">
-                    <span>state / region</span>
-                    <input
-                      autoComplete="shipping address-level1"
-                      value={shipping.state}
-                      onChange={(event) => setShipping({ ...shipping, state: event.target.value })}
-                    />
-                  </label>
-                </div>
-
-                <div className="checkout__fieldRow">
-                  <label className="checkout__field">
-                    <span>postal code</span>
-                    <input
-                      required
-                      autoComplete="shipping postal-code"
-                      value={shipping.postalCode}
-                      onChange={(event) =>
-                        setShipping({ ...shipping, postalCode: event.target.value })
-                      }
-                    />
-                  </label>
-
-                  <label className="checkout__field">
-                    <span>country</span>
-                    <input
-                      required
-                      maxLength={2}
-                      placeholder="US"
-                      autoComplete="shipping country"
-                      value={shipping.country}
-                      onChange={(event) =>
-                        setShipping({ ...shipping, country: event.target.value.toUpperCase() })
-                      }
-                    />
-                  </label>
-                </div>
-              </fieldset>
-
-              {error ? (
-                <p className="checkout__error" role="alert">
-                  {error}
-                </p>
-              ) : null}
-
-              <button className="checkout__pay" type="submit" disabled={starting}>
-                {starting ? "preparing…" : "continue to payment"}
-              </button>
-
-              <p className="checkout__fine">
-                Your receipt and any renewal notices go to this email. We post a new print to
-                the address above every month.
-              </p>
-            </form>
+            <SubscriberDetailsForm
+              submitting={starting}
+              error={error}
+              submitLabel="continue to payment"
+              note="Your receipt and any renewal notices go to this email. We post a new print to the address above every month."
+              onSubmit={(details) => void start(details)}
+            />
           )}
         </section>
       </div>

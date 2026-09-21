@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useCart } from "../cart/CartContext";
 import { api, type Subscription } from "../lib/api";
 import { formatMoney } from "../lib/money";
 import "./Checkout.css";
@@ -44,6 +45,12 @@ export default function SubscriptionStatus() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
 
+  /* A subscription can be bought from the basket, so a live one means that
+     basket is spent. Guarded so a later poll cannot wipe a basket the
+     subscriber has started filling again. */
+  const { clear } = useCart();
+  const clearedRef = useRef(false);
+
   /* Derived rather than pushed into state from an effect: a link without a
      payment reference is knowable at render time. */
   const error =
@@ -67,6 +74,11 @@ export default function SubscriptionStatus() {
         if (cancelled) return;
 
         setSubscription(loaded);
+
+        if (loaded.status !== "incomplete" && !clearedRef.current) {
+          clearedRef.current = true;
+          clear();
+        }
 
         const settled = loaded.status !== "incomplete";
         if (!settled && ++attempts < POLL_ATTEMPTS) {

@@ -7,7 +7,7 @@ import { serializeOrder, serializeSubscription } from '../lib/serialize.ts'
 import { OrderModel } from '../models/Order.ts'
 import { ProductModel } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
-import { ensureSubscriptionPrice, stripe } from '../services/stripe.ts'
+import { ensureStripeProduct, ensureSubscriptionPrice, stripe } from '../services/stripe.ts'
 import { refreshSubscription } from '../services/subscriptions.ts'
 
 export const checkoutRouter: Router = Router()
@@ -15,19 +15,16 @@ export const checkoutRouter: Router = Router()
 const MAX_QUANTITY_PER_ITEM = 10
 const MAX_DISTINCT_ITEMS = 20
 
+const itemSchema = z.object({
+  productId: z.string().regex(/^[a-f0-9]{24}$/, 'Invalid product id'),
+  quantity: z.number().int().min(1).max(MAX_QUANTITY_PER_ITEM),
+})
+
 const cartSchema = z.object({
   /* An existing pending order can be re-priced instead of leaving a trail of
      abandoned intents behind every time the basket changes. */
   orderId: z.string().regex(/^[a-f0-9]{24}$/).optional(),
-  items: z
-    .array(
-      z.object({
-        productId: z.string().regex(/^[a-f0-9]{24}$/, 'Invalid product id'),
-        quantity: z.number().int().min(1).max(MAX_QUANTITY_PER_ITEM),
-      }),
-    )
-    .min(1)
-    .max(MAX_DISTINCT_ITEMS),
+  items: z.array(itemSchema).min(1).max(MAX_DISTINCT_ITEMS),
 })
 
 /* Prices are looked up server-side, always. Whatever amount the client thinks
@@ -92,7 +89,7 @@ async function priceCart(items: { productId: string; quantity: number }[]) {
 
   if (amountTotalCents <= 0) throw HttpError.badRequest('Cart total must be greater than zero')
 
-  return { lineItems, amountTotalCents }
+  return { lineItems, amountTotalCents, products }
 }
 
 /* Creates (or re-prices) the PaymentIntent that the Payment Element on the
@@ -202,6 +199,9 @@ const subscribeSchema = z.object({
   /* Required: there is a print to post every month. */
   shippingName: z.string().trim().min(1).max(160),
   shippingAddress: addressSchema,
+  /* One-off prints bought in the same basket. They ride on the subscription's
+     first invoice, so the whole cart is one payment. */
+  items: z.array(itemSchema).max(MAX_DISTINCT_ITEMS).optional(),
 })
 
 /* "pi_123_secret_abc" -> "pi_123". Stripe does not return the id separately
@@ -273,15 +273,54 @@ checkoutRouter.post('/subscription', async (req, res) => {
   }).exec()
   if (existing) throw HttpError.conflict('That email is already subscribed to this')
 
+  /* Prints in the same basket become one-off lines on the subscription's first
+     invoice, so a mixed cart is a single payment rather than two. Every later
+     invoice bills the recurring price alone. */
+  const cart = body.items?.length ? await priceCart(body.items) : null
+  const orderId = cart ? new mongoose.Types.ObjectId() : null
+
+  const addInvoiceItems = []
+  for (const print of cart?.products ?? []) {
+    const stripeProductId = await ensureStripeProduct({
+      _id: print._id,
+      title: print.title,
+      description: print.description,
+      stripeProductId: print.stripeProductId,
+    })
+
+    if (stripeProductId !== print.stripeProductId) {
+      print.set({ stripeProductId })
+      await print.save()
+    }
+
+    const line = cart?.lineItems.find((item) => String(item.print) === String(print._id))
+    if (!line) continue
+
+    addInvoiceItems.push({
+      /* An inline price rather than a stored one: a print's amount can change,
+         and the invoice must record what was charged on the day. */
+      price_data: {
+        currency: env.CURRENCY,
+        product: stripeProductId,
+        unit_amount: line.unitAmountCents,
+      },
+      quantity: line.quantity,
+    })
+  }
+
   const subscription = await stripe.subscriptions.create({
     customer: customer.id,
     items: [{ price: stripePriceId }],
+    ...(addInvoiceItems.length ? { add_invoice_items: addInvoiceItems } : {}),
     /* Nothing is charged until the Payment Element confirms, which is what
        lets the whole flow stay on this site. */
     payment_behavior: 'default_incomplete',
     payment_settings: { save_default_payment_method: 'on_subscription' },
     expand: ['latest_invoice.confirmation_secret'],
-    metadata: { productId: String(product._id) },
+    metadata: {
+      productId: String(product._id),
+      ...(orderId ? { orderId: String(orderId) } : {}),
+    },
   })
 
   const invoice = subscription.latest_invoice
@@ -290,6 +329,34 @@ checkoutRouter.post('/subscription', async (req, res) => {
 
   if (!clientSecret) {
     throw HttpError.badGateway('Stripe did not return a payment secret for this subscription')
+  }
+
+  const paymentIntentId = intentIdFromSecret(clientSecret)
+
+  if (cart && orderId) {
+    /* Stripe does not copy subscription metadata onto the invoice's
+       PaymentIntent, and payment_intent.succeeded is what marks the prints
+       paid, so the order id is written onto the intent explicitly. */
+    await stripe.paymentIntents.update(paymentIntentId, { metadata: { orderId: String(orderId) } })
+
+    await OrderModel.create({
+      _id: orderId,
+      items: cart.lineItems,
+      amountTotalCents: cart.amountTotalCents,
+      currency: env.CURRENCY,
+      status: 'pending',
+      email: body.email,
+      shippingName: body.shippingName,
+      shippingAddress: {
+        line1: body.shippingAddress.line1,
+        line2: body.shippingAddress.line2 ?? '',
+        city: body.shippingAddress.city,
+        state: body.shippingAddress.state ?? '',
+        postalCode: body.shippingAddress.postalCode,
+        country: body.shippingAddress.country,
+      },
+      stripePaymentIntentId: paymentIntentId,
+    })
   }
 
   await SubscriptionModel.create({
@@ -313,14 +380,18 @@ checkoutRouter.post('/subscription', async (req, res) => {
     status: 'incomplete',
     stripeCustomerId: customer.id,
     stripeSubscriptionId: subscription.id,
-    stripePaymentIntentId: intentIdFromSecret(clientSecret),
+    stripePaymentIntentId: paymentIntentId,
   })
 
   res.status(201).json({
     clientSecret,
-    amountTotalCents: product.priceCents,
+    /* What the Payment Element will charge today: the first month plus any
+       prints riding on the same invoice. */
+    amountTotalCents: product.priceCents + (cart?.amountTotalCents ?? 0),
+    recurringAmountCents: product.priceCents,
     currency: product.currency,
     interval: 'month',
+    orderId: orderId ? String(orderId) : null,
   })
 })
 

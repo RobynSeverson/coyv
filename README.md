@@ -202,6 +202,25 @@ event never leaves a paid subscriber staring at "pending".
 
 Amounts are integer cents everywhere; only the view layer formats them.
 
+A subscription can also be added to the basket alongside one-off prints. Such a
+basket cannot be a PaymentIntent — a recurring price does not fit in one — so
+the whole thing becomes the subscription instead, with the prints attached to
+its first invoice as `add_invoice_items`. Confirming that invoice's
+PaymentIntent charges everything once, and every invoice after it bills the
+recurring price alone. Because Stripe needs the customer, the address and the
+subscription to exist before that intent does, a basket holding a subscription
+collects the email and address *before* the Payment Element appears, and
+editing the basket throws the prepared payment away rather than charging a
+stale amount.
+
+Both records are written for a mixed basket: an `Order` for the prints, which
+`payment_intent.succeeded` marks paid (the order id is copied onto the invoice's
+PaymentIntent explicitly, because Stripe does not propagate subscription
+metadata to it), and a `Subscription`, which `invoice.paid` activates. Only the
+recurring lines of an invoice are recorded as subscription earnings; the prints
+are already counted as an order, and counting the invoice total would count them
+twice.
+
 ### Fulfillment
 
 Orders and subscription renewals are different transactions but the same

@@ -88,6 +88,7 @@ export default function Vault() {
         priceCents: product.priceCents,
         currency: product.currency,
         imageUrl: product.images[0]?.url ?? null,
+        kind: product.kind,
       });
       setJustAdded(product.id);
     },
@@ -342,9 +343,17 @@ export default function Vault() {
 
                     {isSubscription ? (
                       product.available ? (
-                        <Link className="vault__add" to={`/subscribe/${product.slug}`}>
-                          subscribe
-                        </Link>
+                        <button
+                          type="button"
+                          className="vault__add"
+                          onClick={() => addToCart(product)}
+                        >
+                          {justAdded === product.id
+                            ? "added"
+                            : inCart
+                              ? "in cart"
+                              : "add to cart"}
+                        </button>
                       ) : (
                         <span className="vault__add vault__add--disabled">unavailable</span>
                       )

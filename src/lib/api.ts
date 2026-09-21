@@ -324,19 +324,24 @@ export const api = {
     }>("/checkout/intent", { method: "POST", body: payload }),
 
   /* Subscriptions are confirmed by the same Payment Element as the cart: the
-     secret this returns belongs to the first invoice's PaymentIntent. */
+     secret this returns belongs to the first invoice's PaymentIntent. Prints
+     passed as `items` ride on that same first invoice, so a basket holding
+     both is paid for once. */
   startSubscription: (payload: {
     productId: string;
     email: string;
     name?: string;
     shippingName: string;
     shippingAddress: ShippingAddress;
+    items?: { productId: string; quantity: number }[];
   }) =>
     request<{
       clientSecret: string;
       amountTotalCents: number;
+      recurringAmountCents: number;
       currency: string;
       interval: string;
+      orderId: string | null;
     }>("/checkout/subscription", { method: "POST", body: payload }),
 
   lookupSubscription: (paymentIntent: string, clientSecret: string) =>
