@@ -279,6 +279,17 @@ Sends never throw. They happen on paths that have already taken money, and
 failing the Stripe webhook would replay the stock decrement rather than fix the
 email.
 
+#### Reviewing the templates
+
+`npm --prefix server run send-email-previews -- <address>` sends one of every
+email the system can send — including the variants that only differ by data, a
+cancellation that runs to period end versus one that ends immediately, a
+shipping notice with and without tracking, a digest that lists versus one that
+collapses — to a single inbox, with `[preview]` on the subject. It needs a real
+`BREVO_API_KEY` in the environment; set `PUBLIC_SITE_URL=https://coyvcastle.com`
+too or every link in the previews points at localhost. It sends with no
+`dedupeKey` and never opens Mongo, so it can be re-run after each change.
+
 #### The daily digest
 
 `POST /api/tasks/daily-digest` builds and sends it. It is authorised by a shared

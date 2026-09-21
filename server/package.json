@@ -14,7 +14,8 @@
     "create-admin": "node --env-file-if-exists=.env src/scripts/createAdmin.ts",
     "import-memories": "node --env-file-if-exists=.env src/scripts/importMemories.ts",
     "backfill-display-images": "node --env-file-if-exists=.env src/scripts/backfillDisplayImages.ts",
-    "backfill-subscription-payments": "node --env-file-if-exists=.env src/scripts/backfillSubscriptionPayments.ts"
+    "backfill-subscription-payments": "node --env-file-if-exists=.env src/scripts/backfillSubscriptionPayments.ts",
+    "send-email-previews": "node --env-file-if-exists=.env src/scripts/sendEmailPreviews.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.913.0",

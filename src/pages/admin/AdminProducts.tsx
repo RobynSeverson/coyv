@@ -139,8 +139,8 @@ export default function AdminProducts() {
               value={newKind}
               onChange={(event) => setNewKind(event.target.value as ProductKind)}
             >
-              <option value="print">print (one-off)</option>
-              <option value="subscription">monthly print subscription</option>
+              <option value="print">regular</option>
+              <option value="subscription">subscription</option>
             </select>
           </label>
 

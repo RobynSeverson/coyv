@@ -444,7 +444,6 @@ export default function Memories() {
             ))
           : memories.map((memory, position) => {
               const cover = memory.images[0] ?? null;
-              const extra = memory.images.length - 1;
 
               return (
                 <li key={memory.id} className="archive__row" data-memory={memory.slug}>
@@ -470,11 +469,6 @@ export default function Memories() {
                           ▤
                         </span>
                       )}
-                      {extra > 0 ? (
-                        <span className="archive__count" aria-hidden="true">
-                          +{extra}
-                        </span>
-                      ) : null}
                     </span>
 
                     <span className="archive__meta">
