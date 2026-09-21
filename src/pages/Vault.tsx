@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
+import checkoutButton from "../assets/checkoutButton.png";
 import { api, type Product } from "../lib/api";
 import { copyText } from "../lib/clipboard";
 import { trackEvent } from "../lib/analytics";
@@ -212,8 +213,8 @@ export default function Vault() {
             {cart.itemCount} {cart.itemCount === 1 ? "fragment" : "fragments"} ·{" "}
             {formatMoney(cart.subtotalCents, cart.currency)}
           </span>
-          <Link className="vault__checkoutLink" to="/checkout">
-            checkout
+          <Link className="vault__checkoutLink" to="/checkout" aria-label="checkout">
+            <img className="vault__checkoutMark" src={checkoutButton} alt="" />
           </Link>
         </div>
       ) : null}

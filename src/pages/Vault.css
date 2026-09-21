@@ -259,15 +259,29 @@
   letter-spacing: 0.12em;
 }
 
+/* Drawn lettering rather than a pill, the way the nav marks are: no background
+   of its own, so the plate the artwork sits on is what shows. */
 .vault__checkoutLink {
-  padding: 0.4rem 1.1rem;
-  border-radius: 999px;
-  background: rgba(18, 24, 26, 0.9);
-  color: #f7f9f6;
-  font-size: 0.78rem;
-  letter-spacing: 0.16em;
+  display: block;
+  line-height: 0;
   text-decoration: none;
-  text-transform: lowercase;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vault__checkoutMark {
+  display: block;
+  height: 2.6rem;
+  width: auto;
+  /* The plate is white, and the bar sits on the painted backdrop. */
+  mix-blend-mode: multiply;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vault__checkoutLink:hover .vault__checkoutMark {
+    opacity: 0.75;
+  }
 }
 
 .vault__notice {

@@ -49,6 +49,7 @@ Changes to `.env.example`, `README.md` or this file ship nothing.
 npm run build
 aws s3 sync dist/ s3://coyv-site-162956754427/ --delete \
   --exclude index.html --exclude robots.txt --exclude sitemap.xml \
+  --exclude email-header.jpg --exclude email-paper.jpg --exclude email-footer.jpg \
   --cache-control "public,max-age=31536000,immutable"
 aws s3 cp dist/index.html s3://coyv-site-162956754427/index.html \
   --cache-control "no-cache,must-revalidate"
@@ -56,6 +57,10 @@ aws s3 cp dist/robots.txt s3://coyv-site-162956754427/robots.txt \
   --cache-control "public,max-age=300" --content-type "text/plain; charset=utf-8"
 aws s3 cp dist/sitemap.xml s3://coyv-site-162956754427/sitemap.xml \
   --cache-control "public,max-age=300" --content-type "application/xml; charset=utf-8"
+for f in email-header.jpg email-paper.jpg email-footer.jpg; do
+  aws s3 cp dist/$f s3://coyv-site-162956754427/$f \
+    --cache-control "public,max-age=86400" --content-type "image/jpeg"
+done
 aws cloudfront create-invalidation --distribution-id E1J2EEQCJDHQJV --paths "/*"
 ```
 
@@ -67,6 +72,27 @@ which `--delete` has just removed, and the site white-screens. `robots.txt` and
 to re-read them, so a year-long cache would pin whatever was shipped first. The
 explicit `--content-type` is there because `s3 cp` otherwise guesses, and a
 sitemap served as `binary/octet-stream` is rejected.
+
+The three `email-*.jpg` files are the artwork every transactional email is laid
+on — a crest at the top, paper tiling behind the text, a strip at the bottom —
+and they belong to the same family: the templates reference them by fixed names
+at `PUBLIC_SITE_URL`, so they are never fingerprinted and a year-long cache
+would leave mail clients painting the old artwork long after it changed.
+`email-paper.jpg` is exported at exactly the 600px table width because it tiles
+at its natural size: `background-size` is ignored by Outlook. It lives in
+`public/` rather than the assets bucket because a mail client fetches it
+unauthenticated, and the assets bucket only hands out signed URLs that would
+have expired by the time the email was opened. Changing the artwork means a
+deploy — or, to preview it without one, an `s3 cp` of just those objects
+followed by an invalidation of their paths.
+
+**Replacing the file is not enough on its own.** Gmail serves mail images
+through its own proxy, which caches them by URL and honours neither the cache
+headers nor a CloudFront invalidation: every email already sent — and every new
+one — keeps showing the artwork the proxy fetched first. The templates carry an
+`ART_VERSION` appended as `?v=N` for exactly this reason. Bump it in
+`server/src/services/email/templates.ts` whenever a piece is redrawn, or spend
+an evening convinced the upload silently failed.
 
 `VITE_*` variables are inlined at build time, not read at runtime. Changing
 `VITE_STRIPE_PUBLISHABLE_KEY` or `VITE_ADMIN_PATH` means a fresh `npm run build`

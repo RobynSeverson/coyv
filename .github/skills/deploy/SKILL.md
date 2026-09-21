@@ -62,11 +62,14 @@ can be cached forever, but `index.html` never changes name and must never be
 cached, or browsers keep requesting bundle hashes that `--delete` has just
 removed and the site white-screens. `robots.txt` and `sitemap.xml` keep their
 names too, and a year-long cache would leave Google reading a stale copy long
-after the file changed.
+after the file changed. The three `email-*.jpg` files — the artwork every
+transactional email is laid on — are in the same position: the templates
+reference them by fixed names, so they get a day's cache rather than a year's.
 
 ```bash
 aws s3 sync dist/ s3://coyv-site-162956754427/ --delete \
   --exclude index.html --exclude robots.txt --exclude sitemap.xml \
+  --exclude 'email-*.jpg' \
   --cache-control "public,max-age=31536000,immutable"
 aws s3 cp dist/index.html s3://coyv-site-162956754427/index.html \
   --cache-control "no-cache,must-revalidate"
@@ -74,6 +77,10 @@ aws s3 cp dist/robots.txt s3://coyv-site-162956754427/robots.txt \
   --cache-control "public,max-age=300" --content-type "text/plain; charset=utf-8"
 aws s3 cp dist/sitemap.xml s3://coyv-site-162956754427/sitemap.xml \
   --cache-control "public,max-age=300" --content-type "application/xml; charset=utf-8"
+for f in email-header.jpg email-paper.jpg email-footer.jpg; do
+  aws s3 cp dist/$f s3://coyv-site-162956754427/$f \
+    --cache-control "public,max-age=86400" --content-type "image/jpeg"
+done
 aws cloudfront create-invalidation --distribution-id E1J2EEQCJDHQJV --paths "/*"
 ```
 

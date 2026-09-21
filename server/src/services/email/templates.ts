@@ -52,31 +52,57 @@ function manageFooterText(): string {
    attribute early and drops every declaration after it. */
 const WRAPPER_STYLE =
   "font-family:Georgia,'Times New Roman',serif;color:#0d0c10;line-height:1.6;" +
-  'max-width:560px;margin:0 auto;padding:32px 24px'
+  /* Wide side margins: the paper is drawn with a ruled line down either edge,
+     and text set closer than this runs over them. */
+  'padding:30px 58px 30px 74px'
+
+/* Bump whenever any of the three pieces is redrawn. Gmail serves mail images
+   through a proxy that caches them by URL and ignores both the cache headers
+   and a CloudFront invalidation, so replacing the file alone leaves everyone
+   who has already been sent an email looking at the old artwork. */
+const ART_VERSION = 2
 
 /* Shipped with the site rather than held in the assets bucket: mail clients
    fetch it unauthenticated, and the assets bucket only ever hands out signed
    URLs that would have expired by the time the email was opened. */
-function paperUrl(): string {
-  return `${env.PUBLIC_SITE_URL}/email-paper.jpg`
+function art(name: string): string {
+  return `${env.PUBLIC_SITE_URL}/${name}?v=${ART_VERSION}`
 }
 
-/* A table, not a styled <body>: Gmail strips body-level backgrounds, and
-   Outlook needs the `background` attribute beside the CSS. The paper is a
-   near-white drawing, so a client that drops it altogether only loses the
-   texture and never the contrast the text is read against. */
+/* The mail is one drawing in three pieces: a crest at the top, paper that
+   tiles down behind however much text there is, and a closing strip. */
+const EMAIL_WIDTH = 600
+
+/* Header and footer are <img>, not backgrounds, because a background image has
+   to be given a height to show at all and these have to stay in proportion as
+   the client narrows them. The middle has to be a background: it is the one
+   piece whose height is whatever the text needs.
+
+   The tile is exported at exactly the table width so it repeats at its natural
+   size — `background-size` is ignored by Outlook, which would otherwise show it
+   at 1200px and crop half the drawing away. */
+function edge(name: string): string {
+  return `<tr><td style="padding:0;font-size:0;line-height:0"><img src="${art(name)}" width="${EMAIL_WIDTH}" alt="" style="display:block;width:100%;max-width:${EMAIL_WIDTH}px;height:auto;border:0"></td></tr>`
+}
+
 function layout(heading: string, body: string): string {
-  const paper = paperUrl()
+  const tile = art('email-paper.jpg')
 
   return `<!doctype html><html><body style="margin:0;padding:0;background:#faf7f2">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#faf7f2">
-<tr><td align="center" background="${paper}" style="background-color:#faf7f2;background-image:url('${paper}');background-position:top center;background-repeat:no-repeat;background-size:cover">
+<tr><td align="center" style="padding:0">
+<table role="presentation" width="${EMAIL_WIDTH}" cellpadding="0" cellspacing="0" border="0" style="width:${EMAIL_WIDTH}px;max-width:${EMAIL_WIDTH}px">
+${edge('email-header.jpg')}
+<tr><td background="${tile}" style="background-color:#faf7f2;background-image:url('${tile}');background-repeat:repeat-y;background-position:top center">
 <div style="${WRAPPER_STYLE}">
 <h1 style="font-size:22px;font-weight:normal;letter-spacing:0.04em;margin:0 0 20px">${escapeHtml(heading)}</h1>
 ${body}
 <hr style="border:none;border-top:1px solid #e3ddd3;margin:28px 0 14px">
 <p style="font-size:12px;color:#55505c;margin:0">coyv · <a href="${env.PUBLIC_SITE_URL}" style="color:#55505c">coyvcastle.com</a></p>
 </div>
+</td></tr>
+${edge('email-footer.jpg')}
+</table>
 </td></tr></table>
 </body></html>`
 }
