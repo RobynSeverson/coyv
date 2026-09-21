@@ -160,7 +160,7 @@
   border-bottom: 1px solid var(--archive-rule);
   font-family: var(--archive-font);
   font-size: 1.05rem;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0.14em;
   font-variant-numeric: tabular-nums;
   text-transform: lowercase;
@@ -170,6 +170,9 @@
 }
 
 .archive__title {
+  /* The caption trails the file name, so it keeps the lighter face the name
+     has just left behind rather than being bolded along with it. */
+  font-weight: 300;
   opacity: 0.55;
   letter-spacing: 0.04em;
 }

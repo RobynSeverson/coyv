@@ -117,7 +117,7 @@ export default function OrderStatus() {
 
       <section className="orderStatus__card" aria-label="Order details">
         <p className="orderStatus__reference">
-          reference <code>{order.id}</code>
+          order no. <code>{order.number}</code>
         </p>
 
         <ul className="orderStatus__lines">

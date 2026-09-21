@@ -16,6 +16,21 @@
   gap: 0.6rem;
 }
 
+/* Closes each card with a drawn rule rather than a border, so the divider is
+   part of the same hand as the artwork above it. The plate is 774×30, and
+   stretching it to the card width keeps the stroke reading as one line;
+   multiply drops its white ground onto the painted backdrop. */
+.vault__card::after {
+  content: "";
+  height: 1.1rem;
+  margin-top: 0.3rem;
+  background-image: url('../assets/cardDivider.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 100% 100%;
+  mix-blend-mode: multiply;
+}
+
 .vault__frame {
   position: relative;
   overflow: hidden;
@@ -151,8 +166,46 @@
    left-aligned copy above it. */
 .vault__row {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   margin-top: 0.4rem;
+}
+
+.vault__share {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: lowercase;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vault__share .collection__downloadIcon {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .vault__share:hover {
+    opacity: 1;
+  }
+}
+
+/* The card a deep link points at, marked for long enough to find it after the
+   page has scrolled rather than flashing and leaving the visitor hunting. */
+.vault__card--linked .vault__frame {
+  box-shadow: 0 1px 2px rgba(18, 24, 26, 0.16), 0 4px 14px rgba(18, 24, 26, 0.22),
+    0 0 0 2px rgba(18, 24, 26, 0.55);
 }
 
 .vault__price {

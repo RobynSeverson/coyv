@@ -141,11 +141,11 @@
   padding: clamp(1rem, 4vw, 3rem);
   background: linear-gradient(
     155deg,
-    rgba(96, 116, 138, 0.46),
-    rgba(52, 68, 86, 0.56) 55%,
-    rgba(78, 98, 120, 0.5)
+    rgba(96, 116, 138, 0.3),
+    rgba(52, 68, 86, 0.38) 55%,
+    rgba(78, 98, 120, 0.33)
   );
-  -webkit-backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(8px);
   cursor: zoom-out;
   animation: lightboxIn 220ms ease-out both;
 }
@@ -155,7 +155,7 @@
    into the block above reintroduces that bug. */
 @supports (backdrop-filter: blur(1px)) {
   .lightbox {
-    backdrop-filter: blur(14px);
+    backdrop-filter: blur(8px);
   }
 }
 

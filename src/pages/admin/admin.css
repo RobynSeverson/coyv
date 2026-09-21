@@ -43,6 +43,15 @@
   opacity: 0.55;
 }
 
+/* Monospaced so a reference read off the screen against one quoted in an
+   email lines up character for character. */
+.admin__reference {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 .admin__tabs {
   display: flex;
   gap: 0.4rem;

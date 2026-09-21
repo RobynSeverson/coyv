@@ -32,8 +32,10 @@ const shippingAddress = {
   country: 'US',
 }
 
+/* Real-looking ObjectIds, so the preview shows the order number the way a
+   live email would rather than a reference derived from the word "preview". */
 const sampleOrder = {
-  _id: 'preview-order',
+  _id: '68cf2a1b9d4e7f0012ab34cd',
   email: to,
   shippingName: 'Wren Ashby',
   shippingAddress,
@@ -46,7 +48,7 @@ const sampleOrder = {
 } as unknown as OrderDocument
 
 const sampleSubscriptionFulfillment = {
-  _id: 'preview-fulfillment',
+  _id: '68cf2a1b9d4e7f0012ab7701',
   email: to,
   shippingName: 'Wren Ashby',
   shippingAddress,
@@ -60,6 +62,7 @@ const sampleSubscriptionFulfillment = {
 const sampleOrderFulfillment = {
   ...sampleSubscriptionFulfillment,
   kind: 'order',
+  order: '68cf2a1b9d4e7f0012ab34cd',
   title: 'heavenly dispatch — giclée print',
   periodLabel: undefined,
   trackingNumber: '',

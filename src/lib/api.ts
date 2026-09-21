@@ -207,6 +207,9 @@ export type OrderType = "order" | "subscription";
 
 export type Order = {
   id: string;
+  /* The short reference quoted in the confirmation email and shown in the
+     admin list, derived from the id rather than stored. */
+  number: string;
   /* A one-off purchase, or one month of a subscription. Both are money taken
      in, so the admin list shows them together. */
   type: OrderType;

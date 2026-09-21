@@ -48,6 +48,8 @@ export default function App() {
           <Route element={<SiteLayout />}>
             <Route path="/home" element={<Home />} />
             <Route path="/vault" element={<Vault />} />
+            {/* A single product, deep-linked: the vault opens scrolled to it. */}
+            <Route path="/vault/:slug" element={<Vault />} />
             {/* The shop used to live here; keep shared links working. */}
             <Route path="/prints" element={<Navigate to="/vault" replace />} />
             <Route path="/checkout" element={<Checkout />} />

@@ -1,4 +1,5 @@
 import { env } from '../../env.ts'
+import { referenceNumber } from '../../lib/referenceNumber.ts'
 import type { FulfillmentDocument } from '../../models/Fulfillment.ts'
 import type { OrderDocument } from '../../models/Order.ts'
 import type { SubscriptionDocument } from '../../models/Subscription.ts'
@@ -34,7 +35,7 @@ export function manageSubscriptionUrl(): string {
    rather than buried in a support address. */
 function manageFooterHtml(): string {
   const url = manageSubscriptionUrl()
-  return `<p style="margin-top:22px;font-size:13px;color:#7a7280">Need to change your address or cancel? <a href="${url}" style="color:#7a7280">Manage your subscription</a> — we will email you a sign-in link.</p>`
+  return `<p style="margin-top:22px;font-size:13px;color:#55505c">Need to change your address or cancel? <a href="${url}" style="color:#55505c">Manage your subscription</a> — we will email you a sign-in link.</p>`
 }
 
 function manageFooterText(): string {
@@ -50,17 +51,34 @@ function manageFooterText(): string {
    into a double-quoted style attribute, and a double quote there closes the
    attribute early and drops every declaration after it. */
 const WRAPPER_STYLE =
-  "font-family:Georgia,'Times New Roman',serif;color:#1c1a1f;line-height:1.6;" +
+  "font-family:Georgia,'Times New Roman',serif;color:#0d0c10;line-height:1.6;" +
   'max-width:560px;margin:0 auto;padding:32px 24px'
 
+/* Shipped with the site rather than held in the assets bucket: mail clients
+   fetch it unauthenticated, and the assets bucket only ever hands out signed
+   URLs that would have expired by the time the email was opened. */
+function paperUrl(): string {
+  return `${env.PUBLIC_SITE_URL}/email-paper.jpg`
+}
+
+/* A table, not a styled <body>: Gmail strips body-level backgrounds, and
+   Outlook needs the `background` attribute beside the CSS. The paper is a
+   near-white drawing, so a client that drops it altogether only loses the
+   texture and never the contrast the text is read against. */
 function layout(heading: string, body: string): string {
-  return `<!doctype html><html><body style="margin:0;background:#faf7f2">
+  const paper = paperUrl()
+
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#faf7f2">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#faf7f2">
+<tr><td align="center" background="${paper}" style="background-color:#faf7f2;background-image:url('${paper}');background-position:top center;background-repeat:no-repeat;background-size:cover">
 <div style="${WRAPPER_STYLE}">
 <h1 style="font-size:22px;font-weight:normal;letter-spacing:0.04em;margin:0 0 20px">${escapeHtml(heading)}</h1>
 ${body}
 <hr style="border:none;border-top:1px solid #e3ddd3;margin:28px 0 14px">
-<p style="font-size:12px;color:#7a7280;margin:0">coyv · <a href="${env.PUBLIC_SITE_URL}" style="color:#7a7280">coyvcastle.com</a></p>
-</div></body></html>`
+<p style="font-size:12px;color:#55505c;margin:0">coyv · <a href="${env.PUBLIC_SITE_URL}" style="color:#55505c">coyvcastle.com</a></p>
+</div>
+</td></tr></table>
+</body></html>`
 }
 
 function addressLines(fulfillment: FulfillmentDocument | OrderDocument): string[] {
@@ -91,10 +109,14 @@ export function orderConfirmation(order: OrderDocument): Template {
   const items = order.items.map((item) => ({ title: item.title, quantity: item.quantity }))
   const total = formatMoney(order.amountTotalCents, order.currency)
   const address = addressLines(order)
+  /* The same number the admin orders list shows, so a customer quoting it can
+     be found without them having to produce a Mongo id. */
+  const number = referenceNumber(order._id)
 
   const html = layout(
     'thank you',
     `<p>Your order is confirmed and will be packed by hand shortly.</p>
+<p style="font-size:13px;color:#55505c;margin:0 0 18px">Order no. <strong style="color:#0d0c10">${escapeHtml(number)}</strong></p>
 ${itemList(items)}
 <p><strong>Total paid:</strong> ${escapeHtml(total)}</p>
 ${
@@ -114,6 +136,8 @@ ${
   const text = [
     'Thank you — your order is confirmed and will be packed by hand shortly.',
     '',
+    `Order no. ${number}`,
+    '',
     ...items.map((item) => `- ${item.title} x ${item.quantity}`),
     '',
     `Total paid: ${total}`,
@@ -122,7 +146,7 @@ ${
     'You will get another note from me the day it goes in the post.',
   ].join('\n')
 
-  return { subject: 'your coyv order is confirmed', html, text }
+  return { subject: `your coyv order ${number} is confirmed`, html, text }
 }
 
 /* Sent for every monthly charge, including the first. The period label is what
@@ -176,8 +200,8 @@ export function subscriptionCanceled(subscription: SubscriptionDocument): Templa
     : 'You will not be charged again.'
 
   const resume = endsOnLabel
-    ? `<p>Changed your mind? You can start it up again from the <a href="${manageSubscriptionUrl()}" style="color:#1c1a1f">manage page</a> any time before then, and nothing will have lapsed.</p>`
-    : `<p>You are welcome back whenever you like — a new subscription can be started from <a href="${env.PUBLIC_SITE_URL}/vault" style="color:#1c1a1f">the vault</a>.</p>`
+    ? `<p>Changed your mind? You can start it up again from the <a href="${manageSubscriptionUrl()}" style="color:#0d0c10">manage page</a> any time before then, and nothing will have lapsed.</p>`
+    : `<p>You are welcome back whenever you like — a new subscription can be started from <a href="${env.PUBLIC_SITE_URL}/vault" style="color:#0d0c10">the vault</a>.</p>`
 
   const html = layout(
     'your subscription is cancelled',
@@ -206,18 +230,24 @@ ${resume}
 
 export function shippedNotice(fulfillment: FulfillmentDocument): Template {
   const tracking = fulfillment.trackingNumber?.trim() ?? ''
+  /* A month of a subscription is identified by its period, a one-off by the
+     number its confirmation quoted — so each carries the reference the
+     recipient already has. */
+  const number = fulfillment.order ? referenceNumber(fulfillment.order) : ''
 
   const html = layout(
     'it is in the post',
     `<p><strong>${escapeHtml(fulfillment.title)}</strong>${
       fulfillment.periodLabel ? ` (${escapeHtml(fulfillment.periodLabel)})` : ''
     } has been sent.</p>
+${number ? `<p style="font-size:13px;color:#55505c;margin:0 0 18px">Order no. <strong style="color:#0d0c10">${escapeHtml(number)}</strong></p>` : ''}
 ${tracking ? `<p><strong>Tracking:</strong> ${escapeHtml(tracking)}</p>` : ''}
 <p>Thank you for giving it a home.</p>`,
   )
 
   const text = [
     `${fulfillment.title}${fulfillment.periodLabel ? ` (${fulfillment.periodLabel})` : ''} has been sent.`,
+    ...(number ? ['', `Order no. ${number}`] : []),
     ...(tracking ? ['', `Tracking: ${tracking}`] : []),
     '',
     'Thank you for giving it a home.',
@@ -233,8 +263,8 @@ export function manageLink(link: string, minutes = 20): Template {
   const html = layout(
     'manage your subscription',
     `<p>Here is your sign-in link. It works once and expires in ${minutes} minutes.</p>
-<p style="margin:24px 0"><a href="${link}" style="background:#1c1a1f;color:#faf7f2;padding:12px 22px;text-decoration:none;border-radius:2px;display:inline-block">manage my subscription</a></p>
-<p style="font-size:13px;color:#7a7280">From there you can update your postal address or cancel. If you did not ask for this, you can ignore it — nothing has changed.</p>`,
+<p style="margin:24px 0"><a href="${link}" style="background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;border-radius:2px;display:inline-block">manage my subscription</a></p>
+<p style="font-size:13px;color:#55505c">From there you can update your postal address or cancel. If you did not ask for this, you can ignore it — nothing has changed.</p>`,
   )
 
   const text = [
@@ -279,7 +309,7 @@ export function adminDigest(input: DigestInput): Template {
 
   const button =
     `<p style="margin:24px 0"><a href="${url}" ` +
-    'style="background:#1c1a1f;color:#faf7f2;padding:12px 22px;text-decoration:none;' +
+    'style="background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;' +
     'border-radius:2px;display:inline-block">open the fulfillment queue</a></p>'
 
   const rows = entries
@@ -287,7 +317,7 @@ export function adminDigest(input: DigestInput): Template {
       (entry) =>
         `<li style="margin-bottom:6px">${entry.pastDue ? '<strong>' : ''}${escapeHtml(entry.label)}${
           entry.pastDue ? '</strong>' : ''
-        } <span style="color:#7a7280">— ${escapeHtml(entry.recipient)}, waiting ${
+        } <span style="color:#55505c">— ${escapeHtml(entry.recipient)}, waiting ${
           entry.waitingDays
         } day${entry.waitingDays === 1 ? '' : 's'}${entry.pastDue ? ', past due' : ''}</span></li>`,
     )

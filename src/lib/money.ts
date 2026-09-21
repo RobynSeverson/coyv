@@ -1,9 +1,15 @@
 /* Amounts cross the wire as integer minor units; only the view layer ever
-   turns them into something with a decimal point in it. */
+   turns them into something with a decimal point in it. A whole amount is
+   shown without its cents — "$45" rather than "$45.00" — because the trailing
+   zeroes only earn their place when there is a real amount to read. */
 export function formatMoney(cents: number, currency: string): string {
+  const whole = cents % 100 === 0;
+
   return new Intl.NumberFormat(undefined, {
     style: "currency",
     currency: currency.toUpperCase(),
+    minimumFractionDigits: whole ? 0 : 2,
+    maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 

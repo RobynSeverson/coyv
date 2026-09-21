@@ -5,6 +5,7 @@ import type { SubscriptionPaymentDocument } from '../models/SubscriptionPayment.
 import { memoryImages, type MemoryDocument, type MemoryKind } from '../models/Memory.ts'
 import type { FulfillmentDocument } from '../models/Fulfillment.ts'
 import { env } from '../env.ts'
+import { referenceNumber } from './referenceNumber.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
 
 export type SerializedImage = {
@@ -150,6 +151,9 @@ export function serializeFulfillment(fulfillment: FulfillmentDocument) {
 export function serializeOrder(order: OrderDocument) {
   return {
     id: String(order._id),
+    /* What the confirmation email quotes, so a customer writing in and the
+       row in the admin list are talking about the same thing. */
+    number: referenceNumber(order._id),
     /* Both a one-off purchase and a month of a subscription are money taken
        in, so the orders list shows them side by side and this is what tells
        them apart. */
@@ -180,6 +184,7 @@ export function serializeOrder(order: OrderDocument) {
 export function serializeSubscriptionPayment(payment: SubscriptionPaymentDocument) {
   return {
     id: String(payment._id),
+    number: referenceNumber(payment._id),
     type: 'subscription' as const,
     status: 'paid' as const,
     currency: payment.currency,

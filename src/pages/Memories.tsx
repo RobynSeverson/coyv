@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import { hasImageToken, RichText } from "../lib/richText";
 import { api, type Memory, type MemoryImage } from "../lib/api";
+import { copyText } from "../lib/clipboard";
 import { trackEvent } from "../lib/analytics";
 /* The viewer chrome is shared with the vault's grid, which is why these
    styles are not in Memories.css. */
@@ -67,37 +68,6 @@ const ShareIcon = () => (
     <path d="M4.5 16.5v2.25a1.25 1.25 0 0 0 1.25 1.25h12.5a1.25 1.25 0 0 0 1.25-1.25V16.5" />
   </svg>
 );
-
-/* Must be called from the tap's own tick. The async clipboard is missing or
-   blocked on older and locked-down mobile browsers, where selecting a
-   throwaway field and copying it still works. */
-function copyText(text: string): Promise<boolean> {
-  if (navigator.clipboard) {
-    return navigator.clipboard.writeText(text).then(
-      () => true,
-      () => legacyCopy(text),
-    );
-  }
-  return Promise.resolve(legacyCopy(text));
-}
-
-function legacyCopy(text: string): boolean {
-  const field = document.createElement("textarea");
-  field.value = text;
-  field.setAttribute("readonly", "");
-  field.style.cssText = "position:fixed;top:0;opacity:0";
-  document.body.append(field);
-  field.select();
-  field.setSelectionRange(0, text.length);
-
-  try {
-    return document.execCommand("copy");
-  } catch {
-    return false;
-  } finally {
-    field.remove();
-  }
-}
 
 const shareParams = (memory: Memory) => ({
   memory_slug: memory.slug,
@@ -284,9 +254,10 @@ export default function Memories() {
 
     const copied = copyText(url);
 
-    const sheet = handheld
-      ? navigator.share?.({ title: memory.slug, text: memory.slug, url })
-      : undefined;
+    /* URL only: a title or text alongside it is pasted in as a second line by
+       Messages and Mail, so the recipient gets the slug repeated above the
+       link they were sent. */
+    const sheet = handheld ? navigator.share?.({ url }) : undefined;
 
     if (sheet) {
       try {

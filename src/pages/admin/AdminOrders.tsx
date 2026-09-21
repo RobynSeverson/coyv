@@ -119,6 +119,7 @@ export default function AdminOrders() {
           <table className="admin__table">
             <thead>
               <tr>
+                <th>order no.</th>
                 <th>placed</th>
                 <th>type</th>
                 <th>status</th>
@@ -130,6 +131,9 @@ export default function AdminOrders() {
             <tbody>
               {orders.map((order) => (
                 <tr key={`${order.type}:${order.id}`}>
+                  <td>
+                    <code className="admin__reference">{order.number}</code>
+                  </td>
                   <td>{new Date(order.createdAt).toLocaleString()}</td>
                   <td>
                     <span className={`admin__badge admin__badge--${order.type}`}>
