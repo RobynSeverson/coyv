@@ -319,3 +319,51 @@ pages; memory deep links are left out on purpose, because they open the same
 document with one memory already showing. Submitted once at
 `https://coyvcastle.com/sitemap.xml` — Google re-reads it on its own after that,
 so a resubmission is only needed if the file moves.
+
+### How the result looks
+
+The listing Google draws comes from the served `index.html`, so all of it is in
+the repo:
+
+- The `<title>` and `<meta name="description">` are the headline and snippet.
+  Google truncates the snippet around 150–160 characters.
+- The `application/ld+json` block (`WebSite` + `Person`) is what lets Google
+  show **coyv** as the site name instead of the bare domain.
+- The favicon beside the result must be a square whose size is a **multiple of
+  48px**, which the 512px `favico.png` is not — hence `favicon-192.png`. It is
+  generated from `favico.png` with `sharp`, from a script inside `server/`.
+- `og:image` and `twitter:image` are **absolute** URLs. Google's image fetcher
+  drops a root-relative one entirely.
+
+The app is a SPA, and Google renders it before indexing, so `useDocumentMeta`
+rewrites the title, description, canonical and Open Graph tags on every route —
+otherwise `/vault` and `/memories` would both be indexed with the landing page's
+snippet.
+
+`og-image.jpg`, `favico.png`, `favicon-192.png` and `apple-touch-icon.png` keep
+fixed names but ship with the one-year `immutable` cache, unlike `robots.txt`
+and `sitemap.xml`. Replacing the artwork behind one of those names therefore
+needs a CloudFront invalidation of that path before anything re-fetches it —
+and Google and the social scrapers cache their own copy on top of that.
+
+After a change to any of this, request a re-crawl from **URL inspection** in
+Search Console rather than waiting: paste the URL into the "Inspect any URL"
+box, then **Request indexing**. Done for `/`, `/vault` and `/memories` on
+2026-09-22 — the homepage was already indexed, the other two were not, so the
+per-route metadata had never been seen.
+
+## Bing Webmaster Tools
+
+`coyvcastle.com` is registered at <https://www.bing.com/webmasters>, added by
+**importing from Google Search Console** rather than a separate verification —
+Bing re-checks the Google verification instead of asking for its own, and
+`https://coyvcastle.com/sitemap.xml` was submitted there too (2026-09-22).
+
+The import grants Bing a read-only OAuth scope
+(`webmasters.readonly`) on the Google account that owns the Search Console
+property, `robynseverson@gmail.com`. Revoking it in the Google account would
+eventually break Bing's re-verification.
+
+Both consoles resist browser automation on their final confirmation buttons:
+Google's OAuth consent and Bing's *Inspect* ignore synthetic clicks entirely,
+so those two steps have to be clicked by hand.
