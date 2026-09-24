@@ -66,6 +66,16 @@ body:has(.landing) {
   display: contents;
 }
 
+/* ...but `display: contents` promotes the <source> children into grid items
+   too, and a grid item is blockified — Chrome gives <source> `inline`, which
+   becomes `block`. Each one then claims a row of its own and pushes the button
+   below centre, which is the same bug the rule above was written to fix. They
+   draw nothing, and source selection is an HTML concern rather than a layout
+   one, so hiding them costs nothing. */
+.landing picture > source {
+  display: none;
+}
+
 .landing__gate {
   position: absolute;
   inset: 0;
