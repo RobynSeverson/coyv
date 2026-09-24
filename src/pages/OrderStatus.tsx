@@ -116,9 +116,14 @@ export default function OrderStatus() {
       ) : null}
 
       <section className="orderStatus__card" aria-label="Order details">
-        <p className="orderStatus__reference">
-          order no. <code>{order.number}</code>
-        </p>
+        {/* A reference only exists once the payment has cleared: until then
+            the record is on the internal track, and showing that number would
+            quote the customer something their receipt will not match. */}
+        {order.status === "paid" || order.status === "refunded" ? (
+          <p className="orderStatus__reference">
+            order no. <code>{order.number}</code>
+          </p>
+        ) : null}
 
         <ul className="orderStatus__lines">
           {order.items.map((item) => (

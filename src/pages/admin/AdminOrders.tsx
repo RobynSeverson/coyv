@@ -10,19 +10,15 @@ import {
 import { formatMoney } from "../../lib/money";
 import "./admin.css";
 
-const ORDER_STATUSES: OrderStatus[] = [
-  "pending",
-  "processing",
-  "paid",
-  "failed",
-  "canceled",
-  "refunded",
-];
+/* Only settled rows ever reach the browser — the API leaves baskets that were
+   never paid for out of the list entirely — so these are the only statuses a
+   row can have. */
+const ORDER_STATUSES: OrderStatus[] = ["paid", "refunded"];
 
 const ORDER_TYPES: OrderType[] = ["order", "subscription"];
 
-/* "successful" is the default view because a failed or abandoned checkout
-   leaves a row behind that the studio never has to act on. */
+/* "successful" is the default view because a refund is money that went back
+   out again, and the day-to-day question is what actually sold. */
 type StatusFilter = OrderStatus | "successful" | "all";
 type TypeFilter = OrderType | "all";
 

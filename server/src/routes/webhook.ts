@@ -1,6 +1,7 @@
 import { Router, raw } from 'express'
 import type Stripe from 'stripe'
 import { env } from '../env.ts'
+import { isOrderNumber, nextOrderNumber } from '../lib/orderNumber.ts'
 import { OrderModel, type OrderDocument } from '../models/Order.ts'
 import { ProductModel } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
@@ -50,7 +51,14 @@ async function applySuccess(intent: Stripe.PaymentIntent): Promise<void> {
 
   const shipping = intent.shipping
 
+  /* The number moves from the INC track to CV here, and only here: this is
+     the moment the money cleared, and the fulfilledAt guard above means it
+     runs once per order however often Stripe replays the event. It has to be
+     set before the confirmation goes out, which quotes it. */
+  const number = isOrderNumber(order.number) ? order.number : await nextOrderNumber()
+
   order.set({
+    number,
     status: 'paid',
     paidAt: new Date(),
     fulfilledAt: new Date(),

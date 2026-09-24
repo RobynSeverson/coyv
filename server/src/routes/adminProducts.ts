@@ -12,7 +12,7 @@ import {
 } from '../lib/serialize.ts'
 import { bucketEarnings, EARNINGS_BUCKETS, type EarningsEntry } from '../lib/earnings.ts'
 import { requireAdmin } from '../middleware/auth.ts'
-import { OrderModel, ORDER_STATUSES } from '../models/Order.ts'
+import { OrderModel, SETTLED_ORDER_STATUSES } from '../models/Order.ts'
 import { ProductModel, PRODUCT_KINDS } from '../models/Product.ts'
 import { SubscriptionModel } from '../models/Subscription.ts'
 import { SubscriptionPaymentModel } from '../models/SubscriptionPayment.ts'
@@ -371,16 +371,20 @@ adminRouter.patch('/fulfillments/:id', async (req, res) => {
   res.json({ fulfillment: serializeFulfillment(fulfillment) })
 })
 
+/* Only money that moved. Most rows in the orders collection are baskets that
+   were never paid for — they exist so Stripe has something to attach a
+   payment intent to, and listing them buried the real transactions. They are
+   excluded here rather than in the browser so they never cross the wire. */
 adminRouter.get('/orders', async (req, res) => {
   const query = z
     .object({
-      status: z.enum(ORDER_STATUSES).optional(),
+      status: z.enum(SETTLED_ORDER_STATUSES).optional(),
       limit: z.coerce.number().int().min(1).max(100).default(50),
       skip: z.coerce.number().int().min(0).default(0),
     })
     .parse(req.query)
 
-  const filter = query.status ? { status: query.status } : {}
+  const filter = { status: query.status ?? { $in: SETTLED_ORDER_STATUSES } }
   /* A recorded subscription charge is money that cleared, so it only belongs
      in an unfiltered list or one asking for paid. */
   const withSubscriptions = !query.status || query.status === 'paid'

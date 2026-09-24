@@ -11,6 +11,18 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
+/* Money that actually moved. A refund was a real sale once, so it keeps its
+   place in the sequence and stays in the books; everything else is a basket
+   that never became an order. This is what decides which numbering track a
+   record is on and whether the admin list shows it at all. */
+export const SETTLED_ORDER_STATUSES = ['paid', 'refunded'] as const satisfies readonly OrderStatus[]
+
+export type SettledOrderStatus = (typeof SETTLED_ORDER_STATUSES)[number]
+
+export function isSettledStatus(status: OrderStatus): status is SettledOrderStatus {
+  return (SETTLED_ORDER_STATUSES as readonly OrderStatus[]).includes(status)
+}
+
 /* Line items snapshot the title and price at purchase time: editing a print
    later must never rewrite the history of what somebody actually paid. */
 const orderItemSchema = new Schema(
@@ -39,8 +51,9 @@ const addressSchema = new Schema(
 
 const orderSchema = new Schema(
   {
-    /* The reference quoted to the customer, allocated from a shared counter
-       so it reads as a sequence rather than as a hash of the id. */
+    /* The reference quoted to the customer. A record starts on the INC track
+       and is moved onto CV by the webhook when the payment clears, so this
+       changes exactly once in a record's life. */
     number: { type: String, default: null, index: true },
 
     items: { type: [orderItemSchema], required: true, validate: (v: unknown[]) => v.length > 0 },

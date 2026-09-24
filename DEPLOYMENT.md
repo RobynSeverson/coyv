@@ -229,16 +229,24 @@ recorded`.
 ### `backfill-order-numbers`
 
 Order numbers used to be derived from the record's id (`A1B2C3D4`); they are now
-drawn from a shared counter in the `counters` collection and read `CV00001`.
-Orders and subscription charges share one sequence, because the admin list shows
-them in a single table. The serializer falls back to the old derived reference
-for any record without a stored number, so the site works either way — but until
-this has been run, old records keep their old-style reference and the new ones
-next to them look like a different scheme.
+drawn from counters in the `counters` collection. There are **two tracks**:
 
-Run it once against production **after** the API is deployed, so the counter is
-not left behind by writes the new code makes. It is safe to re-run: anything
-already numbered is skipped, and the counter is `$max`-ed rather than bumped.
+- `CV00001` — money that moved. Orders that reached `paid` or `refunded`, plus
+  every recorded subscription charge, share this one sequence, because the admin
+  list shows them in a single table.
+- `INC00001` — baskets that never paid. A row is written at checkout so Stripe
+  has something to hang the payment intent on, and most of them are abandoned;
+  the webhook moves a record from INC to CV when the payment clears.
+
+The serializer falls back to the old derived reference for any record without a
+stored number, so the site works either way.
+
+Run it once against production **after** the API is deployed, so the counters are
+not left behind by writes the new code makes.
+
+**This renumbers every record**, so it must not be run once CV numbers have been
+quoted to customers who could still be holding them. It was safe on 2026-09-23
+because only one record had ever settled.
 
 ```bash
 # from server/, with the credentials block from the deploy skill exported
@@ -250,12 +258,16 @@ export MONGODB_DB_NAME=$(read_var MONGODB_DB_NAME)
 npm run backfill-order-numbers
 ```
 
-Run on 2026-09-23, reporting `24 records (23 orders, 1 subscription charges), 24
-newly numbered, counter at 24`.
+Run twice on 2026-09-23. The first pass numbered everything `CV`, which showed
+the problem plainly: 23 of the 24 records were abandoned baskets, so the one
+real transaction had landed on `CV00007`. The second pass, after the two tracks
+existed, reported `24 records: 1 settled (CV), 23 incomplete (INC)`.
 
-Numbers are spent at checkout, not when payment succeeds, so an abandoned basket
-leaves a gap in the sequence. That is deliberate: a reference already quoted to a
-customer must never be handed to somebody else.
+Incomplete orders are left out of `GET /api/admin/orders` entirely — the route
+only queries `SETTLED_ORDER_STATUSES`, and asking it for `?status=pending` is a
+validation error rather than an empty list. If the checkout ever appears to go
+quiet, that list is not where a failed payment will show up; look in Stripe, or
+query the `orders` collection directly for `INC` records.
 
 ## Environment variables
 
