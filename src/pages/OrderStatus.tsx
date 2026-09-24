@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
+import { analyticsItem, hasTracked, markTracked, trackEcommerce } from "../lib/analytics";
 import { api, type Order } from "../lib/api";
 import { formatMoney } from "../lib/money";
 import "./Checkout.css";
@@ -25,6 +26,30 @@ const COPY: Record<Order["status"], { heading: string; blurb: string }> = {
   canceled: { heading: "payment canceled", blurb: "Nothing was charged." },
   refunded: { heading: "refunded", blurb: "This order has been refunded." },
 };
+
+/* Persisted rather than held in a ref: this page polls and can be reopened
+   from the receipt email days later, either of which would otherwise report
+   the same sale again. */
+function reportPurchase(order: Order) {
+  const key = `purchase:${order.number}`;
+  if (hasTracked(key)) return;
+  markTracked(key);
+
+  trackEcommerce("purchase", {
+    currency: order.currency,
+    valueCents: order.amountTotalCents,
+    items: order.items.map((item) =>
+      analyticsItem({
+        productId: item.productId,
+        title: item.title,
+        priceCents: item.unitAmountCents,
+        quantity: item.quantity,
+        kind: order.type === "subscription" ? "subscription" : "print",
+      }),
+    ),
+    params: { transaction_id: order.number },
+  });
+}
 
 export default function OrderStatus() {
   const [params] = useSearchParams();
@@ -63,6 +88,7 @@ export default function OrderStatus() {
         if (loaded.status === "paid" && !clearedRef.current) {
           clearedRef.current = true;
           clear();
+          reportPurchase(loaded);
         }
 
         const settled = loaded.status !== "pending" && loaded.status !== "processing";

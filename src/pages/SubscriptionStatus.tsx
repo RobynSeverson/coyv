@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useCart } from "../cart/CartContext";
+import { analyticsItem, hasTracked, markTracked, trackEcommerce } from "../lib/analytics";
 import { api, type Subscription } from "../lib/api";
 import { formatMoney } from "../lib/money";
 import "./Checkout.css";
@@ -36,6 +37,32 @@ const COPY: Record<Subscription["status"], { heading: string; blurb: string }> =
   canceled: { heading: "canceled", blurb: "This subscription has been canceled." },
   paused: { heading: "paused", blurb: "This subscription is paused." },
 };
+
+/* Persisted rather than held in a ref: this page polls and can be reopened
+   from the receipt email days later, either of which would otherwise report
+   the same sale again. The basket is cleared for every settled status, but
+   only a live subscription is money taken. */
+function reportPurchase(subscription: Subscription) {
+  if (subscription.status !== "active" && subscription.status !== "trialing") return;
+
+  const key = `purchase:${subscription.id}`;
+  if (hasTracked(key)) return;
+  markTracked(key);
+
+  trackEcommerce("purchase", {
+    currency: subscription.currency,
+    valueCents: subscription.unitAmountCents,
+    items: [
+      analyticsItem({
+        productId: subscription.productId,
+        title: subscription.title,
+        priceCents: subscription.unitAmountCents,
+        kind: "subscription",
+      }),
+    ],
+    params: { transaction_id: subscription.id },
+  });
+}
 
 export default function SubscriptionStatus() {
   const [params] = useSearchParams();
@@ -78,6 +105,7 @@ export default function SubscriptionStatus() {
         if (loaded.status !== "incomplete" && !clearedRef.current) {
           clearedRef.current = true;
           clear();
+          reportPurchase(loaded);
         }
 
         const settled = loaded.status !== "incomplete";

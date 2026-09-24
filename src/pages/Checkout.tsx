@@ -7,11 +7,12 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import type { StripeElementsOptions } from "@stripe/stripe-js";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CART_MAX_PER_ITEM } from "../cart/constants";
-import { useCart } from "../cart/CartContext";
+import { useCart, type CartLine } from "../cart/CartContext";
 import { SubscriberDetailsForm, type SubscriberDetails } from "../components/SubscriberDetails";
+import { analyticsItem, trackEcommerce, type AnalyticsItem } from "../lib/analytics";
 import { api } from "../lib/api";
 import { formatMoney } from "../lib/money";
 import { getStripe } from "../lib/stripe";
@@ -32,6 +33,7 @@ const APPEARANCE: StripeElementsOptions["appearance"] = {
 function PaymentForm({
   amountCents,
   currency,
+  items,
   collectContact,
   returnParams,
   payLabel,
@@ -39,6 +41,7 @@ function PaymentForm({
 }: {
   amountCents: number;
   currency: string;
+  items: AnalyticsItem[];
   collectContact: boolean;
   returnParams: string;
   payLabel: string;
@@ -55,6 +58,11 @@ function PaymentForm({
 
     setSubmitting(true);
     setError(null);
+
+    /* Reported on submit rather than on a completed payment: the point of the
+       event is that a card was entered, and a decline is exactly the drop-off
+       the funnel needs to show. */
+    trackEcommerce("add_payment_info", { currency, valueCents: amountCents, items });
 
     /* confirmPayment either redirects away (for methods that need it) or
        resolves here with the outcome; `if_required` keeps card payments on
@@ -138,6 +146,86 @@ export default function Checkout() {
   /* Re-priced whenever the basket changes; the amount shown always comes back
      from the server rather than from the local subtotal. */
   const signature = cart.lines.map((line) => `${line.productId}:${line.quantity}`).join(",");
+
+  const analyticsItems = useMemo(
+    () =>
+      cart.lines.map((line) =>
+        analyticsItem({
+          productId: line.productId,
+          title: line.title,
+          priceCents: line.priceCents,
+          quantity: line.quantity,
+          kind: line.kind,
+        }),
+      ),
+    [cart.lines],
+  );
+
+  /* Once per visit to the page, not once per basket: editing a line here is
+     still the same checkout, and re-reporting it would count one visitor
+     several times over. */
+  const reportedRef = useRef(false);
+
+  useEffect(() => {
+    if (cart.lines.length === 0 || reportedRef.current) return;
+    reportedRef.current = true;
+
+    trackEcommerce("begin_checkout", {
+      currency: cart.currency,
+      valueCents: cart.subtotalCents,
+      items: analyticsItems,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature]);
+
+  const { setQuantity, remove } = cart;
+
+  /* Dropping a line and counting it down to nothing are the same event to
+     GA4, so both report the quantity that actually left the basket. */
+  const removeLine = useCallback(
+    (line: CartLine) => {
+      remove(line.productId);
+      trackEcommerce("remove_from_cart", {
+        currency: line.currency,
+        valueCents: line.priceCents * line.quantity,
+        items: [
+          analyticsItem({
+            productId: line.productId,
+            title: line.title,
+            priceCents: line.priceCents,
+            quantity: line.quantity,
+            kind: line.kind,
+          }),
+        ],
+      });
+    },
+    [remove],
+  );
+
+  const changeQuantity = useCallback(
+    (line: CartLine, quantity: number) => {
+      setQuantity(line.productId, quantity);
+
+      const capped = Math.min(quantity, CART_MAX_PER_ITEM);
+      const delta = capped - line.quantity;
+      if (delta === 0) return;
+
+      trackEcommerce(delta > 0 ? "add_to_cart" : "remove_from_cart", {
+        currency: line.currency,
+        valueCents: line.priceCents * Math.abs(delta),
+        items: [
+          analyticsItem({
+            productId: line.productId,
+            title: line.title,
+            priceCents: line.priceCents,
+            quantity: Math.abs(delta),
+            kind: line.kind,
+          }),
+        ],
+      });
+    },
+    [setQuantity],
+  );
 
   useEffect(() => {
     /* A basket holding a subscription cannot be a plain PaymentIntent: it
@@ -265,16 +353,14 @@ export default function Checkout() {
                           min={1}
                           max={CART_MAX_PER_ITEM}
                           value={line.quantity}
-                          onChange={(event) =>
-                            cart.setQuantity(line.productId, Number(event.target.value) || 1)
-                          }
+                          onChange={(event) => changeQuantity(line, Number(event.target.value) || 1)}
                         />
                       </>
                     )}
                     <button
                       type="button"
                       className="checkout__remove"
-                      onClick={() => cart.remove(line.productId)}
+                      onClick={() => removeLine(line)}
                       aria-label={`Remove ${line.title}`}
                     >
                       ×
@@ -314,6 +400,7 @@ export default function Checkout() {
               <PaymentForm
                 amountCents={amountCents}
                 currency={currency}
+                items={analyticsItems}
                 /* With a subscription the email and address were needed before
                    Stripe could hold it, so they are already collected. */
                 collectContact={!subscriptionLine}

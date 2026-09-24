@@ -86,6 +86,44 @@ descendants (unlike `filter`), so `.landing__revealInner` carries a
 - Under `480px` the bottom nav drops to a tighter type scale so all four labels
   fit on a phone.
 
+## Analytics
+
+GA4 property `G-Y9F2DXZFDY`, configured in `index.html` with
+`send_page_view: false` — this is a single-page app, so gtag would only ever
+count the first document load. `useRouteAnalytics` sends a `page_view` per
+route instead.
+
+Everything goes through `trackEvent` / `trackEcommerce` in
+`src/lib/analytics.ts`; nothing calls `gtag` directly. Prices cross into GA4's
+major units in exactly one place there, and every ecommerce event carries
+`currency`, because GA4 discards one that does not.
+
+| Event | Fired from |
+| --- | --- |
+| `view_item_list` | `Vault` once the catalogue loads |
+| `view_item` | `Vault` as each card scrolls into view; `Subscribe` on load |
+| `add_to_cart` | `Vault` add button; `Checkout` when a quantity goes up |
+| `remove_from_cart` | `Checkout` remove button, or a quantity going down |
+| `begin_checkout` | `Checkout` on arrival; `Subscribe` on submitting details |
+| `add_payment_info` | Both pay buttons, on submit rather than on success |
+| `purchase` | `OrderStatus` when paid, `SubscriptionStatus` when active |
+| `memory_open`, `memory_download`, `memory_share`, `product_share` | engagement |
+
+`view_item` is tied to an `IntersectionObserver` rather than to page load
+because the vault is one long scrolling page: a print nobody scrolled to was
+never seen. The threshold is low on purpose — a card can be taller than a
+phone viewport, where a higher ratio is unreachable and the view would never
+be counted at all.
+
+`purchase` is guarded by a key in `localStorage`, not a ref. Both post-payment
+pages poll until the Stripe webhook lands, and either can be reopened from the
+receipt email days later; GA4 only de-duplicates a `transaction_id` within one
+session, which a reload the next day is not.
+
+Local development sets `ga-disable-G-Y9F2DXZFDY` on `localhost`, so events
+still queue onto `window.dataLayer` where they can be inspected but never
+reach the production property.
+
 ## Backend
 
 The site is now two pieces: the Vite app in `src/`, and a Node/TypeScript API

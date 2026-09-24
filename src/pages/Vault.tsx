@@ -4,7 +4,7 @@ import { useCart } from "../cart/CartContext";
 import checkoutButton from "../assets/checkoutButton.png";
 import { api, type Product } from "../lib/api";
 import { copyText } from "../lib/clipboard";
-import { trackEvent } from "../lib/analytics";
+import { analyticsItem, trackEcommerce, trackEvent } from "../lib/analytics";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
 import PageHeader from "../components/PageHeader";
@@ -78,6 +78,18 @@ export default function Vault() {
         kind: product.kind,
       });
       setJustAdded(product.id);
+      trackEcommerce("add_to_cart", {
+        currency: product.currency,
+        valueCents: product.priceCents,
+        items: [
+          analyticsItem({
+            productId: product.id,
+            title: product.title,
+            priceCents: product.priceCents,
+            kind: product.kind,
+          }),
+        ],
+      });
     },
     [cart],
   );
@@ -149,12 +161,70 @@ export default function Vault() {
     }
   }, []);
 
+  /* Reported per card as it comes into view rather than as one burst on load:
+     the vault is a single scrolling page, so a print nobody scrolled to was
+     never actually seen. The threshold is deliberately low — a card can be
+     taller than the viewport on a phone, where a higher ratio is unreachable
+     and the view would never be counted at all. */
+  const viewedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!products || products.length === 0 || !grid) return;
+
+    trackEvent("view_item_list", {
+      item_list_id: "vault",
+      item_list_name: "vault",
+      items: products.map((product) =>
+        analyticsItem({
+          productId: product.id,
+          title: product.title,
+          priceCents: product.priceCents,
+          kind: product.kind,
+        }),
+      ),
+    });
+
+    const bySlug = new Map(products.map((product) => [product.slug, product]));
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+
+          const product = bySlug.get(entry.target.getAttribute("data-product") ?? "");
+          if (!product || viewedRef.current.has(product.id)) continue;
+
+          viewedRef.current.add(product.id);
+          observer.unobserve(entry.target);
+
+          trackEcommerce("view_item", {
+            currency: product.currency,
+            valueCents: product.priceCents,
+            items: [
+              analyticsItem({
+                productId: product.id,
+                title: product.title,
+                priceCents: product.priceCents,
+                kind: product.kind,
+              }),
+            ],
+            params: { item_list_id: "vault" },
+          });
+        }
+      },
+      { threshold: 0.25 },
+    );
+
+    grid.querySelectorAll("[data-product]").forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [products]);
+
   /* A deep link lands on the full vault and then travels to the print, so the
      visitor can see what else is on the wall rather than arriving at a card
      with no context. Handled once per slug: re-running on every render would
      drag the page back every time a thumbnail was picked. */
   const linkHandled = useRef<string | null>(null);
-
   useEffect(() => {
     if (!linkedSlug || !products) return;
     if (linkHandled.current === linkedSlug) return;

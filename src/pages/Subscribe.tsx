@@ -3,6 +3,7 @@ import type { StripeElementsOptions } from "@stripe/stripe-js";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { SubscriberDetailsForm, type SubscriberDetails } from "../components/SubscriberDetails";
+import { analyticsItem, trackEcommerce, type AnalyticsItem } from "../lib/analytics";
 import { api, type Product } from "../lib/api";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
@@ -21,7 +22,15 @@ const APPEARANCE: StripeElementsOptions["appearance"] = {
   },
 };
 
-function SubscribeForm({ amountCents, currency }: { amountCents: number; currency: string }) {
+function SubscribeForm({
+  amountCents,
+  currency,
+  items,
+}: {
+  amountCents: number;
+  currency: string;
+  items: AnalyticsItem[];
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [submitting, setSubmitting] = useState(false);
@@ -33,6 +42,11 @@ function SubscribeForm({ amountCents, currency }: { amountCents: number; currenc
 
     setSubmitting(true);
     setError(null);
+
+    /* Reported on submit rather than on a completed payment: the point of the
+       event is that a card was entered, and a decline is exactly the drop-off
+       the funnel needs to show. */
+    trackEcommerce("add_payment_info", { currency, valueCents: amountCents, items });
 
     /* The subscription already exists in Stripe, incomplete. Confirming the
        first invoice's PaymentIntent is what activates it, which is why this
@@ -83,6 +97,17 @@ function SubscribeForm({ amountCents, currency }: { amountCents: number; currenc
   );
 }
 
+function planItems(product: Product): AnalyticsItem[] {
+  return [
+    analyticsItem({
+      productId: product.id,
+      title: product.title,
+      priceCents: product.priceCents,
+      kind: product.kind,
+    }),
+  ];
+}
+
 export default function Subscribe() {
   const { slug } = useParams<{ slug: string }>();
 
@@ -111,6 +136,18 @@ export default function Subscribe() {
         setProduct(loaded);
         setAmountCents(loaded.priceCents);
         setCurrency(loaded.currency);
+        trackEcommerce("view_item", {
+          currency: loaded.currency,
+          valueCents: loaded.priceCents,
+          items: [
+            analyticsItem({
+              productId: loaded.id,
+              title: loaded.title,
+              priceCents: loaded.priceCents,
+              kind: loaded.kind,
+            }),
+          ],
+        });
       })
       .catch((cause: unknown) => {
         if (cancelled) return;
@@ -130,6 +167,15 @@ export default function Subscribe() {
 
     setStarting(true);
     setError(null);
+
+    /* There is no basket on this route — handing over an email and an address
+       is the step that begins the checkout. */
+    trackEcommerce("begin_checkout", {
+      currency: product.currency,
+      valueCents: product.priceCents,
+      items: planItems(product),
+    });
+
     try {
       const result = await api.startSubscription({ productId: product.id, ...details });
       setClientSecret(result.clientSecret);
@@ -206,7 +252,11 @@ export default function Subscribe() {
               stripe={stripePromise}
               options={{ clientSecret, appearance: APPEARANCE }}
             >
-              <SubscribeForm amountCents={amountCents} currency={currency} />
+              <SubscribeForm
+                amountCents={amountCents}
+                currency={currency}
+                items={planItems(product)}
+              />
             </Elements>
           ) : (
             <SubscriberDetailsForm
