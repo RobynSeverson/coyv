@@ -469,11 +469,52 @@ The Skype for Business records GoDaddy's older guides list (`lyncdiscover`,
 `enterpriseregistration` and `enterpriseenrollment` are for Intune device
 management, not mail, and were left out too.
 
-DKIM is still unsigned for Exchange. Turning it on needs two
-`selector1/selector2._domainkey` CNAMEs pointing into the tenant's
-`<tenant>.onmicrosoft.com`, which can only be read out of the Microsoft 365
-admin centre. Mail still passes DMARC in the meantime, because `_dmarc` is
-`p=none` and SPF aligns on its own.
+`email.secureserver.net` is listed in some GoDaddy guides and looks like a mail
+record, but it is not one: it answers HTTP `302` to
+`sso.secureserver.net/login?app=email`, so an `email.coyvcastle.com` CNAME only
+provides a shortcut to the webmail sign-in page. It has **no effect on
+deliverability**, and adding it will not stop mail landing in junk.
+
+### DKIM for Exchange
+
+The tenant is `NETORG21158524.onmicrosoft.com` — GoDaddy provisions Microsoft
+365 tenants under a `NETORG` prefix, so the name cannot be guessed from the
+domain. It is not in the Route 53 zone or the `MS=` verification token. Recover
+it from Microsoft's public federation endpoint rather than hunting the admin
+centre:
+
+```bash
+# returns every domain in the tenant, including the .onmicrosoft.com one
+curl -s -X POST https://autodiscover-s.outlook.com/autodiscover/autodiscover.svc \
+  -H 'Content-Type: text/xml; charset=utf-8' \
+  -H 'SOAPAction: "http://schemas.microsoft.com/exchange/2010/Autodiscover/Autodiscover/GetFederationInformation"' \
+  --data-binary @soap.xml | tr '<' '\n' | grep -i onmicrosoft
+```
+
+Two selector CNAMEs were added on 2026-09-24. The names follow a fixed pattern
+— the selector, then the domain with its dots turned into hyphens:
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `selector1._domainkey.coyvcastle.com` | `CNAME` | `selector1-coyvcastle-com._domainkey.NETORG21158524.onmicrosoft.com` |
+| `selector2._domainkey.coyvcastle.com` | `CNAME` | `selector2-coyvcastle-com._domainkey.NETORG21158524.onmicrosoft.com` |
+
+These do not collide with Brevo's `brevo1`/`brevo2` selectors, and adding them
+cannot disturb Brevo: a receiver only looks up the selector named in the
+signature it is checking.
+
+**The CNAMEs alone do not sign anything.** Exchange only starts signing once
+DKIM is switched on for the domain in the Defender portal, at *Email &
+collaboration → Policies & rules → Threat policies → Email authentication
+settings → DKIM*. The toggle validates the CNAMEs, which is why they have to
+exist first. Until it is flipped, Exchange signs with the tenant's
+`onmicrosoft.com` key, which does not align with `coyvcastle.com`, so DMARC
+passes on SPF alone and receivers weigh the message far more weakly — which is
+what puts outbound mail in junk. Brevo's mail is unaffected; it has always been
+signed.
+
+Confirm signing is live by checking `Authentication-Results` on a received
+message: `dkim=pass` with `header.d=coyvcastle.com`, not `header.d=*.onmicrosoft.com`.
 
 `robots.txt` and `sitemap.xml` are static files in `public/`, so they ship with
 the frontend. The sitemap is hand maintained and lists only the four public
