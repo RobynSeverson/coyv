@@ -319,10 +319,6 @@
 .lightbox {
   --hud-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
     monospace;
-  /* A cool slate rather than black, for the journal entry panel. It sits over
-     the translucent overlay, so the fill is kept light enough to read as glass
-     over the artwork rather than as a solid chip laid on top of it. */
-  --hud-panel: rgba(104, 124, 146, 0.4);
 }
 
 .lightbox__bars,
@@ -485,12 +481,20 @@
   background: #939393;
 }
 
+.lightbox__nav {
+  background: rgba(147, 147, 147, 0.55);
+}
+
 @media (hover: hover) and (pointer: fine) {
   /* A lighter shade of the fill rather than a translucent wash, which over an
-     opaque button reads as it dropping out rather than lifting. */
-  .lightbox__close:hover,
-  .lightbox__nav:hover {
+     opaque button reads as it dropping out rather than lifting. The arrows
+     keep their own transparency and only lighten. */
+  .lightbox__close:hover {
     background: #a5a5a5;
+  }
+
+  .lightbox__nav:hover {
+    background: rgba(175, 175, 175, 0.72);
   }
 }
 
