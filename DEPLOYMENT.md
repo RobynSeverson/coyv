@@ -409,9 +409,13 @@ covered outright, and an order confirmation that never arrives is worse than one
 that arrives marked suspicious. Tighten it only once both senders are known good.
 
 Two other limits to keep in mind: SPF allows at most **ten** DNS lookups across
-the whole chain (`spf.brevo.com` is one, `secureserver.net` is two because it
-chains to `spf-0.secureserver.net`), and each value must stay under 255
-characters.
+the whole chain, and each value must stay under 255 characters. The record costs
+four of the ten: `spf.brevo.com` is one, and `secureserver.net` is three,
+because it chains to `spf-0.secureserver.net`, which in turn chains to
+`spf.protection.outlook.com`. That last hop is why **no separate Microsoft
+include is needed** — `include:secureserver.net` already authorises Exchange
+Online. Adding `include:spf.protection.outlook.com` alongside it would be
+redundant and spend a lookup for nothing.
 
 Check the merge actually landed as a single record before walking away:
 
@@ -419,9 +423,48 @@ Check the merge actually landed as a single record before walking away:
 dig +short TXT coyvcastle.com @8.8.8.8 | grep -c 'v=spf1'   # must print 1
 ```
 
-SPF only authorises **outgoing** mail. The domain has no `MX` records, so
-nothing can receive mail at `@coyvcastle.com` yet; Exchange will need those, and
-usually an `autodiscover` CNAME, before inbound works.
+SPF only authorises **outgoing** mail. Inbound is a separate set of records,
+added on 2026-09-24:
+
+| Name | Type | Value |
+| --- | --- | --- |
+| `coyvcastle.com` | `MX` | `0 coyvcastle-com.mail.protection.outlook.com` |
+| `autodiscover.coyvcastle.com` | `CNAME` | `autodiscover.outlook.com` |
+
+The MX host follows Microsoft's fixed pattern — the domain with its dots turned
+into hyphens, then `.mail.protection.outlook.com` — so it can be derived rather
+than looked up, but confirm it resolves before writing it, since a typo produces
+a name that simply does not exist and mail bounces silently.
+
+Adding these is safe to do at any time: there were no `MX` records before, so
+nothing could receive mail, and `MX` is inbound only and cannot disturb Brevo's
+outbound sending.
+
+**DNS being right does not mean mail works.** The records only point at the
+tenant; the mailbox has to exist inside it. Check the endpoint itself rather
+than trusting `dig`, by asking Exchange whether it will accept the address:
+
+```bash
+# 250 = the mailbox exists; 550 5.4.1 = DNS is fine but the tenant has no such mailbox
+printf 'EHLO probe.example.com\r\nMAIL FROM:<probe@example.com>\r\nRCPT TO:<contact@coyvcastle.com>\r\nQUIT\r\n' \
+  | nc coyvcastle-com.mail.protection.outlook.com 25
+```
+
+As of 2026-09-24 this returns `550 5.4.1 Recipient address rejected`, so
+`contact@coyvcastle.com` still has to be created in the Microsoft 365 admin
+centre. That address is the `mailto:` link at the bottom of the vault page,
+so until the mailbox exists anyone using it gets a bounce.
+
+The Skype for Business records GoDaddy's older guides list (`lyncdiscover`,
+`msoid`, `_sip` and `_sipfederationtls` SRV) are deprecated and were left out.
+`enterpriseregistration` and `enterpriseenrollment` are for Intune device
+management, not mail, and were left out too.
+
+DKIM is still unsigned for Exchange. Turning it on needs two
+`selector1/selector2._domainkey` CNAMEs pointing into the tenant's
+`<tenant>.onmicrosoft.com`, which can only be read out of the Microsoft 365
+admin centre. Mail still passes DMARC in the meantime, because `_dmarc` is
+`p=none` and SPF aligns on its own.
 
 `robots.txt` and `sitemap.xml` are static files in `public/`, so they ship with
 the frontend. The sitemap is hand maintained and lists only the four public
