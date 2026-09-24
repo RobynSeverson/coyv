@@ -1,5 +1,5 @@
 import type { FulfillmentDocument } from '../../models/Fulfillment.ts'
-import type { OrderDocument } from '../../models/Order.ts'
+import { OrderModel, type OrderDocument } from '../../models/Order.ts'
 import type { SubscriptionDocument } from '../../models/Subscription.ts'
 import { noreplySender, sendEmail } from './brevo.ts'
 import {
@@ -66,7 +66,13 @@ export async function sendSubscriptionCanceled(
 export async function sendShippedNotice(fulfillment: FulfillmentDocument): Promise<void> {
   if (!fulfillment.email) return
 
-  const template = shippedNotice(fulfillment)
+  /* The number lives on the order, and a fulfillment only holds its id, so it
+     is read here rather than derived inside the template. */
+  const order = fulfillment.order
+    ? await OrderModel.findById(fulfillment.order).select('number').lean().exec()
+    : null
+
+  const template = shippedNotice(fulfillment, order?.number ?? null)
   await sendEmail({
     kind: 'shipped',
     dedupeKey: `shipped:${String(fulfillment._id)}`,

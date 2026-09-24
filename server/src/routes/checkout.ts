@@ -3,6 +3,7 @@ import mongoose from 'mongoose'
 import { z } from 'zod'
 import { env } from '../env.ts'
 import { HttpError } from '../lib/httpError.ts'
+import { nextOrderNumber } from '../lib/orderNumber.ts'
 import { serializeOrder, serializeSubscription } from '../lib/serialize.ts'
 import { OrderModel } from '../models/Order.ts'
 import { ProductModel } from '../models/Product.ts'
@@ -138,6 +139,7 @@ checkoutRouter.post('/intent', async (req, res) => {
 
   await OrderModel.create({
     _id: orderId,
+    number: await nextOrderNumber(),
     items: lineItems,
     amountTotalCents,
     currency: env.CURRENCY,
@@ -341,6 +343,7 @@ checkoutRouter.post('/subscription', async (req, res) => {
 
     await OrderModel.create({
       _id: orderId,
+      number: await nextOrderNumber(),
       items: cart.lineItems,
       amountTotalCents: cart.amountTotalCents,
       currency: env.CURRENCY,

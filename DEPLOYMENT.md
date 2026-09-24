@@ -226,6 +226,37 @@ npm run backfill-subscription-payments
 Run on 2026-10-01, reporting `1 subscriptions, 1 invoices seen, 1 newly
 recorded`.
 
+### `backfill-order-numbers`
+
+Order numbers used to be derived from the record's id (`A1B2C3D4`); they are now
+drawn from a shared counter in the `counters` collection and read `CV00001`.
+Orders and subscription charges share one sequence, because the admin list shows
+them in a single table. The serializer falls back to the old derived reference
+for any record without a stored number, so the site works either way — but until
+this has been run, old records keep their old-style reference and the new ones
+next to them look like a different scheme.
+
+Run it once against production **after** the API is deployed, so the counter is
+not left behind by writes the new code makes. It is safe to re-run: anything
+already numbered is skipped, and the counter is `$max`-ed rather than bumped.
+
+```bash
+# from server/, with the credentials block from the deploy skill exported
+CFG=$(aws lambda get-function-configuration --function-name coyv-api \
+  --query 'Environment.Variables' --output json)
+read_var() { echo "$CFG" | python3 -c "import json,sys;print(json.load(sys.stdin)['$1'])"; }
+export MONGODB_URI=$(read_var MONGODB_URI)
+export MONGODB_DB_NAME=$(read_var MONGODB_DB_NAME)
+npm run backfill-order-numbers
+```
+
+Run on 2026-09-23, reporting `24 records (23 orders, 1 subscription charges), 24
+newly numbered, counter at 24`.
+
+Numbers are spent at checkout, not when payment succeeds, so an abandoned basket
+leaves a gap in the sequence. That is deliberate: a reference already quoted to a
+customer must never be handed to somebody else.
+
 ## Environment variables
 
 `update-function-configuration --environment` **replaces the entire variable

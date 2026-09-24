@@ -39,6 +39,10 @@ const addressSchema = new Schema(
 
 const orderSchema = new Schema(
   {
+    /* The reference quoted to the customer, allocated from a shared counter
+       so it reads as a sequence rather than as a hash of the id. */
+    number: { type: String, default: null, index: true },
+
     items: { type: [orderItemSchema], required: true, validate: (v: unknown[]) => v.length > 0 },
     amountTotalCents: { type: Number, required: true, min: 0 },
     currency: { type: String, required: true, lowercase: true },

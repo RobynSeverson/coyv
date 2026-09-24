@@ -9,6 +9,10 @@ import { Schema, model, type InferSchemaType, type HydratedDocument } from 'mong
    the product later must not rewrite what was taken in March. */
 const subscriptionPaymentSchema = new Schema(
   {
+    /* Shares the orders sequence: both are a transaction the studio and the
+       customer may have to talk about by name. */
+    number: { type: String, default: null, index: true },
+
     subscription: { type: Schema.Types.ObjectId, ref: 'Subscription', default: null },
 
     /* The idempotency key. A replayed invoice.paid, or a backfill racing one,

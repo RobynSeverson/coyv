@@ -36,6 +36,7 @@ const shippingAddress = {
    live email would rather than a reference derived from the word "preview". */
 const sampleOrder = {
   _id: '68cf2a1b9d4e7f0012ab34cd',
+  number: 'CV00042',
   email: to,
   shippingName: 'Wren Ashby',
   shippingAddress,
@@ -110,7 +111,7 @@ const previews: Preview[] = [
     template: subscriptionCanceled(canceledImmediately),
   },
   { name: 'shipped (with tracking)', template: shippedNotice(sampleSubscriptionFulfillment) },
-  { name: 'shipped (no tracking)', template: shippedNotice(sampleOrderFulfillment) },
+  { name: 'shipped (no tracking)', template: shippedNotice(sampleOrderFulfillment, 'CV00042') },
   {
     name: 'manage-link',
     template: manageLink(`${process.env.PUBLIC_SITE_URL ?? ''}/manage-subscription?token=preview-token`),

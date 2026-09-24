@@ -137,7 +137,7 @@ export function orderConfirmation(order: OrderDocument): Template {
   const address = addressLines(order)
   /* The same number the admin orders list shows, so a customer quoting it can
      be found without them having to produce a Mongo id. */
-  const number = referenceNumber(order._id)
+  const number = order.number ?? referenceNumber(order._id)
 
   const html = layout(
     'thank you',
@@ -254,12 +254,16 @@ ${resume}
   return { subject: `${subscription.title} — subscription cancelled`, html, text }
 }
 
-export function shippedNotice(fulfillment: FulfillmentDocument): Template {
+export function shippedNotice(
+  fulfillment: FulfillmentDocument,
+  orderNumber: string | null = null,
+): Template {
   const tracking = fulfillment.trackingNumber?.trim() ?? ''
   /* A month of a subscription is identified by its period, a one-off by the
      number its confirmation quoted — so each carries the reference the
-     recipient already has. */
-  const number = fulfillment.order ? referenceNumber(fulfillment.order) : ''
+     recipient already has. The caller looks the number up; the derived
+     reference is the fallback for orders written before the sequence. */
+  const number = fulfillment.order ? (orderNumber ?? referenceNumber(fulfillment.order)) : ''
 
   const html = layout(
     'it is in the post',

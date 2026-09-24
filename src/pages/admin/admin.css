@@ -155,7 +155,8 @@
 }
 
 .admin__field input,
-.admin__field textarea {
+.admin__field textarea,
+.admin__field select {
   padding: 0.5rem 0.6rem;
   border: 1px solid rgba(18, 24, 26, 0.2);
   border-radius: 3px;
@@ -308,6 +309,33 @@
 .admin__badge--subscription {
   background: rgba(52, 86, 140, 0.14);
   color: #2b4a78;
+}
+
+.admin__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.admin__filter {
+  min-width: 9rem;
+}
+
+.admin__filter--search {
+  flex: 1 1 16rem;
+}
+
+.admin__filterCount {
+  margin: 0 0 0.55rem auto;
+}
+
+@media (max-width: 768px) {
+  .admin__filterCount {
+    margin: 0;
+    width: 100%;
+  }
 }
 
 .admin__earningsHead {

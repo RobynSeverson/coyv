@@ -1,4 +1,5 @@
 import type Stripe from 'stripe'
+import { nextOrderNumber } from '../lib/orderNumber.ts'
 import { SubscriptionPaymentModel } from '../models/SubscriptionPayment.ts'
 import type { SubscriptionDocument } from '../models/Subscription.ts'
 
@@ -50,10 +51,17 @@ export async function recordSubscriptionPayment(
   const paidAt =
     seconds(invoice.status_transitions?.paid_at) ?? seconds(invoice.created) ?? new Date()
 
+  /* Checked before a number is drawn so a replayed webhook does not burn one
+     on an insert that will not happen. The upsert below is still what makes
+     the write itself safe. */
+  const already = await SubscriptionPaymentModel.exists({ stripeInvoiceId: invoiceId }).exec()
+  if (already) return false
+
   const result = await SubscriptionPaymentModel.updateOne(
     { stripeInvoiceId: invoiceId },
     {
       $setOnInsert: {
+        number: await nextOrderNumber(),
         stripeInvoiceId: invoiceId,
         stripeSubscriptionId,
         subscription: subscription?._id ?? null,

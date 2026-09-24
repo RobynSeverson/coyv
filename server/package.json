@@ -15,6 +15,7 @@
     "import-memories": "node --env-file-if-exists=.env src/scripts/importMemories.ts",
     "backfill-display-images": "node --env-file-if-exists=.env src/scripts/backfillDisplayImages.ts",
     "backfill-subscription-payments": "node --env-file-if-exists=.env src/scripts/backfillSubscriptionPayments.ts",
+    "backfill-order-numbers": "node --env-file-if-exists=.env src/scripts/backfillOrderNumbers.ts",
     "send-email-previews": "node --env-file-if-exists=.env src/scripts/sendEmailPreviews.ts"
   },
   "dependencies": {
