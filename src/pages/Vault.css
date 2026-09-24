@@ -262,12 +262,15 @@
      flourishes, so there is nothing left to pad. */
   padding: 0;
   border-style: solid;
-  /* Kept to the 75:50 and 68:50 of the slices below, so each corner is drawn
-     into a box of its own proportions and the flourishes are not stretched. */
-  border-width: 24px 33px 24px 36px;
+  /* Half the slice sizes below, so each corner is drawn into a box of its own
+     proportions and the end caps are not stretched. */
+  border-width: 34px 30px 30px 27px;
   border-color: transparent;
   border-image-source: url('../assets/cartBarFrame.png');
-  border-image-slice: 50 68 50 75;
+  /* The end caps carry a star near the top and another near the bottom, so the
+     slices have to reach past both. What is left between them is the plain
+     vertical stroke, which is the only part safe to stretch. */
+  border-image-slice: 68 59 59 53;
   border-image-repeat: stretch;
   font-size: 0.82rem;
   letter-spacing: 0.12em;
@@ -278,7 +281,7 @@
 @media (max-width: 768px) {
   .vault__cartBar {
     gap: 0.6rem;
-    border-width: 16px 22px 16px 24px;
+    border-width: 22px 19px 19px 17px;
   }
 }
 
@@ -364,8 +367,18 @@
 /* A subscription tile is priced per month and is never sold out, so it gets
    its own flag rather than reusing the stock one. */
 .vault__flag--plan {
-  background: #121a1c;
+  background: rgba(128, 128, 125, 0.36);
   color: #f7f9f6;
+  /* Overrides the pill radius on .vault__flag — a soft bevel rather than a
+     capsule, so it reads as a plate laid on the artwork. */
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  /* Drop shadow to lift it off the artwork, inset highlight along the top edge
+     for the raised face. The fill is nearly clear, so the shadow and rim are
+     doing the work of holding the shape against a pale image. */
+  box-shadow:
+    0 2px 5px rgba(18, 24, 26, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .vault__interval {
