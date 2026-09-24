@@ -124,6 +124,35 @@ Local development sets `ga-disable-G-Y9F2DXZFDY` on `localhost`, so events
 still queue onto `window.dataLayer` where they can be inspected but never
 reach the production property.
 
+### Funnels
+
+Four funnel explorations live under **Explore** in the GA property. GA4 has
+no API for explorations, so they exist only in the UI and have to be rebuilt
+there by hand if lost.
+
+| Exploration | Steps |
+| --- | --- |
+| Purchase path (by page) | `session_start` → page `/vault` → page `/checkout` or `/subscribe` → page `/order` |
+| Purchase funnel (ecommerce) | `view_item` → `add_to_cart` → `begin_checkout` → `add_payment_info` → `purchase` |
+| Subscription funnel | page `/subscribe` → `begin_checkout` → `add_payment_info` → `purchase` |
+| Memories engagement | page `/memories` → `memory_open` → `memory_download` or `memory_share` |
+
+"Page" steps use the *Page path and screen class* dimension with `contains`.
+That is safe only because admin routes never send a `page_view`; otherwise
+`/order` would also match `/admin/orders`, and `/subscribe` would match
+`/admin/subscribers`.
+
+The page-path funnel works on history from before the ecommerce events
+existed; the ecommerce one is the more precise replacement as data accrues.
+The subscription funnel only covers the direct `/subscribe/:slug` route — a
+subscription bought from the basket goes through `/checkout` and appears in the
+ecommerce funnel instead.
+
+Two things that look broken but are not: a freshly sent event does not appear
+in the exploration's event picker for up to a day, so reference it by name
+with **Create event: "…"**; and the default *Last 28 days* range ends
+yesterday, so an event first sent today shows "No data" until tomorrow.
+
 ## Backend
 
 The site is now two pieces: the Vite app in `src/`, and a Node/TypeScript API
