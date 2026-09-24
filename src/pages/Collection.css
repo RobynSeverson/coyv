@@ -139,11 +139,15 @@
   display: grid;
   place-items: center;
   padding: clamp(1rem, 4vw, 3rem);
+  /* Shades of #fbfdee rather than a slate. The alphas are unchanged, so the
+     overlay still reads as glass over the artwork; only the cast is warmer.
+     Three tones rather than one flat fill, so the backdrop keeps some depth
+     across the screen. */
   background: linear-gradient(
     155deg,
-    rgba(96, 116, 138, 0.3),
-    rgba(52, 68, 86, 0.38) 55%,
-    rgba(78, 98, 120, 0.33)
+    rgba(251, 253, 238, 0.3),
+    rgba(226, 229, 205, 0.38) 55%,
+    rgba(240, 243, 223, 0.33)
   );
   -webkit-backdrop-filter: blur(8px);
   cursor: zoom-out;
@@ -260,7 +264,7 @@
   padding: 0.4rem 0.75rem;
   border: 1px solid rgba(243, 247, 244, 0.35);
   color: #f3f7f4;
-  background: var(--hud-panel-soft);
+  background: #939393;
   font-family: var(--hud-font);
   font-size: 0.72rem;
   letter-spacing: 0.18em;
@@ -283,8 +287,11 @@
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* A lighter shade of the button's own fill. The wash that used to sit here
+     was translucent, which now reads as the button dropping out rather than
+     lifting. */
   .lightbox__download:hover {
-    background: rgba(255, 255, 255, 0.26);
+    background: #a5a5a5;
   }
 }
 
@@ -373,7 +380,7 @@
   border: 1px solid rgba(243, 247, 244, 0.35);
   border-bottom: 0;
   color: #f3f7f4;
-  background: var(--hud-panel);
+  background: #d6d6d4;
   /* The tag is short and fixed; the slug is what gives way if the pair runs
      out of room, which only happens on the narrowest screens. */
   min-width: 0;
@@ -388,7 +395,7 @@
   border-bottom: 0;
   border-left: 0;
   color: rgba(243, 247, 244, 0.75);
-  background: var(--hud-panel-soft);
+  background: #e5e5e1;
   /* Loose enough to read as a label, but not the wide kanji spacing this
      started with — the Latin and Cyrillic tags are whole words. */
   letter-spacing: 0.16em;
@@ -445,7 +452,7 @@
   padding: 0.4rem 0.9rem;
   border: 1px solid rgba(243, 247, 244, 0.35);
   color: #f3f7f4;
-  background: var(--hud-panel);
+  background: #939393;
   font-family: var(--hud-font);
   font-size: 0.74rem;
   letter-spacing: 0.08em;
@@ -479,11 +486,19 @@
   background: var(--hud-panel);
 }
 
+.lightbox__close {
+  background: #939393;
+}
+
 @media (hover: hover) and (pointer: fine) {
-  .lightbox__close:hover,
-  .lightbox__nav:hover,
-  .lightbox__download:hover {
+  .lightbox__nav:hover {
     background: rgba(243, 247, 244, 0.2);
+  }
+
+  /* A lighter shade of the fill rather than the translucent wash the nav
+     arrows use, which over an opaque button reads as it dropping out. */
+  .lightbox__close:hover {
+    background: #a5a5a5;
   }
 }
 
