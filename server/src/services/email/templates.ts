@@ -47,11 +47,14 @@ function manageFooterText(): string {
   ].join('\n')
 }
 
-/* Single quotes around the font name, not double: this string is interpolated
+/* The stack the site itself is set in, so mail reads as the same hand as the
+   vault. Single quotes around the font name, not double: this is interpolated
    into a double-quoted style attribute, and a double quote there closes the
    attribute early and drops every declaration after it. */
+const FONT_STACK = "'Helvetica Neue',Helvetica,Arial,sans-serif"
+
 const WRAPPER_STYLE =
-  "font-family:Georgia,'Times New Roman',serif;color:#0d0c10;line-height:1.6;" +
+  `font-family:${FONT_STACK};color:#0d0c10;line-height:1.6;` +
   /* Wide side margins: the paper is drawn with a ruled line down either edge,
      and text set closer than this runs over them. */
   'padding:30px 58px 30px 74px'
@@ -293,7 +296,7 @@ export function manageLink(link: string, minutes = 20): Template {
   const html = layout(
     'manage your subscription',
     `<p>Here is your sign-in link. It works once and expires in ${minutes} minutes.</p>
-<p style="margin:24px 0"><a href="${link}" style="background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;border-radius:2px;display:inline-block">manage my subscription</a></p>
+<p style="margin:24px 0"><a href="${link}" style="font-family:${FONT_STACK};background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;border-radius:2px;display:inline-block">manage my subscription</a></p>
 <p style="font-size:13px;color:#55505c">From there you can update your postal address or cancel. If you did not ask for this, you can ignore it — nothing has changed.</p>`,
   )
 
@@ -339,7 +342,7 @@ export function adminDigest(input: DigestInput): Template {
 
   const button =
     `<p style="margin:24px 0"><a href="${url}" ` +
-    'style="background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;' +
+    `style="font-family:${FONT_STACK};background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;` +
     'border-radius:2px;display:inline-block">open the fulfillment queue</a></p>'
 
   const rows = entries
