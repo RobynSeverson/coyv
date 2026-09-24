@@ -246,17 +246,40 @@
   opacity: 0.55;
 }
 
+/* The drawn frame replaces a plain border, so it is border-image rather than a
+   background: the bar changes width with the viewport, and a stretched
+   background would squash the corner flourishes on a phone. Sliced so the
+   corners are never scaled, the rails stretch along the top and bottom, and the
+   end strokes stretch vertically. The middle of the artwork is empty, which is
+   why nothing shows through behind the text. */
 .vault__cartBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-bottom: clamp(1.25rem, 4vw, 2rem);
-  padding: 0.7rem 1.1rem;
-  border: 1px solid rgba(18, 24, 26, 0.15);
-  border-radius: 999px;
+  /* The border is the padding here: it is what holds the text off the
+     flourishes, so there is nothing left to pad. */
+  padding: 0;
+  border-style: solid;
+  /* Kept to the 75:50 and 68:50 of the slices below, so each corner is drawn
+     into a box of its own proportions and the flourishes are not stretched. */
+  border-width: 24px 33px 24px 36px;
+  border-color: transparent;
+  border-image-source: url('../assets/cartBarFrame.png');
+  border-image-slice: 50 68 50 75;
+  border-image-repeat: stretch;
   font-size: 0.82rem;
   letter-spacing: 0.12em;
+}
+
+/* A phone has no width to spare: at the desktop border the count and the
+   checkout mark no longer fit on one line together. The same ratios, smaller. */
+@media (max-width: 768px) {
+  .vault__cartBar {
+    gap: 0.6rem;
+    border-width: 16px 22px 16px 24px;
+  }
 }
 
 /* Drawn lettering rather than a pill, the way the nav marks are: no background
