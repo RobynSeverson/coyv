@@ -365,6 +365,48 @@ aws route53 list-resource-record-sets --hosted-zone-id Z083055312X6V0JWHT7FQ \
 Verified on 2026-09-20. **Do not remove the `google-site-verification=` value**
 — Google re-checks it, and losing it loses the property.
 
+### The apex TXT record
+
+Four values live at the apex, and each one breaks something different if it is
+dropped by a careless write:
+
+| Value | Purpose |
+| --- | --- |
+| `google-site-verification=…` | Search Console property |
+| `brevo-code:…` | Brevo sender verification |
+| `MS=ms32537115` | Microsoft 365 domain verification |
+| `v=spf1 …` | Authorises everything allowed to send as the domain |
+
+**There must be exactly one `v=spf1` value, ever.** A domain with two SPF
+records is a PermError, and receivers treat that as SPF being broken for *all*
+senders — so adding a second one to let a new provider send stops the existing
+provider's mail instead. A new sender is added by editing the single record:
+
+```
+v=spf1 include:spf.brevo.com include:secureserver.net ~all
+```
+
+`secureserver.net` was added on 2026-09-24 for Exchange, alongside Brevo, which
+sends every transactional email the site produces. The ending stays `~all` and
+not `-all` while Exchange is being set up: a hard fail rejects anything not
+covered outright, and an order confirmation that never arrives is worse than one
+that arrives marked suspicious. Tighten it only once both senders are known good.
+
+Two other limits to keep in mind: SPF allows at most **ten** DNS lookups across
+the whole chain (`spf.brevo.com` is one, `secureserver.net` is two because it
+chains to `spf-0.secureserver.net`), and each value must stay under 255
+characters.
+
+Check the merge actually landed as a single record before walking away:
+
+```bash
+dig +short TXT coyvcastle.com @8.8.8.8 | grep -c 'v=spf1'   # must print 1
+```
+
+SPF only authorises **outgoing** mail. The domain has no `MX` records, so
+nothing can receive mail at `@coyvcastle.com` yet; Exchange will need those, and
+usually an `autodiscover` CNAME, before inbound works.
+
 `robots.txt` and `sitemap.xml` are static files in `public/`, so they ship with
 the frontend. The sitemap is hand maintained and lists only the four public
 pages; memory deep links are left out on purpose, because they open the same
