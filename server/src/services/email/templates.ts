@@ -61,12 +61,14 @@ const FONT_STACK = "'Helvetica Neue',Helvetica,Arial,sans-serif"
    an unstyled <a> blue, which is the one thing that would break the effect. */
 const INK = '#55505c'
 
-/* The one thing left in near-black, and the two buttons were carrying
-   identical copies of it. A button is a target rather than text: greying it to
-   match would leave the mail with nothing to aim at. */
+/* A stone grey rather than the ink: the buttons are the only filled shape in
+   the mail, so a near-black slab read as a hole punched in the paper. Paper on
+   this grey is 3.7:1, which is why the label is bold — it would be thin at the
+   wrapper's normal weight. Both buttons were carrying identical copies of the
+   style, hence the constant. */
 const BUTTON_STYLE =
-  `font-family:${FONT_STACK};background:#0d0c10;color:#faf7f2;padding:12px 22px;` +
-  'text-decoration:none;border-radius:2px;display:inline-block'
+  `font-family:${FONT_STACK};background:#80807d;color:#faf7f2;padding:12px 22px;` +
+  'text-decoration:none;border-radius:2px;display:inline-block;font-weight:600'
 
 const WRAPPER_STYLE =
   `font-family:${FONT_STACK};color:${INK};line-height:1.6;` +
