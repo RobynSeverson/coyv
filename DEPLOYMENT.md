@@ -263,6 +263,15 @@ the problem plainly: 23 of the 24 records were abandoned baskets, so the one
 real transaction had landed on `CV00007`. The second pass, after the two tracks
 existed, reported `24 records: 1 settled (CV), 23 incomplete (INC)`.
 
+The CV counter has to be corrected by hand after a scheme change. The script
+`$max`-es rather than sets, so that a checkout which happened mid-run keeps its
+number — but that also carries a stale value across. After the second pass the
+counter still read 24 from the first, so the next real sale would have been
+`CV00025` and looked like the twenty-fifth. It was set back to 1 to match the
+single CV number actually in use. Safe here only because `CV00002`–`CV00024` had
+never been quoted to anybody; if they had, the gap is the correct outcome and
+the counter must be left alone.
+
 Incomplete orders are left out of `GET /api/admin/orders` entirely — the route
 only queries `SETTLED_ORDER_STATUSES`, and asking it for `?status=pending` is a
 validation error rather than an empty list. If the checkout ever appears to go
