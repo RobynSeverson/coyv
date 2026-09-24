@@ -78,7 +78,7 @@ const WRAPPER_STYLE =
    through a proxy that caches them by URL and ignores both the cache headers
    and a CloudFront invalidation, so replacing the file alone leaves everyone
    who has already been sent an email looking at the old artwork. */
-const ART_VERSION = 2
+const ART_VERSION = 3
 
 /* Shipped with the site rather than held in the assets bucket: mail clients
    fetch it unauthenticated, and the assets bucket only ever hands out signed

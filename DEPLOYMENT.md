@@ -94,6 +94,22 @@ one — keeps showing the artwork the proxy fetched first. The templates carry a
 `server/src/services/email/templates.ts` whenever a piece is redrawn, or spend
 an evening convinced the upload silently failed.
 
+**An art change deploys frontend first — the opposite of everything else.** The
+usual order is API first, but `?v=N` is only a cache-buster on a fixed
+filename, so the new number does not point at a new object. Deploy the API
+first and any mail it sends in the gap asks Gmail's proxy for `?v=3` while S3
+is still holding the old drawing — which the proxy then caches under the new
+URL, permanently. There is no fix for that except bumping the version again.
+Upload the artwork, confirm it is actually being served, and only then deploy
+the API:
+
+```bash
+curl -s "https://coyvcastle.com/email-footer.jpg?v=3" -o /tmp/f.jpg
+cmp /tmp/f.jpg public/email-footer.jpg && echo "serving the new art"
+```
+
+Done that way on 2026-09-24 for the footer drawing, `ART_VERSION` 2 → 3.
+
 `VITE_*` variables are inlined at build time, not read at runtime. Changing
 `VITE_STRIPE_PUBLISHABLE_KEY` or `VITE_ADMIN_PATH` means a fresh `npm run build`
 and re-upload; setting them on the Lambda does nothing.
