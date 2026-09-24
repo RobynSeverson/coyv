@@ -35,7 +35,7 @@ export function manageSubscriptionUrl(): string {
    rather than buried in a support address. */
 function manageFooterHtml(): string {
   const url = manageSubscriptionUrl()
-  return `<p style="margin-top:22px;font-size:13px;color:#55505c">Need to change your address or cancel? <a href="${url}" style="color:#55505c">Manage your subscription</a> — we will email you a sign-in link.</p>`
+  return `<p style="margin-top:22px;font-size:13px;color:${INK}">Need to change your address or cancel? <a href="${url}" style="color:${INK}">Manage your subscription</a> — we will email you a sign-in link.</p>`
 }
 
 function manageFooterText(): string {
@@ -53,8 +53,23 @@ function manageFooterText(): string {
    attribute early and drops every declaration after it. */
 const FONT_STACK = "'Helvetica Neue',Helvetica,Arial,sans-serif"
 
+/* The grey the signature was already set in, now the colour of every word in
+   the mail. Everything reads at one weight against the paper rather than the
+   body being noticeably darker than the notes under it.
+
+   Links carry it explicitly wherever they appear: Gmail and Outlook recolour
+   an unstyled <a> blue, which is the one thing that would break the effect. */
+const INK = '#55505c'
+
+/* The one thing left in near-black, and the two buttons were carrying
+   identical copies of it. A button is a target rather than text: greying it to
+   match would leave the mail with nothing to aim at. */
+const BUTTON_STYLE =
+  `font-family:${FONT_STACK};background:#0d0c10;color:#faf7f2;padding:12px 22px;` +
+  'text-decoration:none;border-radius:2px;display:inline-block'
+
 const WRAPPER_STYLE =
-  `font-family:${FONT_STACK};color:#0d0c10;line-height:1.6;` +
+  `font-family:${FONT_STACK};color:${INK};line-height:1.6;` +
   /* Wide side margins: the paper is drawn with a ruled line down either edge,
      and text set closer than this runs over them. */
   'padding:30px 58px 30px 74px'
@@ -101,7 +116,7 @@ ${edge('email-header.jpg')}
 <h1 style="font-size:22px;font-weight:normal;letter-spacing:0.04em;margin:0 0 20px">${escapeHtml(heading)}</h1>
 ${body}
 <hr style="border:none;border-top:1px solid #e3ddd3;margin:28px 0 14px">
-<p style="font-size:12px;color:#55505c;margin:0">coyv · <a href="${env.PUBLIC_SITE_URL}" style="color:#55505c">coyvcastle.com</a></p>
+<p style="font-size:12px;color:${INK};margin:0">coyv · <a href="${env.PUBLIC_SITE_URL}" style="color:${INK}">coyvcastle.com</a></p>
 </div>
 </td></tr>
 ${edge('email-footer.jpg')}
@@ -145,7 +160,7 @@ export function orderConfirmation(order: OrderDocument): Template {
   const html = layout(
     'thank you',
     `<p>Your order is confirmed and will be packed by hand shortly.</p>
-<p style="font-size:13px;color:#55505c;margin:0 0 18px">Order no. <strong style="color:#0d0c10">${escapeHtml(number)}</strong></p>
+<p style="font-size:13px;color:${INK};margin:0 0 18px">Order no. <strong>${escapeHtml(number)}</strong></p>
 ${itemList(items)}
 <p><strong>Total paid:</strong> ${escapeHtml(total)}</p>
 ${
@@ -229,8 +244,8 @@ export function subscriptionCanceled(subscription: SubscriptionDocument): Templa
     : 'You will not be charged again.'
 
   const resume = endsOnLabel
-    ? `<p>Changed your mind? You can start it up again from the <a href="${manageSubscriptionUrl()}" style="color:#0d0c10">manage page</a> any time before then, and nothing will have lapsed.</p>`
-    : `<p>You are welcome back whenever you like — a new subscription can be started from <a href="${env.PUBLIC_SITE_URL}/vault" style="color:#0d0c10">the vault</a>.</p>`
+    ? `<p>Changed your mind? You can start it up again from the <a href="${manageSubscriptionUrl()}" style="color:${INK}">manage page</a> any time before then, and nothing will have lapsed.</p>`
+    : `<p>You are welcome back whenever you like — a new subscription can be started from <a href="${env.PUBLIC_SITE_URL}/vault" style="color:${INK}">the vault</a>.</p>`
 
   const html = layout(
     'your subscription is cancelled',
@@ -273,7 +288,7 @@ export function shippedNotice(
     `<p><strong>${escapeHtml(fulfillment.title)}</strong>${
       fulfillment.periodLabel ? ` (${escapeHtml(fulfillment.periodLabel)})` : ''
     } has been sent.</p>
-${number ? `<p style="font-size:13px;color:#55505c;margin:0 0 18px">Order no. <strong style="color:#0d0c10">${escapeHtml(number)}</strong></p>` : ''}
+${number ? `<p style="font-size:13px;color:${INK};margin:0 0 18px">Order no. <strong>${escapeHtml(number)}</strong></p>` : ''}
 ${tracking ? `<p><strong>Tracking:</strong> ${escapeHtml(tracking)}</p>` : ''}
 <p>Thank you for giving it a home.</p>`,
   )
@@ -296,8 +311,8 @@ export function manageLink(link: string, minutes = 20): Template {
   const html = layout(
     'manage your subscription',
     `<p>Here is your sign-in link. It works once and expires in ${minutes} minutes.</p>
-<p style="margin:24px 0"><a href="${link}" style="font-family:${FONT_STACK};background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;border-radius:2px;display:inline-block">manage my subscription</a></p>
-<p style="font-size:13px;color:#55505c">From there you can update your postal address or cancel. If you did not ask for this, you can ignore it — nothing has changed.</p>`,
+<p style="margin:24px 0"><a href="${link}" style="${BUTTON_STYLE}">manage my subscription</a></p>
+<p style="font-size:13px;color:${INK}">From there you can update your postal address or cancel. If you did not ask for this, you can ignore it — nothing has changed.</p>`,
   )
 
   const text = [
@@ -342,15 +357,14 @@ export function adminDigest(input: DigestInput): Template {
 
   const button =
     `<p style="margin:24px 0"><a href="${url}" ` +
-    `style="font-family:${FONT_STACK};background:#0d0c10;color:#faf7f2;padding:12px 22px;text-decoration:none;` +
-    'border-radius:2px;display:inline-block">open the fulfillment queue</a></p>'
+    `style="${BUTTON_STYLE}">open the fulfillment queue</a></p>`
 
   const rows = entries
     .map(
       (entry) =>
         `<li style="margin-bottom:6px">${entry.pastDue ? '<strong>' : ''}${escapeHtml(entry.label)}${
           entry.pastDue ? '</strong>' : ''
-        } <span style="color:#55505c">— ${escapeHtml(entry.recipient)}, waiting ${
+        } <span style="color:${INK}">— ${escapeHtml(entry.recipient)}, waiting ${
           entry.waitingDays
         } day${entry.waitingDays === 1 ? '' : 's'}${entry.pastDue ? ', past due' : ''}</span></li>`,
     )
