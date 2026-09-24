@@ -441,19 +441,28 @@ nothing could receive mail, and `MX` is inbound only and cannot disturb Brevo's
 outbound sending.
 
 **DNS being right does not mean mail works.** The records only point at the
-tenant; the mailbox has to exist inside it. Check the endpoint itself rather
-than trusting `dig`, by asking Exchange whether it will accept the address:
+tenant; the address still has to exist inside it. Ask Exchange directly rather
+than trusting `dig` — and always probe a deliberately fake address in the same
+run. Without that control a `550` is ambiguous, because it looks identical
+whether the address is missing or the endpoint is refusing everything:
 
 ```bash
-# 250 = the mailbox exists; 550 5.4.1 = DNS is fine but the tenant has no such mailbox
-printf 'EHLO probe.example.com\r\nMAIL FROM:<probe@example.com>\r\nRCPT TO:<contact@coyvcastle.com>\r\nQUIT\r\n' \
-  | nc coyvcastle-com.mail.protection.outlook.com 25
+# 250 = the address is deliverable; 550 5.4.1 = DNS is fine but it is not in the directory
+for a in coyv@coyvcastle.com zz-no-such-user@coyvcastle.com; do
+  printf 'EHLO probe.example.com\r\nMAIL FROM:<probe@example.com>\r\nRCPT TO:<%s>\r\nQUIT\r\n' "$a" \
+    | nc coyvcastle-com.mail.protection.outlook.com 25 | grep -E '^(250|550).*(OK|rejected)'
+done
 ```
 
-As of 2026-09-24 this returns `550 5.4.1 Recipient address rejected`, so
-`contact@coyvcastle.com` still has to be created in the Microsoft 365 admin
-centre. That address is the `mailto:` link at the bottom of the vault page,
-so until the mailbox exists anyone using it gets a bounce.
+Verified on 2026-09-24: `coyv@coyvcastle.com` returns `250 Recipient OK`, so
+inbound mail works end to end. `contact@coyvcastle.com` returns the same `550`
+as the fake address, which is what proves it is genuinely absent from the
+directory rather than blocked.
+
+`contact@coyvcastle.com` is the `mailto:` link at the bottom of the vault page,
+so until it exists as an alias on the `coyv@` mailbox, anyone using that link
+gets a bounce. Aliases are a Microsoft 365 admin centre change, not a DNS one —
+adding records here will not fix it.
 
 The Skype for Business records GoDaddy's older guides list (`lyncdiscover`,
 `msoid`, `_sip` and `_sipfederationtls` SRV) are deprecated and were left out.
