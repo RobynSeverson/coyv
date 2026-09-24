@@ -380,6 +380,14 @@ export default function Vault() {
           })}
         </ul>
       )}
+
+      {/* Sits outside the catalogue branches so there is a way to write in
+          even when the wall is empty or the load failed. */}
+      <footer className="vault__footer">
+        <a className="vault__contact" href="mailto:contact@coyvcastle.com">
+          contact
+        </a>
+      </footer>
     </main>
   );
 }
