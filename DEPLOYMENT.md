@@ -516,6 +516,38 @@ signed.
 Confirm signing is live by checking `Authentication-Results` on a received
 message: `dkim=pass` with `header.d=coyvcastle.com`, not `header.d=*.onmicrosoft.com`.
 
+#### Diagnosing it from headers
+
+A junked message on 2026-09-24 showed exactly what an unsigned domain looks
+like. Gmail's own verdict was:
+
+```
+Authentication-Results: mx.google.com; spf=pass ... dmarc=pass (p=NONE ...)
+```
+
+SPF and DMARC both pass, so neither is the problem — DMARC is passing on SPF
+alignment alone. Two things give the real answer:
+
+- the message carries **no `DKIM-Signature:` header at all**, and
+- Exchange's own `authentication-results` header says
+  `dkim=none (message not signed) header.d=none`.
+
+Read those before changing any DNS. A `dkim=pass dkdomain=coyvcastle.com` does
+appear in the same headers, but only *inside* the `arc=pass (i=1 ...)`
+parenthetical — that is Microsoft's ARC seal reporting its own internal hop, not
+Google verifying a signature. Mistaking it for a verdict makes an unsigned
+domain look correctly signed.
+
+**Outlook accepting the mail proves nothing.** The same message scored `SCL:1`
+in `x-forefront-antispam-report` — Microsoft treats its own authenticated tenant
+submission as trusted and never has to verify a signature. Only a receiver
+outside the tenant does. Always test to an external mailbox, ideally Gmail.
+
+Reputation compounds it: a brand new domain with no sending history, sending a
+one-word body under the subject "test email", is a strong spam signal on its own
+even once DKIM is signing. Judge the fix on the `Authentication-Results` line
+rather than on which folder a test lands in.
+
 `robots.txt` and `sitemap.xml` are static files in `public/`, so they ship with
 the frontend. The sitemap is hand maintained and lists only the four public
 pages; memory deep links are left out on purpose, because they open the same
