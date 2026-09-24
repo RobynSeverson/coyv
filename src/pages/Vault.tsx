@@ -8,6 +8,7 @@ import { trackEvent } from "../lib/analytics";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
 import PageHeader from "../components/PageHeader";
+import ThumbStrip from "../components/ThumbStrip";
 import "./Collection.css";
 import "./Vault.css";
 
@@ -17,18 +18,6 @@ import "./Vault.css";
    original. This just stops the artwork walking out by accident. */
 function blockCapture(event: React.SyntheticEvent) {
   event.preventDefault();
-}
-
-/* How many thumbnails the strip shows at once. Past this the strip becomes a
-   window onto the images rather than all of them. */
-const STRIP_SLOTS = 3;
-
-/* The images under each slot of the strip. Once there are more than the strip
-   can hold it wraps, so the last image is followed by the first again and the
-   strip never runs out either way. */
-function stripWindow(total: number, start: number) {
-  if (total <= STRIP_SLOTS) return Array.from({ length: total }, (_, slot) => slot);
-  return Array.from({ length: STRIP_SLOTS }, (_, slot) => (start + slot) % total);
 }
 
 const ShareIcon = () => (
@@ -52,11 +41,9 @@ export default function Vault() {
   /* Which card is showing a note, and what it says. Kept as one value so
      only the card that was shared reports back. */
   const [shareNote, setShareNote] = useState<{ id: string; text: string } | null>(null);
-  /* Which image each card is showing, and where its thumbnail strip starts.
-     Keyed by product rather than held per card so the list stays a single flat
-     render with no child component. */
+  /* Which image each card is showing. Keyed by product rather than held per
+     card so the list stays a single flat render. */
   const [shown, setShown] = useState<Record<string, number>>({});
-  const [strip, setStrip] = useState<Record<string, number>>({});
   const gridRef = useRef<HTMLUListElement | null>(null);
   const cart = useCart();
 
@@ -99,20 +86,8 @@ export default function Vault() {
      end of the strip also walks the window one step that way, so the image
      just chosen lands in the middle and its neighbours on that side come into
      view — the strip keeps moving instead of dead-ending at its own edge. */
-  const selectImage = useCallback((product: Product, position: number, slot: number) => {
-    const total = product.images.length;
-
-    setShown((current) => ({ ...current, [product.id]: position }));
-
-    if (total <= STRIP_SLOTS) return;
-
-    const step = slot === STRIP_SLOTS - 1 ? 1 : slot === 0 ? -1 : 0;
-    if (step === 0) return;
-
-    setStrip((current) => ({
-      ...current,
-      [product.id]: ((current[product.id] ?? 0) + step + total) % total,
-    }));
+  const selectImage = useCallback((productId: string, position: number) => {
+    setShown((current) => ({ ...current, [productId]: position }));
   }, []);
 
   useEffect(() => {
@@ -278,36 +253,11 @@ export default function Vault() {
 
                 {product.images.length > 1 ? (
                   <>
-                    <ul className="vault__thumbs">
-                      {stripWindow(product.images.length, strip[product.id] ?? 0).map(
-                        (position, slot) => {
-                          const image = product.images[position];
-
-                          return (
-                            <li key={image.id}>
-                              <button
-                                type="button"
-                                className="vault__thumb"
-                                aria-label={`view image ${position + 1} of ${product.images.length}`}
-                                aria-current={position === index}
-                                onClick={() => selectImage(product, position, slot)}
-                              >
-                                <img
-                                  className="vault__thumbImage"
-                                  src={image.url}
-                                  alt=""
-                                  loading="lazy"
-                                  decoding="async"
-                                  draggable={false}
-                                  onContextMenu={blockCapture}
-                                  onDragStart={blockCapture}
-                                />
-                              </button>
-                            </li>
-                          );
-                        },
-                      )}
-                    </ul>
+                    <ThumbStrip
+                      images={product.images}
+                      index={index}
+                      onSelect={(position) => selectImage(product.id, position)}
+                    />
                     <p className="vault__counter">
                       {index + 1}/{product.images.length}
                     </p>
