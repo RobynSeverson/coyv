@@ -153,6 +153,20 @@ in the exploration's event picker for up to a day, so reference it by name
 with **Create event: "…"**; and the default *Last 28 days* range ends
 yesterday, so an event first sent today shows "No data" until tomorrow.
 
+### Per-memory downloads and shares
+
+The free-form exploration **Memory downloads & shares** ranks memories by how
+often they are opened, downloaded and shared. Its *By memory* tab has Memory as
+rows and `memory_open` / `memory_download` / `memory_share` as columns; its
+*By share method* tab shows only `memory_share`, split by how it was shared.
+
+Both depend on two event-scoped custom dimensions registered under **Admin →
+Custom definitions**: **Memory** (`memory_slug`) and **Share method**
+(`share_method`). Custom dimensions are not retroactive, so every event before
+they were registered on 2026-09-24 reports as `(not set)`. If a new memory
+event parameter needs reporting, register it there too; sending the parameter
+from the site is not enough on its own.
+
 ## Backend
 
 The site is now two pieces: the Vite app in `src/`, and a Node/TypeScript API
