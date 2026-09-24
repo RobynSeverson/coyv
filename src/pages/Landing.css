@@ -56,6 +56,16 @@ body:has(.landing) {
 /* Gate panels sit over the artwork and slide away when the gates open.
    Each asset is a full-bleed pre-registered layer, so they share the
    artwork's cover/centre framing and stay aligned with one another. */
+
+/* .landing is a centred grid, and each <picture> would otherwise sit in it as
+   an empty item and push the button off centre with an implicit row. The
+   wrapper is only there to choose between the portrait and landscape cuts, so
+   it is taken out of the layout entirely and the image inside stays the grid's
+   absolutely positioned child, exactly as it was. */
+.landing picture {
+  display: contents;
+}
+
 .landing__gate {
   position: absolute;
   inset: 0;

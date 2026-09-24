@@ -4,9 +4,12 @@ import BottomNav from "../components/BottomNav";
 import Home from "./Home";
 import landingDesktop from "../assets/landingDesktop.jpg";
 import landingMobile from "../assets/landingMobile.jpg";
-import mainGate from "../assets/mainGate.png";
-import leftGate from "../assets/leftGate.png";
-import rightGate from "../assets/rightGate.png";
+import mainGateDesktop from "../assets/mainGateDesktop.png";
+import mainGateMobile from "../assets/mainGateMobile.png";
+import leftGateDesktop from "../assets/leftGateDesktop.png";
+import leftGateMobile from "../assets/leftGateMobile.png";
+import rightGateDesktop from "../assets/rightGateDesktop.png";
+import rightGateMobile from "../assets/rightGateMobile.png";
 import enterMark from "../assets/openGates.png";
 import "./Landing.css";
 
@@ -178,26 +181,38 @@ export default function Landing() {
 
       <div className="landing__art" aria-hidden="true" />
 
-      {/* Gate panels, stacked over the artwork: main, then right, then left. */}
-      <img
-        className="landing__gate landing__gate--main"
-        src={mainGate}
-        alt=""
-        aria-hidden="true"
-      />
-      <img
-        className="landing__gate landing__gate--right"
-        src={rightGate}
-        alt=""
-        aria-hidden="true"
-      />
-      <img
-        className="landing__gate landing__gate--left"
-        src={leftGate}
-        alt=""
-        aria-hidden="true"
-      />
-
+      {/* Gate panels, stacked over the artwork: main, then right, then left.
+          Each panel is drawn twice over — the portrait cut for phones, the
+          landscape one for everything else — and the browser fetches only the
+          one its viewport matches, which is why these are <picture> rather
+          than a class swap. The media query is the site's 768px breakpoint. */}
+      <picture>
+        <source media="(max-width: 768px)" srcSet={mainGateMobile} />
+        <img
+          className="landing__gate landing__gate--main"
+          src={mainGateDesktop}
+          alt=""
+          aria-hidden="true"
+        />
+      </picture>
+      <picture>
+        <source media="(max-width: 768px)" srcSet={rightGateMobile} />
+        <img
+          className="landing__gate landing__gate--right"
+          src={rightGateDesktop}
+          alt=""
+          aria-hidden="true"
+        />
+      </picture>
+      <picture>
+        <source media="(max-width: 768px)" srcSet={leftGateMobile} />
+        <img
+          className="landing__gate landing__gate--left"
+          src={leftGateDesktop}
+          alt=""
+          aria-hidden="true"
+        />
+      </picture>
       {/* The destination page, revealed through the blobs the dissolve opens. */}
       <div
         className="landing__reveal"
