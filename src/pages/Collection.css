@@ -139,15 +139,15 @@
   display: grid;
   place-items: center;
   padding: clamp(1rem, 4vw, 3rem);
-  /* Shades of #fbfdee rather than a slate. The alphas are unchanged, so the
-     overlay still reads as glass over the artwork; only the cast is warmer.
+  /* Shades of #e2e2e0 rather than a slate. The alphas are unchanged, so the
+     overlay still reads as glass over the artwork; only the cast differs.
      Three tones rather than one flat fill, so the backdrop keeps some depth
      across the screen. */
   background: linear-gradient(
     155deg,
-    rgba(251, 253, 238, 0.3),
-    rgba(226, 229, 205, 0.38) 55%,
-    rgba(240, 243, 223, 0.33)
+    rgba(226, 226, 224, 0.3),
+    rgba(203, 203, 201, 0.38) 55%,
+    rgba(215, 215, 213, 0.33)
   );
   -webkit-backdrop-filter: blur(8px);
   cursor: zoom-out;
@@ -319,11 +319,10 @@
 .lightbox {
   --hud-font: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, Consolas,
     monospace;
-  /* A cool slate rather than black. The overlay behind these panels is
-     translucent, so the fill is kept light enough to read as glass over the
-     artwork rather than as a solid chip laid on top of it. */
+  /* A cool slate rather than black, for the journal entry panel. It sits over
+     the translucent overlay, so the fill is kept light enough to read as glass
+     over the artwork rather than as a solid chip laid on top of it. */
   --hud-panel: rgba(104, 124, 146, 0.4);
-  --hud-panel-soft: rgba(104, 124, 146, 0.28);
 }
 
 .lightbox__bars,
@@ -338,8 +337,8 @@
 .lightbox__bars {
   inset: 0;
   background:
-    linear-gradient(rgba(6, 8, 9, 0.92), rgba(6, 8, 9, 0) 18%),
-    linear-gradient(to top, rgba(6, 8, 9, 0.92), rgba(6, 8, 9, 0) 22%);
+    linear-gradient(rgba(243, 247, 244, 0.92), rgba(243, 247, 244, 0) 18%),
+    linear-gradient(to top, rgba(243, 247, 244, 0.92), rgba(243, 247, 244, 0) 22%);
 }
 
 .lightbox__scanlines {
@@ -380,7 +379,7 @@
   border: 1px solid rgba(243, 247, 244, 0.35);
   border-bottom: 0;
   color: #f3f7f4;
-  background: #d6d6d4;
+  background: #696a61;
   /* The tag is short and fixed; the slug is what gives way if the pair runs
      out of room, which only happens on the narrowest screens. */
   min-width: 0;
@@ -395,7 +394,7 @@
   border-bottom: 0;
   border-left: 0;
   color: rgba(243, 247, 244, 0.75);
-  background: #e5e5e1;
+  background: #a5acac;
   /* Loose enough to read as a label, but not the wide kanji spacing this
      started with — the Latin and Cyrillic tags are whole words. */
   letter-spacing: 0.16em;
@@ -483,21 +482,14 @@
 .lightbox__nav {
   border-radius: 0;
   border: 1px solid rgba(243, 247, 244, 0.35);
-  background: var(--hud-panel);
-}
-
-.lightbox__close {
   background: #939393;
 }
 
 @media (hover: hover) and (pointer: fine) {
+  /* A lighter shade of the fill rather than a translucent wash, which over an
+     opaque button reads as it dropping out rather than lifting. */
+  .lightbox__close:hover,
   .lightbox__nav:hover {
-    background: rgba(243, 247, 244, 0.2);
-  }
-
-  /* A lighter shade of the fill rather than the translucent wash the nav
-     arrows use, which over an opaque button reads as it dropping out. */
-  .lightbox__close:hover {
     background: #a5a5a5;
   }
 }
