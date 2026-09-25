@@ -167,6 +167,31 @@ they were registered on 2026-09-24 reports as `(not set)`. If a new memory
 event parameter needs reporting, register it there too; sending the parameter
 from the site is not enough on its own.
 
+### Paths
+
+The path exploration **Site paths** follows visitors step by step instead of
+through a fixed funnel:
+
+| Tab | Starts at | Nodes | Segment |
+| --- | --- | --- | --- |
+| Landing journeys | `session_start` | Page path | All users |
+| After opening a memory | `memory_open` | Event name | Meaningful events only |
+| From the vault | `view_item_list` | Event name | Meaningful events only |
+
+**Meaningful events only** is an event segment saved in that exploration. It
+keeps events whose name does not match
+`page_view|scroll|user_engagement|session_start|first_visit|form_start|form_submit|click`.
+Without it, event-name paths are mostly GA's automatic events. Path
+explorations can't do this with a filter, because their Event name filter only
+supports *exactly matches*. A new automatic event that starts crowding the
+paths needs adding to that regex.
+
+GA only offers a node that already has data in the date range. There is no
+backward "Before a purchase" path yet, because no `purchase`, `add_to_cart` or
+`begin_checkout` had been recorded when the tabs were built. Add one (ending
+point `purchase`, Page path nodes) once orders come through. Until then, cart
+and checkout steps show up in *From the vault* on their own.
+
 ## Backend
 
 The site is now two pieces: the Vite app in `src/`, and a Node/TypeScript API
