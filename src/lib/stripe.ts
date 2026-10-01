@@ -1,6 +1,11 @@
 import { loadStripe, type Stripe, type StripePaymentElementOptions } from "@stripe/stripe-js";
 import { STRIPE_PUBLISHABLE_KEY } from "../config";
 
+/* Apple Pay first, so on an iPhone it is the tab already selected. It is only
+   listed where it can actually be used; everywhere else Stripe's own dynamic
+   ordering applies to the remaining methods unchanged. */
+export const PAYMENT_METHOD_ORDER = ["apple_pay"];
+
 /* Apple Pay for a subscription must be declared as recurring: the sheet then
    shows the monthly charge, and Apple issues a merchant token (MPAN) tied to
    the subscriber rather than one tied to the device, so renewals keep working

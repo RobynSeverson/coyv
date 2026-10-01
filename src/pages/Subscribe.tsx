@@ -7,7 +7,7 @@ import { analyticsItem, trackEcommerce, type AnalyticsItem } from "../lib/analyt
 import { api, type Product } from "../lib/api";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
-import { applePaySubscription, getStripe } from "../lib/stripe";
+import { applePaySubscription, getStripe, PAYMENT_METHOD_ORDER } from "../lib/stripe";
 import "./Checkout.css";
 
 const APPEARANCE: StripeElementsOptions["appearance"] = {
@@ -77,7 +77,11 @@ function SubscribeForm({
       <fieldset className="checkout__fieldset" disabled={submitting}>
         <legend className="checkout__legend">payment</legend>
         <PaymentElement
-          options={{ layout: "tabs", applePay: applePaySubscription({ title, amountCents }) }}
+          options={{
+            layout: "tabs",
+            paymentMethodOrder: PAYMENT_METHOD_ORDER,
+            applePay: applePaySubscription({ title, amountCents }),
+          }}
         />
       </fieldset>
 

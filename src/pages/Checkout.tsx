@@ -15,7 +15,7 @@ import { SubscriberDetailsForm, type SubscriberDetails } from "../components/Sub
 import { analyticsItem, trackEcommerce, type AnalyticsItem } from "../lib/analytics";
 import { api } from "../lib/api";
 import { formatMoney } from "../lib/money";
-import { applePaySubscription, getStripe } from "../lib/stripe";
+import { applePaySubscription, getStripe, PAYMENT_METHOD_ORDER } from "../lib/stripe";
 import "./Checkout.css";
 
 const APPEARANCE: StripeElementsOptions["appearance"] = {
@@ -113,6 +113,7 @@ function PaymentForm({
         <PaymentElement
           options={{
             layout: "tabs",
+            paymentMethodOrder: PAYMENT_METHOD_ORDER,
             ...(recurring ? { applePay: applePaySubscription(recurring) } : {}),
           }}
         />
