@@ -15,7 +15,7 @@ import { SubscriberDetailsForm, type SubscriberDetails } from "../components/Sub
 import { analyticsItem, trackEcommerce, type AnalyticsItem } from "../lib/analytics";
 import { api } from "../lib/api";
 import { formatMoney } from "../lib/money";
-import { getStripe } from "../lib/stripe";
+import { applePaySubscription, getStripe } from "../lib/stripe";
 import "./Checkout.css";
 
 const APPEARANCE: StripeElementsOptions["appearance"] = {
@@ -38,6 +38,7 @@ function PaymentForm({
   returnParams,
   payLabel,
   fine,
+  recurring,
 }: {
   amountCents: number;
   currency: string;
@@ -46,6 +47,9 @@ function PaymentForm({
   returnParams: string;
   payLabel: string;
   fine: string;
+  /* Present when the basket holds a subscription. Its amount is the monthly
+     price alone, not today's total, which may also carry prints. */
+  recurring?: { title: string; amountCents: number };
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -106,7 +110,12 @@ function PaymentForm({
 
       <fieldset className="checkout__fieldset" disabled={submitting}>
         <legend className="checkout__legend">payment</legend>
-        <PaymentElement options={{ layout: "tabs" }} />
+        <PaymentElement
+          options={{
+            layout: "tabs",
+            ...(recurring ? { applePay: applePaySubscription(recurring) } : {}),
+          }}
+        />
       </fieldset>
 
       {error ? (
@@ -412,6 +421,14 @@ export default function Checkout() {
                     : ""
                 }
                 payLabel="pay"
+                recurring={
+                  subscriptionLine
+                    ? {
+                        title: subscriptionLine.title,
+                        amountCents: recurringCents || subscriptionLine.priceCents,
+                      }
+                    : undefined
+                }
                 fine={
                   subscriptionLine
                     ? "Payments are handled by Stripe. The subscription renews monthly until you cancel; card details never touch this server."

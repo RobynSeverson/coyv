@@ -7,7 +7,7 @@ import { analyticsItem, trackEcommerce, type AnalyticsItem } from "../lib/analyt
 import { api, type Product } from "../lib/api";
 import { RichText } from "../lib/richText";
 import { formatMoney } from "../lib/money";
-import { getStripe } from "../lib/stripe";
+import { applePaySubscription, getStripe } from "../lib/stripe";
 import "./Checkout.css";
 
 const APPEARANCE: StripeElementsOptions["appearance"] = {
@@ -23,10 +23,12 @@ const APPEARANCE: StripeElementsOptions["appearance"] = {
 };
 
 function SubscribeForm({
+  title,
   amountCents,
   currency,
   items,
 }: {
+  title: string;
   amountCents: number;
   currency: string;
   items: AnalyticsItem[];
@@ -74,7 +76,9 @@ function SubscribeForm({
     <form className="checkout__form" onSubmit={handleSubmit}>
       <fieldset className="checkout__fieldset" disabled={submitting}>
         <legend className="checkout__legend">payment</legend>
-        <PaymentElement options={{ layout: "tabs" }} />
+        <PaymentElement
+          options={{ layout: "tabs", applePay: applePaySubscription({ title, amountCents }) }}
+        />
       </fieldset>
 
       {error ? (
@@ -253,6 +257,7 @@ export default function Subscribe() {
               options={{ clientSecret, appearance: APPEARANCE }}
             >
               <SubscribeForm
+                title={product.title}
                 amountCents={amountCents}
                 currency={currency}
                 items={planItems(product)}

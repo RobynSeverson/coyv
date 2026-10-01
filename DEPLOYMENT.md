@@ -148,6 +148,28 @@ Publishable and secret keys must also be from the same Stripe account; compare
 the account fragment that follows `pk_live_`/`sk_live_`. The guard cannot check
 this — it only knows the key is live, not whose.
 
+### Apple Pay needs the domain registered with Stripe
+
+Apple Pay, Google Pay, Link, PayPal, Klarna and Amazon Pay only appear in the
+Payment Element on a domain registered as a Stripe **payment method domain**.
+Until 2026-10-01 none was, so Apple Pay never showed up even though it was
+switched on in the payment method settings, and nothing anywhere reported an
+error. `coyvcastle.com` is now registered in live mode as
+`pmd_1ULph2EmaTa7ZOfF2gmfX7tC`. `www.` only redirects to the apex and never
+renders checkout, so it is not registered. Any new hostname that serves
+checkout must be added the same way, with the live secret key. Stripe handles
+Apple's merchant validation, so there is no association file to host:
+
+```bash
+SK=$(aws lambda get-function-configuration --function-name coyv-api \
+  --query 'Environment.Variables.STRIPE_SECRET_KEY' --output text)
+curl -s https://api.stripe.com/v1/payment_method_domains -u "$SK:"   # list; apple_pay.status should be "active"
+curl -s https://api.stripe.com/v1/payment_method_domains -u "$SK:" -d domain_name=<host>
+```
+
+Apple Pay only renders in Safari, or on iOS, with a card in Wallet, so a test
+in desktop Chrome or on `localhost` will never show it.
+
 ## API
 
 ```bash
