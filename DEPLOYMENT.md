@@ -89,11 +89,33 @@ touch production data, money or images:
 
 There are no AWS keys in GitHub. The workflow assumes
 `coyv-github-deploy-dev` through the account's GitHub OIDC provider, and that
-role's trust policy only accepts `repo:RobynSeverson/coyv:ref:refs/heads/develop`
-— a workflow run from any other branch, a fork or a pull request cannot get
+role's trust policy only accepts the `develop` branch of this repository — a
+workflow run from any other branch, a fork or a pull request cannot get
 credentials. Its permissions cover the dev ECR repo, the dev Lambda's code, the
 dev site bucket and the dev distribution's invalidations; it cannot touch
 production at all.
+
+**The repo uses GitHub's immutable OIDC subject claims**, so the token's `sub`
+is not the familiar `repo:RobynSeverson/coyv:ref:…` that every AWS guide shows.
+It carries the owner and repository ids:
+
+```
+repo:RobynSeverson@7719038/coyv@1356678289:ref:refs/heads/develop
+```
+
+A trust policy written the documented way fails with `Not authorized to perform
+sts:AssumeRoleWithWebIdentity` and nothing else to go on — that is how the
+first run on 2026-11-09 failed. The ids are what make it safer: a renamed or
+re-created repository cannot inherit the trust. Any new OIDC role needs the
+prefix from:
+
+```bash
+gh api repos/RobynSeverson/coyv/actions/oidc/customization/sub   # sub_claim_prefix
+```
+
+A brand-new branch pushed at the same commit as `main` does **not** trigger the
+workflow, because `paths-ignore` sees no changed files. Start that first run
+with `gh workflow run deploy-dev.yml --ref develop`.
 
 The build reads two repository **variables** (not secrets — both are public in
 the bundle anyway): `DEV_STRIPE_PUBLISHABLE_KEY` and `ADMIN_PATH`.
