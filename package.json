@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "concurrently -k -n db,api,web -c gray,magenta,cyan \"npm:dev:db\" \"npm:dev:api\" \"npm:dev:web\"",
     "build": "tsc -b && vite build",
+    "build:dev": "tsc -b && vite build --mode dev",
     "lint": "oxlint",
     "preview": "vite preview",
     "dev:web": "vite --host",

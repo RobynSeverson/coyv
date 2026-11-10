@@ -568,6 +568,11 @@ into `/opt/extensions`; nothing outside Lambda reads that path. Data lives in
 the existing MongoDB Atlas cluster (`coyvcastle-dev`), reached by the `coyv_api`
 user. Artwork sits in `coyv-assets-162956754427`, served as presigned GETs.
 
+A complete second stack serves <https://dev.coyvcastle.com> on Stripe test mode
+with its own database, buckets and Lambda. Every push to `develop` deploys there
+through GitHub Actions; `main` is still deployed to production by hand. See
+[DEPLOYMENT.md](DEPLOYMENT.md#dev-environment-devcoyvcastlecom).
+
 > App Runner and public Lambda Function URLs are both blocked by an
 > organisation policy on this account, which is why the API is fronted by API
 > Gateway rather than either of those.

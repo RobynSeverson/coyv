@@ -13,9 +13,24 @@ function assertLiveStripeKey(command: string, mode: string) {
      key into production. `vite preview` also runs in production mode but just
      serves whatever is already in dist/, so gating it there would block a
      local check for no safety gain. */
-  if (command !== 'build' || mode !== 'production') return
+  if (command !== 'build') return
 
   const key = loadEnv(mode, process.cwd(), 'VITE_').VITE_STRIPE_PUBLISHABLE_KEY
+
+  /* `--mode dev` builds dev.coyvcastle.com, which is the mirror image: it runs
+     against a sk_test Lambda, so a live key there would fail the same silent
+     way — and would let someone testing a change spend real money. */
+  if (mode === 'dev') {
+    if (!key?.startsWith('pk_test_')) {
+      throw new Error(
+        'The dev build needs a pk_test_ VITE_STRIPE_PUBLISHABLE_KEY; ' +
+          'dev.coyvcastle.com never takes live payments. See DEPLOYMENT.md.',
+      )
+    }
+    return
+  }
+
+  if (mode !== 'production') return
 
   if (!key) {
     throw new Error(

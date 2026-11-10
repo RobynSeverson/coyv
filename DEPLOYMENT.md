@@ -43,6 +43,99 @@ any visitor mid-session gets 404s until the Lambda catches up.
 
 Changes to `.env.example`, `README.md` or this file ship nothing.
 
+## Dev environment (dev.coyvcastle.com)
+
+Changes are tried on <https://dev.coyvcastle.com> before they reach `main`.
+Branch from `develop`, merge into `develop`, and GitHub Actions
+(`.github/workflows/deploy-dev.yml`) ships it — API first, then the SPA — and
+fails the run if the health check, the `401` admin probe or the served bundle
+hash do not come out right. When it looks good there, merge `develop` into
+`main` and deploy production by hand as below. Nothing about production changed:
+`main` is still never deployed automatically.
+
+It is a complete second stack in the same account, so nothing done on dev can
+touch production data, money or images:
+
+| | Production | Dev |
+| --- | --- | --- |
+| CloudFront | `E1J2EEQCJDHQJV` | `E2F3GKU21YXPIN` (`X-Robots-Tag: noindex` via the `coyv-dev-noindex` response headers policy) |
+| Site bucket | `coyv-site-162956754427` | `coyv-site-dev-162956754427` |
+| API | API Gateway `hh41anachg` → `coyv-api` | API Gateway `u0lcfzgh0i` → `coyv-api-dev` |
+| Image | ECR `coyv-api:lambda` | ECR `coyv-api-dev:<commit sha>` (last 15 kept) |
+| Lambda role | `coyv-api-lambda` | `coyv-api-dev-lambda` — dev assets bucket only |
+| Database | `coyv` | `coyv-dev`, same Atlas cluster and `coyv_api` user |
+| Assets | `coyv-assets-162956754427` | `coyv-assets-dev-162956754427` (a copy) |
+| Stripe | live mode | **test mode**; webhook `we_1Ua5rIEmaTa7ZOfFStKGwVGs` |
+| Secrets | `coyv/*` | `coyv-dev/*` |
+
+- **Payments are always test mode on dev**, the mirror image of production's
+  rule. `npm run build:dev` (`vite build --mode dev`) refuses anything but a
+  `pk_test_` key, and the Lambda holds the `sk_test` key. Use Stripe's test
+  cards (`4242 4242 4242 4242`). `dev.coyvcastle.com` is registered as a
+  test-mode payment method domain, so wallets render there too.
+- **Email is real.** Dev holds the production Brevo key, so a test checkout
+  sends a genuine confirmation to whatever address is typed in, and the admin
+  digest goes to the real admin list. Use your own address.
+- **It is public but unindexed.** Every response carries `X-Robots-Tag:
+  noindex, nofollow`, and GA is switched off for the hostname in `index.html`,
+  so testing never pollutes the production property. `robots.txt` is the
+  production copy on purpose: disallowing crawling would stop Google from ever
+  seeing the noindex.
+- **Same admin login as production**, because the seed copies `adminusers`.
+  The session cookie is signed with a different `JWT_SECRET` and is host-only,
+  so a sign-in on one never carries to the other.
+
+### How Actions reaches AWS
+
+There are no AWS keys in GitHub. The workflow assumes
+`coyv-github-deploy-dev` through the account's GitHub OIDC provider, and that
+role's trust policy only accepts `repo:RobynSeverson/coyv:ref:refs/heads/develop`
+— a workflow run from any other branch, a fork or a pull request cannot get
+credentials. Its permissions cover the dev ECR repo, the dev Lambda's code, the
+dev site bucket and the dev distribution's invalidations; it cannot touch
+production at all.
+
+The build reads two repository **variables** (not secrets — both are public in
+the bundle anyway): `DEV_STRIPE_PUBLISHABLE_KEY` and `ADMIN_PATH`.
+
+### Refreshing dev from production
+
+The dev database started as a copy of production's catalogue, memories and
+admin login. Re-copy whenever dev has drifted or production has new content:
+
+```bash
+# from the repo root, with the credentials block above exported
+aws s3 sync s3://coyv-assets-162956754427 s3://coyv-assets-dev-162956754427
+
+# from server/ — loads the *dev* Lambda's config, so writes go to coyv-dev
+cd server
+eval "$(aws lambda get-function-configuration --function-name coyv-api-dev \
+  --query 'Environment.Variables' --output json \
+  | jq -r 'to_entries[] | "export \(.key)=\(.value|@sh)"')"
+npm run seed-dev-from-prod
+```
+
+The script only reads production, and refuses to run if `MONGODB_DB_NAME` is
+`coyv` or the Stripe key is not `sk_test_`. It replaces `prints`, `memories`
+and `adminusers` wholesale, and leaves dev's own test orders and subscriptions
+alone; production's never come across, since they point at live-mode Stripe
+objects test mode cannot see. Live Stripe ids on products are swapped for
+test-mode ones, reusing the ones minted on a previous refresh. The S3 sync runs
+first so every copied record's image keys exist in the dev bucket.
+
+It deliberately has no `--env-file`, unlike the other scripts: picking up the
+local `server/.env` would point it at local Mongo. Run on 2026-11-09: `prints:
+3, memories: 13, adminusers: 1, 1 subscription product priced`.
+
+### Changing dev's configuration
+
+The same read-merge-write rule as production applies to `coyv-api-dev` —
+`update-function-configuration --environment` replaces the whole map. Infra
+outside the Lambda's code and the site bucket (CloudFront, the viewer-request
+function, DNS) is not touched by the workflow. Note that the distribution
+**shares** the `coyv-www-redirect` CloudFront Function with production, so
+editing it changes both at once.
+
 ## Frontend
 
 ```bash
@@ -236,6 +329,8 @@ node --env-file-if-exists=.env src/scripts/migrateMemoryImages.ts
 
 The Lambda's `MONGODB_URI` points at a cluster named `coyvcastle-dev`. Despite
 the name, that **is** production — there is no separate production cluster.
+The dev environment is a different *database* (`coyv-dev`) on that same
+cluster, so the database name, not the cluster, is what tells them apart.
 
 ### `backfill-subscription-payments`
 

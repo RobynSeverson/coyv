@@ -1,0 +1,134 @@
+# Every push to `develop` ships to https://dev.coyvcastle.com, a separate stack
+# (its own Lambda, database, buckets and CloudFront) running on Stripe test
+# mode. Production is still deployed by hand from `main`; see DEPLOYMENT.md.
+name: Deploy develop to dev.coyvcastle.com
+
+on:
+  push:
+    branches: [develop]
+    paths-ignore:
+      - '**.md'
+      - '.github/skills/**'
+      - '.github/copilot-instructions.md'
+  workflow_dispatch:
+
+# A second push queues behind the first rather than racing it to the Lambda.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  # Trusts only refs/heads/develop of this repo, and can only touch the dev stack.
+  AWS_ROLE: arn:aws:iam::162956754427:role/coyv-github-deploy-dev
+  ECR_REPO: 162956754427.dkr.ecr.us-east-1.amazonaws.com/coyv-api-dev
+  FUNCTION: coyv-api-dev
+  SITE_BUCKET: coyv-site-dev-162956754427
+  DISTRIBUTION: E2F3GKU21YXPIN
+  SITE: https://dev.coyvcastle.com
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+
+      # amd64 because the Lambda is x86_64 (an arm64 image deploys "successfully"
+      # and then 500s), and no provenance/SBOM because Lambda rejects the
+      # attestation index buildx would otherwise push.
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./server
+          platforms: linux/amd64
+          provenance: false
+          sbom: false
+          outputs: type=image,name=${{ env.ECR_REPO }}:${{ github.sha }},oci-mediatypes=false,push=true
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: Update the Lambda
+        run: |
+          aws lambda update-function-code --function-name "$FUNCTION" \
+            --image-uri "$ECR_REPO:$GITHUB_SHA" --query LastUpdateStatus --output text
+          aws lambda wait function-updated --function-name "$FUNCTION"
+
+      # LastUpdateStatus only means the image was accepted, not that it runs.
+      - name: Check the API answers
+        run: |
+          for i in $(seq 1 10); do
+            curl -sf "$SITE/api/health" && echo && break
+            [ "$i" = 10 ] && exit 1
+            sleep 6
+          done
+          test "$(curl -so /dev/null -w '%{http_code}' "$SITE/api/products")" = 200
+          test "$(curl -so /dev/null -w '%{http_code}' "$SITE/api/admin/fulfillments")" = 401
+
+  web:
+    # API first, so the new bundle never calls an endpoint that is not live yet.
+    needs: api
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+
+      - name: Build
+        run: npm run build:dev
+        env:
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.DEV_STRIPE_PUBLISHABLE_KEY }}
+          VITE_ADMIN_PATH: ${{ vars.ADMIN_PATH }}
+
+      - name: Confirm the bundle is on test keys
+        run: |
+          test "$(cat dist/assets/index-*.js | grep -c pk_test_)" -ge 1
+          test "$(cat dist/assets/index-*.js | grep -c pk_live_)" = 0
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # Same split as production: fingerprinted assets cache forever, while the
+      # fixed-name files must not, or browsers chase bundles --delete removed.
+      - name: Upload
+        run: |
+          aws s3 sync dist/ "s3://$SITE_BUCKET/" --delete --only-show-errors \
+            --exclude index.html --exclude robots.txt --exclude sitemap.xml \
+            --exclude 'email-*.jpg' \
+            --cache-control "public,max-age=31536000,immutable"
+          aws s3 cp dist/index.html "s3://$SITE_BUCKET/index.html" \
+            --cache-control "no-cache,must-revalidate"
+          aws s3 cp dist/robots.txt "s3://$SITE_BUCKET/robots.txt" \
+            --cache-control "public,max-age=300" --content-type "text/plain; charset=utf-8"
+          aws s3 cp dist/sitemap.xml "s3://$SITE_BUCKET/sitemap.xml" \
+            --cache-control "public,max-age=300" --content-type "application/xml; charset=utf-8"
+          for f in email-header.jpg email-paper.jpg email-footer.jpg; do
+            aws s3 cp "dist/$f" "s3://$SITE_BUCKET/$f" \
+              --cache-control "public,max-age=86400" --content-type "image/jpeg"
+          done
+
+      - name: Invalidate and wait
+        run: |
+          id=$(aws cloudfront create-invalidation --distribution-id "$DISTRIBUTION" \
+            --paths "/*" --query Invalidation.Id --output text)
+          aws cloudfront wait invalidation-completed --distribution-id "$DISTRIBUTION" --id "$id"
+
+      - name: Check the new bundle is served
+        run: |
+          built=$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
+          served=$(curl -s "$SITE/" | grep -o 'assets/index-[A-Za-z0-9_-]*\.js' | head -1)
+          echo "built $built, served $served"
+          test "$built" = "$served"

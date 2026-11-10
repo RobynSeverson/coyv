@@ -10,6 +10,18 @@ Everything ships to AWS account `162956754427` in `us-east-1`.
 and the record of what has gone wrong before; this skill is the working order of
 operations. Read the runbook when anything here fails or looks unfamiliar.
 
+## 0. Dev or production?
+
+`develop` deploys itself to <https://dev.coyvcastle.com> through GitHub Actions
+on every push (`.github/workflows/deploy-dev.yml`), on Stripe test mode with its
+own database and buckets. To ship to dev, push or merge to `develop`, then watch
+the run with `gh run watch`; do not run the steps below against dev. To refresh
+dev's content from production, see "Refreshing dev from production" in
+`DEPLOYMENT.md`.
+
+Everything below is the **production** deploy, done by hand from `main` once a
+change has been checked on dev and merged.
+
 ## 1. Credentials, in every shell
 
 Each `bash` call starts a fresh process, so exports do not persist. Every AWS

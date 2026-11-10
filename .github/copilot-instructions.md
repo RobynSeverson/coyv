@@ -16,6 +16,7 @@ container on Lambda in AWS account `162956754427` (`us-east-1`).
 ```bash
 npm run dev     # mongo + api + web together
 npm run build   # typecheck and build the SPA (see the Stripe note below)
+npm run build:dev  # the dev.coyvcastle.com build; requires a pk_test key
 npm run lint    # oxlint
 npm --prefix server run typecheck
 ```
@@ -25,8 +26,13 @@ fixing unrelated pre-existing warnings.
 
 ## Deploying
 
-Use the `deploy` skill. Two things are worth knowing up front because both have
-caused a silent production outage:
+Use the `deploy` skill. Changes go to `develop` first: every push there deploys
+itself to **dev.coyvcastle.com** (Stripe test mode, separate database and
+buckets) via GitHub Actions. Production is deployed by hand from `main` after
+`develop` is merged.
+
+Two things are worth knowing up front because both have caused a silent
+production outage:
 
 - **Production is always in live payment mode.** The root `.env` holds a
   `pk_test` key for local work, and a plain `npm run build` would inline it.
