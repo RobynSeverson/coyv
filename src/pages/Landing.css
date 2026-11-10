@@ -40,8 +40,12 @@ body:has(.landing) {
   background-repeat: no-repeat;
 }
 
+/* While the blobs eat through it, the artwork is also overexposed until it
+   bleaches out entirely, like memories being erased to white. */
 .landing.is-dissolving .landing__art {
-  animation: artDrift var(--dissolve-duration) ease-in forwards;
+  animation:
+    artDrift var(--dissolve-duration) ease-in forwards,
+    artExpose var(--dissolve-duration) ease-in-out forwards;
 }
 
 @keyframes artDrift {
@@ -50,6 +54,22 @@ body:has(.landing) {
   }
   100% {
     transform: scale(1.05);
+  }
+}
+
+/* Contrast before brightness, in that order: lowering contrast lifts the
+   darks off black so brightness can carry them up to white too, where
+   brightness alone would leave the linework dark. The 45% stop is fitted to
+   the overexposed reference attached to issue #4. */
+@keyframes artExpose {
+  0% {
+    filter: contrast(1) brightness(1);
+  }
+  45% {
+    filter: contrast(0.77) brightness(1.41);
+  }
+  100% {
+    filter: contrast(0.3) brightness(3);
   }
 }
 
