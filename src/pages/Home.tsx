@@ -1,4 +1,5 @@
 import { useLocation } from "react-router-dom";
+import PageHeader from "../components/PageHeader";
 import contactArtwork from "../assets/homeContact.webp";
 import socialMark from "../assets/homeSocial.webp";
 import "./Home.css";
@@ -10,24 +11,24 @@ const SHOWCASES = [
 
 const NEWS = [
   {
-    title: "from the studio",
+    date: "2026-11-12",
     text: "A space for notes, experiments, and little things worth sharing.",
   },
   {
-    title: "new projects",
+    date: "2026-11-10",
     text: "Future photo and video projects will find a home here.",
   },
   {
-    title: "artwork & prints",
+    date: "2026-11-08",
     text: "A place to announce new pieces and print releases.",
   },
   {
-    title: "upcoming events",
+    date: "2026-11-06",
     text: "Exhibitions, gatherings, and other news will appear here.",
   },
 ];
 
-const SOCIALS = ["instagram", "youtube", "tiktok", "pinterest"];
+const SOCIALS = ["instagram", "youtube", "tiktok", "x"];
 
 export default function Home() {
   /* The landing already rendered this page behind its dissolve, so replaying
@@ -39,8 +40,10 @@ export default function Home() {
 
   return (
     <main className={settled ? "home is-settled" : "home"}>
+      <PageHeader title="coyv" />
+
       <header className="home__welcome">
-        <h1>welcome to my castle</h1>
+        <p>welcome to my castle</p>
       </header>
 
       <section className="home__section" aria-labelledby="home-about">
@@ -77,11 +80,15 @@ export default function Home() {
       <section className="home__section" aria-labelledby="home-news">
         <h2 id="home-news" className="home__heading">news</h2>
         <div className="home__news">
-          <p className="home__previewNote">studio noticeboard / layout preview</p>
+          <p className="home__previewNote">sample dates &amp; news / layout preview</p>
           <ul className="home__newsList">
-            {NEWS.map(({ title, text }) => (
-              <li key={title}>
-                <h3>{title}</h3>
+            {NEWS.map(({ date, text }) => (
+              <li key={date}>
+                <time dateTime={date}>
+                  {new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
+                    timeZone: "UTC",
+                  })}
+                </time>
                 <p>{text}</p>
               </li>
             ))}

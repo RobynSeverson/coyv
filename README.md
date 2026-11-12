@@ -52,8 +52,9 @@ rejects them as a DNS-rebinding attempt and serves a blank page.
 
 The home page is a layout preview: its project/artwork tiles and news entries
 are placeholders, and its social buttons are disabled until real destinations
-are supplied. These sections are not yet editable in the studio. The contact
-artwork and repeated social icon live in `src/assets/homeContact.webp` and
+are supplied. Keep the shared `PageHeader` coyv wordmark above its welcome text,
+as on the other pages. These sections are not yet editable in the studio.
+The contact artwork and repeated social icon live in `src/assets/homeContact.webp` and
 `src/assets/homeSocial.webp`.
 
 ## How the dissolve works

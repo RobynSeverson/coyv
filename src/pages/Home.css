@@ -27,7 +27,7 @@
   margin-bottom: clamp(2.5rem, 8vw, 4.5rem);
 }
 
-.home__welcome h1 {
+.home__welcome p {
   margin: 0;
   font-size: clamp(0.7rem, 1.5vw, 0.85rem);
   font-weight: 500;
@@ -121,7 +121,7 @@
   color: #a4ae98;
 }
 
-.home__newsList h3 {
+.home__newsList time {
   margin: 0;
   color: #885c52;
   font-size: 0.9em;
