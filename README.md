@@ -55,6 +55,9 @@ The home page reads saved content from the studio's **home** tab. Keep the share
 `PageHeader` coyv wordmark above its welcome text, as on the other pages.
 The contact artwork and repeated social icon live in `src/assets/homeContact.webp` and
 `src/assets/homeSocial.webp`.
+Home's headings and panels use translucent light cream with irregular gray
+top-edge fragments to echo the wallpaper, rather than green beveled cards.
+Only decorative fragments are skewed; text, images and the shared header stay upright.
 
 ## How the dissolve works
 
