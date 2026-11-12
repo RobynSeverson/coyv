@@ -87,6 +87,14 @@ descendants (unlike `filter`), so `.landing__revealInner` carries a
 
 ## Responsive notes
 
+The mobile `.siteLayout::before` backdrop uses a fixed `100lvh` canvas
+(`100vh` fallback), not `inset: 0` with an automatic height. Mobile browser
+toolbars otherwise resize the layer and make `background-size: cover` zoom
+the image as they collapse. The large viewport keeps the artwork's scale
+stable and covers the extra visible space, while still adapting to rotation.
+This is only the decorative backdrop; page layout keeps `min-height: 100svh`
+so short pages do not gain extra scrolling.
+
 - Under `768px` the landing sets `--art-width: 200vw` so only the left half of
   the artwork fills the screen instead of squashing the whole piece.
 - Under `480px` the bottom nav drops to a tighter type scale so all four labels

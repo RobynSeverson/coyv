@@ -21,7 +21,12 @@
   .siteLayout::before {
     content: '';
     position: fixed;
-    inset: 0;
+    inset: 0 0 auto;
+    /* A fixed inset: 0 canvas resizes as mobile toolbars retract, making
+       `cover` zoom the artwork. Use the stable, fully expanded viewport for
+       this decorative layer only; the page layout still uses svh above. */
+    height: 100vh;
+    height: 100lvh;
     z-index: -1;
     pointer-events: none;
     /* A light white wash only: the artwork is already mostly white, and the
