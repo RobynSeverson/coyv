@@ -134,6 +134,14 @@ adminHomeRouter.get('/', async (_req, res) => {
   res.set('Cache-Control', 'no-store').json({ home: await serializeHome(await loadHome(), true) })
 })
 
+adminHomeRouter.post('/images/resolve', async (req, res) => {
+  const input = z.object({ ids: z.array(imageId) }).strict().parse(req.body)
+  const ids = [...new Set(input.ids)]
+  const images = await imageMap(ids)
+  if (images.size !== ids.length) throw HttpError.badRequest('A recovered upload is no longer available. Your draft has been kept.')
+  res.set('Cache-Control', 'no-store').json({ images: [...images.values()] })
+})
+
 adminHomeRouter.put('/', async (req, res) => {
   const { revision, ...content } = homeInput.parse(req.body)
   const ids = new Set([
@@ -158,7 +166,8 @@ adminHomeRouter.put('/', async (req, res) => {
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: env.MAX_UPLOAD_BYTES, files: 1 },
+  /* Leave room for multipart/base64 inside Lambda's buffered request limit. */
+  limits: { fileSize: Math.min(env.MAX_UPLOAD_BYTES, 3 * 1024 * 1024), files: 1 },
   fileFilter: (_req, file, callback) => {
     if (!ALLOWED_IMAGE_TYPES.has(file.mimetype)) {
       callback(HttpError.badRequest(`Unsupported image type: ${file.mimetype}`))

@@ -110,7 +110,7 @@ export default function AdminApp() {
       </header>
 
       {tab === "home" ? (
-        <AdminHome />
+        <AdminHome adminId={admin.id} />
       ) : tab === "products" ? (
         <AdminProducts />
       ) : tab === "memories" ? (

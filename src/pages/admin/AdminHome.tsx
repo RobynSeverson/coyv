@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import RichTextEditor from "../../components/RichTextEditor";
 import { api, type HomeContent, type HomeImage, type HomeNews } from "../../lib/api";
+import { homeImageIds, readHomeDraft, refreshHomeImages, writeHomeDraft } from "../../lib/homeDraft";
+import { prepareHomeImage } from "../../lib/homeUpload";
 
 function ImagePicker({ label, onUpload }: { label: string; onUpload: (file: File) => void }) {
   return (
@@ -30,31 +32,98 @@ function withoutImage(body: string, position: number) {
   }).join("\n");
 }
 
-export default function AdminHome() {
+export default function AdminHome({ adminId }: { adminId: string }) {
   const [home, setHome] = useState<HomeContent | null>(null);
+  const homeRef = useRef<HomeContent | null>(null);
+  const uploadController = useRef<AbortController | null>(null);
+  const draftKey = `coyv:home-draft:${adminId}`;
   const [busy, setBusy] = useState(true);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [uploadStage, setUploadStage] = useState<string | null>(null);
+  const [draftWarning, setDraftWarning] = useState<string | null>(null);
 
-  function load() {
-    return api.admin.getHome().then(({ home: loaded }) => {
-      setHome(loaded);
-      setDirty(false);
-      setNotice("");
+  function replaceHome(next: HomeContent) {
+    homeRef.current = next;
+    setHome(next);
+  }
+
+  const clearDraft = useCallback(() => {
+    try {
+      localStorage.removeItem(draftKey);
+      setDraftWarning(null);
+    } catch (cause) {
+      console.error("[home] Could not clear recovery draft", cause);
+      setDraftWarning("Home is saved, but this browser could not clear its older recovery draft.");
+    }
+  }, [draftKey]);
+
+  const load = useCallback((recover = true) => {
+    return Promise.resolve().then(async () => {
+      let draft: HomeContent | null = null;
+      if (recover) {
+        try {
+          const stored = localStorage.getItem(draftKey);
+          if (stored) draft = readHomeDraft(stored);
+        } catch (cause) {
+          console.error("[home] Could not read recovery draft", cause);
+          setDraftWarning("The browser recovery draft could not be read. Loading published content instead.");
+        }
+      }
+      if (draft) {
+        replaceHome(draft);
+        setDirty(true);
+        setNotice("Recovered unsaved home changes from this browser.");
+      }
+      const { home: loaded } = await api.admin.getHome();
+      if (draft) {
+        const { images } = await api.admin.resolveHomeImages(homeImageIds(draft));
+        replaceHome(refreshHomeImages(draft, images));
+        setNotice(draft.revision === loaded.revision
+          ? "Recovered unsaved home changes. Save home to publish, or reload to discard."
+          : "Recovered your draft, but published home changed in another session. Copy your edits before reloading; a stale save will not overwrite it.");
+      } else {
+        replaceHome(loaded);
+        setDirty(false);
+        setNotice("");
+      }
+      if (!recover) clearDraft();
     }).catch((cause: unknown) => {
       setError(cause instanceof Error ? cause.message : "Could not load home");
     }).finally(() => {
       setBusy(false);
     });
-  }
+  }, [draftKey, clearDraft]);
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => () => {
+    uploadController.current?.abort(new DOMException("Upload cancelled. Your draft has been kept.", "AbortError"));
+  }, []);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   function edit(update: (current: HomeContent) => HomeContent) {
-    setHome((current) => current ? update(current) : current);
+    const current = homeRef.current;
+    if (!current) return;
+    const next = update(current);
+    replaceHome(next);
     setDirty(true);
     setNotice("");
+    try {
+      localStorage.setItem(draftKey, writeHomeDraft(next));
+      setDraftWarning(null);
+    } catch (cause) {
+      console.error("[home] Could not keep recovery draft", cause);
+      setDraftWarning("This browser could not keep a recovery draft. Save your changes before leaving.");
+    }
   }
 
   function editNews(id: string, patch: Partial<HomeNews>) {
@@ -65,15 +134,31 @@ export default function AdminHome() {
   }
 
   async function upload(file: File, accept: (image: HomeImage) => void) {
+    if (uploadController.current) return;
+    const controller = new AbortController();
+    uploadController.current = controller;
+    const timeout = window.setTimeout(() => controller.abort(new DOMException(
+      "Image upload timed out. Your other changes are still here; save them, then try the image again.",
+      "TimeoutError",
+    )), 60_000);
     setBusy(true);
     setError(null);
+    setNotice("");
+    setUploadStage("preparing image…");
     try {
-      const { image } = await api.admin.uploadHomeImage(file);
+      const prepared = await prepareHomeImage(file, controller.signal);
+      controller.signal.throwIfAborted();
+      setUploadStage("uploading image…");
+      const { image } = await api.admin.uploadHomeImage(prepared, controller.signal);
       accept(image);
       setNotice("Image uploaded. Save home to publish your changes.");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not upload this image");
+      const failure: unknown = controller.signal.aborted ? controller.signal.reason : cause;
+      setError(failure instanceof Error ? failure.message : "Could not upload this image. Your other changes are still here.");
     } finally {
+      window.clearTimeout(timeout);
+      uploadController.current = null;
+      setUploadStage(null);
       setBusy(false);
     }
   }
@@ -89,8 +174,9 @@ export default function AdminHome() {
     setError(null);
     try {
       const { home: saved } = await api.admin.saveHome(home);
-      setHome(saved);
+      replaceHome(saved);
       setDirty(false);
+      clearDraft();
       setNotice("Home saved and published.");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not save home");
@@ -102,10 +188,11 @@ export default function AdminHome() {
   return (
     <form className="admin__section" onSubmit={(event) => void save(event)}>
       {error ? <p className="admin__error" role="alert">{error}</p> : null}
+      {draftWarning ? <p className="admin__error" role="alert">{draftWarning}</p> : null}
       {notice ? <p className="admin__muted" role="status">{notice}</p> : null}
       <div className="admin__actions">
         <button className="admin__primary" disabled={busy || !home || !dirty}>
-          {busy ? "working…" : "save home"}
+          {busy ? uploadStage ?? "working…" : "save home"}
         </button>
         <button
           className="admin__logout"
@@ -115,15 +202,22 @@ export default function AdminHome() {
             if (!dirty || window.confirm("Discard unsaved home changes and reload?")) {
               setBusy(true);
               setError(null);
-              void load();
+              void load(false);
             }
           }}
         >reload</button>
         <span className="admin__muted">{dirty ? "unsaved changes" : "saved content"}</span>
+        {uploadStage ? <button className="admin__logout" type="button" onClick={() =>
+          uploadController.current?.abort(new DOMException(
+            "Upload cancelled. Your other changes are still here and can be saved.", "AbortError",
+          ))
+        }>cancel upload</button> : null}
       </div>
       <p className="admin__muted">
         Save home publishes all sections together. Uploads are stored immediately;
         removing a slot only removes it from this page, not from asset storage.
+        {" "}Unsaved edits are kept on this browser for recovery. Large home images
+        are resized before sending; your original stays on your device.
       </p>
       {!home ? <p className="admin__muted">{busy ? "loading…" : "Home has not loaded. Use reload to try again."}</p> : (
         <fieldset className="admin__homeFields" disabled={busy}>

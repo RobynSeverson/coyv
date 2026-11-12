@@ -526,11 +526,26 @@ a reload instead of overwriting another session's changes. Removing image slots
 does not delete their S3 objects. Before the first save, home shows its default
 about paragraph and empty sections rather than mock projects/news/contacts.
 
+Unsaved home edits are kept in localStorage for the signed-in admin on this
+browser/origin and recovered after reload or switching tabs. Recovery refreshes
+signed URLs even for images not published yet; a newer server revision still
+prevents stale overwrites. Save or an explicitly confirmed reload clears the
+draft. Browser-storage failures are shown, not silently ignored. This is local
+recovery, not a backup available on another device.
+
+Home uploads show preparation/upload stages, have a **cancel upload** button
+and a 60-second deadline, and leave all other draft edits intact on failure.
+Large home images are resized in the browser to at most 1600px on the longest
+side and compressed to at most 3 MiB before being sent. Sources over 50 MiB
+need a smaller export. The full-resolution source stays on the device; print
+product uploads are unchanged.
+
 Home API integration tests use a dedicated local Mongo and an in-memory local
 object-store double, never AWS. Run from the repository root with an isolated
 Mongo instance: `HOME_TEST_MONGODB_URI=mongodb://127.0.0.1:27017 node --test
 server/src/routes/home.test.ts`. Each run creates and drops its own random test
 database; without the variable the suite is skipped.
+Run browser-draft persistence tests with `node --test tests/homeDraft.test.ts`.
 
 The **products** tab is where you create prints and subscriptions, set prices
 and stock, upload artwork, and publish. A product with no images cannot be
@@ -561,7 +576,8 @@ too, so it cannot be undone.
 Uploads are proxied through the API (`multipart/form-data`, JPEG/PNG/WebP/AVIF,
 `MAX_UPLOAD_BYTES` each) and stored under `products/<slug>/<uuid>` or
 `memories/<uuid>`; home uploads use `home/<uuid>` with a 900px WebP preview.
-Home serves the preview only; its uploaded original stays private.
+Home serves the preview only; its prepared upload stays private. Its API upload
+limit is the smaller of `MAX_UPLOAD_BYTES` and 3 MiB to fit Lambda's request envelope.
 The client's filename is discarded. The bucket stays
 private — image URLs are presigned GETs minted per request and cached
 in-process until just before they expire.

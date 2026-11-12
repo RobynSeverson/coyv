@@ -152,6 +152,16 @@ to dev and overwrites dev's home content too. The home editor stores uploads
 immediately, but only **Save home** publishes their references. Removing a home
 image slot never deletes its stored object.
 
+Home image uploads must fit the buffered Lambda request envelope (6 MB,
+including the invocation payload and binary/base64 overhead), regardless of
+`MAX_UPLOAD_BYTES` being 15 MiB. Raising that variable cannot raise Lambda's
+limit. The home editor prepares at most a 1600px/3 MiB display copy on the
+device, and the home API enforces the same 3 MiB cap; product originals are
+unaffected. Uploads can be cancelled and time out after 60 seconds. Drafts are
+kept per admin in this browser's localStorage, with unpublished image IDs
+rehydrated through the authenticated resolve endpoint after reload. A failed
+upload must not clear the draft or leave the form permanently disabled.
+
 It deliberately has no `--env-file`, unlike the other scripts: picking up the
 local `server/.env` would point it at local Mongo. Run on 2026-11-09: `prints:
 3, memories: 13, adminusers: 1, 1 subscription product priced`.

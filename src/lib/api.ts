@@ -448,10 +448,13 @@ export const api = {
         },
       }),
 
-    uploadHomeImage: (file: File) => {
+    resolveHomeImages: (ids: string[]) =>
+      request<{ images: HomeImage[] }>("/admin/home/images/resolve", { method: "POST", body: { ids } }),
+
+    uploadHomeImage: (file: File, signal?: AbortSignal) => {
       const formData = new FormData();
       formData.append("image", file);
-      return request<{ image: HomeImage }>("/admin/home/images", { method: "POST", formData });
+      return request<{ image: HomeImage }>("/admin/home/images", { method: "POST", formData, signal });
     },
 
     me: () => request<{ admin: Admin | null }>("/admin/auth/me"),

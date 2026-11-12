@@ -55,7 +55,7 @@ describe('editable home', { skip: !process.env.HOME_TEST_MONGODB_URI }, () => {
   }
 
   it('requires admin auth for reading, saving and uploading home content', async () => {
-    for (const [path, method] of [['/admin/home', 'GET'], ['/admin/home', 'PUT'], ['/admin/home/images', 'POST']]) {
+    for (const [path, method] of [['/admin/home', 'GET'], ['/admin/home', 'PUT'], ['/admin/home/images', 'POST'], ['/admin/home/images/resolve', 'POST']]) {
       const response = await call(path!, method!, undefined, false)
       assert.equal(response.status, 401)
     }
@@ -84,7 +84,19 @@ describe('editable home', { skip: !process.env.HOME_TEST_MONGODB_URI }, () => {
     const count = fixture.objects.size
     assert.equal((await upload(new Uint8Array([1, 2, 3]), 'image/jpeg')).status, 400)
     assert.equal((await upload(new Uint8Array([1, 2, 3]), 'image/svg+xml')).status, 400)
+    const oversized = await upload(Buffer.concat([png, Buffer.alloc(3 * 1024 * 1024)]), 'image/png')
+    assert.equal(oversized.status, 400)
+    assert.equal(z.object({ error: z.string() }).parse(await oversized.json()).error, 'File too large')
     assert.equal(fixture.objects.size, count)
+  })
+
+  it('resolves unpublished uploads for draft recovery and explicitly rejects missing images', async () => {
+    const response = await call('/admin/home/images/resolve', 'POST', { ids: [image.id, image.id] })
+    assert.equal(response.status, 200)
+    const { images } = z.object({ images: z.array(imageShape) }).parse(await response.json())
+    assert.equal(images.length, 1)
+    assert.equal(images[0]?.id, image.id)
+    assert.equal((await call('/admin/home/images/resolve', 'POST', { ids: ['000000000000000000000002'] })).status, 400)
   })
 
   it('persists all sections, accepts more than four contacts, and links full news separately', async () => {
