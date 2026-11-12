@@ -504,6 +504,9 @@ nowhere. It is a build-time constant, so changing it means rebuilding the web
 image. Sign-in issues an httpOnly, `SameSite=Strict` JWT cookie; there is no
 signup route, and login attempts are throttled per IP.
 
+Login inputs must stay at least 16px to prevent iOS focus zoom from carrying
+into the studio after sign-in. Do not disable user zoom in the viewport meta tag.
+
 The **products** tab is where you create prints and subscriptions, set prices
 and stock, upload artwork, and publish. A product with no images cannot be
 published, and deleting one that already appears on a real order — or that

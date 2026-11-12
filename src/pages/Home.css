@@ -12,6 +12,10 @@
   animation: none;
 }
 
+.home > :not(.pageHeader) {
+  margin-inline: clamp(0.5rem, 2vw, 1rem);
+}
+
 @keyframes homeIn {
   from {
     opacity: 0;

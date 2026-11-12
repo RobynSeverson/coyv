@@ -172,6 +172,11 @@
   resize: vertical;
 }
 
+/* iOS focus-zooms smaller inputs and can keep that zoom after sign-in. */
+.admin__login input {
+  font-size: max(1rem, 16px);
+}
+
 .admin__checkbox {
   display: flex;
   align-items: center;
