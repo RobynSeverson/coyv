@@ -6,11 +6,12 @@ import AdminOrders from "./AdminOrders";
 import AdminSubscriptions from "./AdminSubscriptions";
 import AdminFulfillment from "./AdminFulfillment";
 import AdminMemories from "./AdminMemories";
+import AdminHome from "./AdminHome";
 import "./admin.css";
 
-type Tab = "products" | "memories" | "fulfillment" | "orders" | "subscribers";
+type Tab = "home" | "products" | "memories" | "fulfillment" | "orders" | "subscribers";
 
-const TABS: Tab[] = ["products", "memories", "fulfillment", "orders", "subscribers"];
+const TABS: Tab[] = ["home", "products", "memories", "fulfillment", "orders", "subscribers"];
 
 /* The digest email links straight at ?tab=fulfillment&filter=past-due, so the
    opening tab is read from the URL rather than always starting on products. */
@@ -98,7 +99,7 @@ export default function AdminApp() {
 
         <button
           type="button"
-          className="admin__logout"
+          className="admin__logout admin__signOut"
           onClick={async () => {
             await api.admin.logout().catch(() => undefined);
             setAdmin(null);
@@ -108,7 +109,9 @@ export default function AdminApp() {
         </button>
       </header>
 
-      {tab === "products" ? (
+      {tab === "home" ? (
+        <AdminHome />
+      ) : tab === "products" ? (
         <AdminProducts />
       ) : tab === "memories" ? (
         <AdminMemories />

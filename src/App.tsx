@@ -7,6 +7,7 @@ import useDocumentMeta from "./lib/useDocumentMeta";
 import useRouteAnalytics from "./lib/useRouteAnalytics";
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
+import News from "./pages/News";
 import Memories from "./pages/Memories";
 import Vault from "./pages/Vault";
 import Checkout from "./pages/Checkout";
@@ -47,6 +48,7 @@ export default function App() {
 
           <Route element={<SiteLayout />}>
             <Route path="/home" element={<Home />} />
+            <Route path="/news/:id" element={<News />} />
             <Route path="/vault" element={<Vault />} />
             {/* A single product, deep-linked: the vault opens scrolled to it. */}
             <Route path="/vault/:slug" element={<Vault />} />

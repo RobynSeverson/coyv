@@ -1,34 +1,13 @@
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import contactArtwork from "../assets/homeContact.webp";
 import socialMark from "../assets/homeSocial.webp";
+import { api, type HomePageContent } from "../lib/api";
 import "./Home.css";
 
-const SHOWCASES = [
-  { title: "projects", item: "project" },
-  { title: "artwork", item: "artwork" },
-];
-
-const NEWS = [
-  {
-    date: "2026-11-12",
-    text: "A space for notes, experiments, and little things worth sharing.",
-  },
-  {
-    date: "2026-11-10",
-    text: "Future photo and video projects will find a home here.",
-  },
-  {
-    date: "2026-11-08",
-    text: "A place to announce new pieces and print releases.",
-  },
-  {
-    date: "2026-11-06",
-    text: "Exhibitions, gatherings, and other news will appear here.",
-  },
-];
-
-const SOCIALS = ["instagram", "youtube", "tiktok", "x"];
+/* Keep the content revealed on the landing while the router mounts /home. */
+let cachedHome: HomePageContent | null = null;
 
 export default function Home() {
   /* The landing already rendered this page behind its dissolve, so replaying
@@ -37,6 +16,23 @@ export default function Home() {
   const location = useLocation();
   const settled =
     (location.state as { fromLanding?: boolean } | null)?.fromLanding === true;
+  const [home, setHome] = useState(cachedHome);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    void api.getHome().then(({ home: loaded }) => {
+      cachedHome = loaded;
+      if (active) {
+        setHome(loaded);
+        setError(null);
+      }
+    }).catch((cause: unknown) => {
+      if (active) setError(cause instanceof Error ? cause.message : "Could not load home");
+    });
+    return () => { active = false; };
+  }, [attempt]);
 
   return (
     <main className={settled ? "home is-settled" : "home"}>
@@ -46,33 +42,45 @@ export default function Home() {
         <p>welcome to my castle</p>
       </header>
 
+      {error ? (
+        <p className="home__empty" role="alert">
+          {error}{" "}
+          <button type="button" onClick={() => setAttempt((value) => value + 1)}>retry</button>
+        </p>
+      ) : null}
+      {!home ? (
+        <p className="home__empty" role="status">{error ? "Home is unavailable right now." : "loading…"}</p>
+      ) : (
+      <>
       <section className="home__section" aria-labelledby="home-about">
         <h2 id="home-about" className="home__heading">about me</h2>
-        <p className="home__about">
-          I make artwork and photographs that wander between the familiar and
-          the imagined. Drawn figures, quiet places, and fragments of memory
-          come together in a world that is always a little unfinished. This
-          castle is a home for those experiments, and an invitation to look
-          closer, get lost, and keep trying something new.
-        </p>
+        <p className="home__about">{home.aboutMe}</p>
       </section>
 
       <div className="home__showcases">
-        {SHOWCASES.map(({ title, item }) => (
+        {(["projects", "artwork"] as const).map((title) => (
           <section
             className="home__section"
             aria-labelledby={`home-${title}`}
             key={title}
           >
             <h2 id={`home-${title}`} className="home__heading">{title}</h2>
-            <ol className="home__tiles" aria-label={`${title} preview placeholders`}>
-              {[1, 2, 3, 4].map((number) => (
-                <li className="home__tile" key={number}>
-                  <span>{item} 0{number}</span>
-                  <span className="home__tileNote">coming soon</span>
+            <ol className="home__tiles" aria-label={title}>
+              {home[title].map(({ image, title: caption, url }, index) => (
+                <li className="home__tile" key={`${image.id}-${index}`}>
+                  {url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer">
+                      <img src={image.url} alt={caption || `${title} ${index + 1}`}
+                        width={image.width} height={image.height} />
+                    </a>
+                  ) : (
+                    <img src={image.url} alt={caption || `${title} ${index + 1}`}
+                      width={image.width} height={image.height} />
+                  )}
                 </li>
               ))}
             </ol>
+            {home[title].length === 0 ? <p className="home__empty">new work on the way</p> : null}
           </section>
         ))}
       </div>
@@ -80,19 +88,23 @@ export default function Home() {
       <section className="home__section" aria-labelledby="home-news">
         <h2 id="home-news" className="home__heading">news</h2>
         <div className="home__news">
-          <p className="home__previewNote">sample dates &amp; news / layout preview</p>
           <ul className="home__newsList">
-            {NEWS.map(({ date, text }) => (
-              <li key={date}>
-                <time dateTime={date}>
-                  {new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", {
-                    timeZone: "UTC",
-                  })}
-                </time>
-                <p>{text}</p>
+            {home.news.map(({ id, date, preview, previewImage }) => (
+              <li key={id}>
+                <a className="home__newsLink" href={`/news/${id}`} target="_blank" rel="noopener noreferrer">
+                  <time dateTime={date}>
+                    {new Date(`${date}T00:00:00Z`).toLocaleDateString("en-US", { timeZone: "UTC" })}
+                  </time>
+                  <div className="home__newsPreview">
+                    {previewImage ? <img src={previewImage.url} alt="" width={previewImage.width}
+                      height={previewImage.height} loading="lazy" /> : null}
+                    <p>{preview}</p>
+                  </div>
+                </a>
               </li>
             ))}
           </ul>
+          {home.news.length === 0 ? <p className="home__empty">no news just yet</p> : null}
         </div>
       </section>
 
@@ -107,26 +119,24 @@ export default function Home() {
             alt="Two illustrated figures sitting together in a drifting, painted world"
           />
           <ul className="home__socials">
-            {SOCIALS.map((social) => (
-              <li key={social}>
-                <button
-                  type="button"
+            {home.contacts.map(({ id, title, url }) => (
+              <li key={id}>
+                <a
                   className="home__social"
-                  disabled
-                  aria-label={`${social}: link coming soon`}
-                  title="Link coming soon"
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
                   <img src={socialMark} width={346} height={169} alt="" />
-                  <span>{social}</span>
-                </button>
+                  <span>{title}</span>
+                </a>
               </li>
             ))}
           </ul>
         </div>
-        <p className="home__previewNote home__contactNote">
-          social links coming soon
-        </p>
       </section>
+      </>
+      )}
     </main>
   );
 }

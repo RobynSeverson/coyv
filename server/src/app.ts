@@ -11,6 +11,7 @@ import { adminRouter } from './routes/adminProducts.ts'
 import { checkoutRouter } from './routes/checkout.ts'
 import { manageRouter } from './routes/manage.ts'
 import { memoriesRouter } from './routes/memories.ts'
+import { homeRouter, adminHomeRouter } from './routes/home.ts'
 import { printsRouter, productsRouter } from './routes/products.ts'
 import { tasksRouter } from './routes/tasks.ts'
 import { webhookRouter } from './routes/webhook.ts'
@@ -73,6 +74,7 @@ export function createApp(): Express {
   /* Deprecated alias from before subscriptions existed; lists prints only. */
   app.use('/api/prints', printsRouter)
   app.use('/api/memories', memoriesRouter)
+  app.use('/api/home', homeRouter)
   app.use('/api/checkout', checkoutRouter)
   /* Subscriber self-service, authorised by an emailed single-use link. */
   app.use('/api/manage', manageRouter)
@@ -81,6 +83,7 @@ export function createApp(): Express {
   app.use('/api/tasks', tasksRouter)
   /* Mounted before the catch-all admin router so its own paths win. */
   app.use('/api/admin/memories', adminMemoriesRouter)
+  app.use('/api/admin/home', adminHomeRouter)
   app.use('/api/admin', adminRouter)
 
   app.use(notFoundHandler)

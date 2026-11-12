@@ -50,6 +50,7 @@ const PAGES: ReadonlyArray<readonly [string, PageMeta]> = [
     },
   ],
   ["/order", { title: `${SITE} | order`, description: SITE_DESCRIPTION }],
+  ["/news", { title: `${SITE} | news`, description: "News, events and updates from coyv's studio." }],
   /* The landing and /home are the same document, so they share the site's own
      title rather than a page-specific one. */
   ["/home", { title: SITE_TITLE, description: SITE_DESCRIPTION }],
@@ -68,7 +69,7 @@ export function metaForPath(pathname: string) {
     /* Deep links such as /vault/some-print or /memories/memory_001 open the
        page they belong to with one item already selected, so they point at
        that page rather than offering Google a second URL for one document. */
-    canonical: `${ORIGIN}${match?.[0] ?? "/"}`,
+    canonical: `${ORIGIN}${match?.[0] === "/news" ? pathname : match?.[0] ?? "/"}`,
   };
 }
 

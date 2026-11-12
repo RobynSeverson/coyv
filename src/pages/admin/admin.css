@@ -54,6 +54,9 @@
 
 .admin__tabs {
   display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
   gap: 0.4rem;
 }
 
@@ -75,6 +78,12 @@
   background: #121a1c;
   border-color: #121a1c;
   color: #f7f9f6;
+}
+
+.admin__signOut {
+  background: #7d3f32;
+  border-color: #7d3f32;
+  color: #fff;
 }
 
 .admin__section {
@@ -401,4 +410,71 @@
   gap: 0.75rem;
   padding: 0.25rem 0;
   border-top: 1px solid rgba(18, 24, 26, 0.08);
+}
+
+.admin__homeFields {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.admin__homeFields input,
+.admin__homeFields textarea {
+  min-width: 0;
+  width: 100%;
+  font-size: max(1rem, 16px);
+}
+
+.admin__homeTile,
+.admin__homeContact {
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.admin__homeContact {
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(18, 24, 26, 0.12);
+}
+
+.admin__homeTile > img {
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  object-fit: cover;
+}
+
+.admin__homePreview {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.admin__homeUpload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 4rem;
+  padding: 0.5rem;
+  border: 1px dashed rgba(18, 24, 26, 0.3);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.admin__homeUpload input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.admin__homeUpload:focus-within {
+  outline: 2px solid #121a1c;
+  outline-offset: 2px;
 }

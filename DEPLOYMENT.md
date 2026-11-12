@@ -138,12 +138,19 @@ npm run seed-dev-from-prod
 ```
 
 The script only reads production, and refuses to run if `MONGODB_DB_NAME` is
-`coyv` or the Stripe key is not `sk_test_`. It replaces `prints`, `memories`
-and `adminusers` wholesale, and leaves dev's own test orders and subscriptions
+`coyv` or the Stripe key is not `sk_test_`. It replaces `prints`, `memories`,
+`homecontents`, `homeimages` and `adminusers` wholesale, and leaves dev's own test orders and subscriptions
 alone; production's never come across, since they point at live-mode Stripe
 objects test mode cannot see. Live Stripe ids on products are swapped for
 test-mode ones, reusing the ones minted on a previous refresh. The S3 sync runs
 first so every copied record's image keys exist in the dev bucket.
+
+Home content is environment-specific database content, not bundled into the
+frontend. Deploying code does not copy dev's home edits to production. Configure
+production through its own studio; the refresh above only copies production
+to dev and overwrites dev's home content too. The home editor stores uploads
+immediately, but only **Save home** publishes their references. Removing a home
+image slot never deletes its stored object.
 
 It deliberately has no `--env-file`, unlike the other scripts: picking up the
 local `server/.env` would point it at local Mongo. Run on 2026-11-09: `prints:

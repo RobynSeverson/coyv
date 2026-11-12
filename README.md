@@ -40,6 +40,7 @@ rejects them as a DNS-rebinding attempt and serves a blank page.
 - `src/assets/` — landing artwork and the nav button PNGs
 - `src/pages/Landing.tsx` / `Landing.css` — `/`, the artwork + dissolve transition
 - `src/pages/Home.tsx` / `Home.css` — `/home`, about, projects, artwork, news and contact
+- `src/pages/News.tsx` — `/news/:id`, a full news/event entry opened from home
 - `src/pages/Collection.tsx` / `Collection.css` — `/memories`
 - `src/pages/Vault.tsx` / `Vault.css` — `/vault`, the shop (`/prints` redirects here)
 - `src/pages/Subscribe.tsx` — `/subscribe/:slug`, on-site recurring signup
@@ -50,10 +51,8 @@ rejects them as a DNS-rebinding attempt and serves a blank page.
 - `src/components/SiteLayout.tsx` / `.css` — shell that wraps the nested routes
 - `src/App.tsx` — routes
 
-The home page is a layout preview: its project/artwork tiles and news entries
-are placeholders, and its social buttons are disabled until real destinations
-are supplied. Keep the shared `PageHeader` coyv wordmark above its welcome text,
-as on the other pages. These sections are not yet editable in the studio.
+The home page reads saved content from the studio's **home** tab. Keep the shared
+`PageHeader` coyv wordmark above its welcome text, as on the other pages.
 The contact artwork and repeated social icon live in `src/assets/homeContact.webp` and
 `src/assets/homeSocial.webp`.
 
@@ -254,6 +253,8 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET` | `/api/products/:slug` | |
 | `GET` | `/api/prints` | deprecated alias; one-off prints only |
 | `GET` | `/api/memories` | published memories, in gallery order |
+| `GET` | `/api/home` | published home sections and news previews |
+| `GET` | `/api/home/news/:id` | full news text and entry images |
 | `POST` | `/api/checkout/intent` | prices the cart, returns a client secret |
 | `GET` | `/api/checkout/orders/lookup` | order status, authorised by the client secret |
 | `POST` | `/api/checkout/subscription` | starts an incomplete subscription |
@@ -263,6 +264,8 @@ stripe listen --forward-to localhost:4000/api/stripe/webhook
 | `GET` | `/api/admin/auth/me` | returns `{ admin: null }` when signed out |
 | `GET/POST/PATCH/DELETE` | `/api/admin/products…` | catalogue + image upload |
 | `GET/POST/PATCH/DELETE` | `/api/admin/memories…` | gallery upload, captions, order |
+| `GET/PUT` | `/api/admin/home` | read/publish home; revision conflict returns 409 |
+| `POST` | `/api/admin/home/images` | multipart `image`, stored for the home editor |
 | `GET` | `/api/admin/orders` | |
 | `GET` | `/api/admin/subscriptions` | subscriber list mirrored from Stripe |
 | `GET` | `/api/admin/fulfillments` | the packing queue, filtered by status |
@@ -506,6 +509,28 @@ signup route, and login attempts are throttled per IP.
 
 Login inputs must stay at least 16px to prevent iOS focus zoom from carrying
 into the studio after sign-in. Do not disable user zoom in the viewport meta tag.
+Section tabs wrap onto additional rows rather than scrolling horizontally;
+sign out has a contrasting terracotta fill so it remains distinct from the tabs.
+
+The **home** tab edits about-me text, up to four project images and four artwork
+images, repeatable news entries, and any number of contact title/link pairs.
+Image slots reveal the next upload after success and show the same 3:1 crop as
+home. Optional showcase links, and both the contact icon and title, are clickable.
+Each news entry has a date, optional preview image, snippet, and rich-text body.
+Upload body images, then insert them with the editor's **place an image** control.
+Home's news date/preview opens the full entry in a new tab.
+
+**Save home** publishes all sections together; uploads alone do not publish.
+Reload discards unsaved edits after confirmation. A conflicting save asks for
+a reload instead of overwriting another session's changes. Removing image slots
+does not delete their S3 objects. Before the first save, home shows its default
+about paragraph and empty sections rather than mock projects/news/contacts.
+
+Home API integration tests use a dedicated local Mongo and an in-memory local
+object-store double, never AWS. Run from the repository root with an isolated
+Mongo instance: `HOME_TEST_MONGODB_URI=mongodb://127.0.0.1:27017 node --test
+server/src/routes/home.test.ts`. Each run creates and drops its own random test
+database; without the variable the suite is skipped.
 
 The **products** tab is where you create prints and subscriptions, set prices
 and stock, upload artwork, and publish. A product with no images cannot be
@@ -535,7 +560,9 @@ too, so it cannot be undone.
 
 Uploads are proxied through the API (`multipart/form-data`, JPEG/PNG/WebP/AVIF,
 `MAX_UPLOAD_BYTES` each) and stored under `products/<slug>/<uuid>` or
-`memories/<uuid>`; the client's filename is discarded. The bucket stays
+`memories/<uuid>`; home uploads use `home/<uuid>` with a 900px WebP preview.
+Home serves the preview only; its uploaded original stays private.
+The client's filename is discarded. The bucket stays
 private — image URLs are presigned GETs minted per request and cached
 in-process until just before they expire.
 

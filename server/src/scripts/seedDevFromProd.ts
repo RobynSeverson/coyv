@@ -3,7 +3,7 @@ import { env } from '../env.ts'
 import { ensureSubscriptionPrice } from '../services/stripe.ts'
 
 /* Refreshes the dev environment (dev.coyvcastle.com) with production's
-   catalogue, memories and admin login, so changes can be tried against real
+   catalogue, memories, home content and admin login, so changes can be tried against real
    content. Orders, subscriptions and customers are deliberately left behind:
    dev runs on Stripe test mode, and those records point at live-mode objects
    that test mode cannot see.
@@ -16,7 +16,7 @@ import { ensureSubscriptionPrice } from '../services/stripe.ts'
    subscription product keeps the test-mode Stripe ids it was given last time
    rather than minting a fresh product on every refresh. */
 
-const COPIED_COLLECTIONS = ['prints', 'memories', 'adminusers'] as const
+const COPIED_COLLECTIONS = ['prints', 'memories', 'homecontents', 'homeimages', 'adminusers'] as const
 const SOURCE_DB_NAME = process.env.SOURCE_MONGODB_DB_NAME ?? 'coyv'
 
 type StripeIds = { stripeProductId?: string | null; stripePriceId?: string | null }

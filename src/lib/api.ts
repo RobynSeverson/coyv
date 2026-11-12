@@ -295,6 +295,32 @@ type MemoryInput = {
 
 export type Admin = { id: string; email: string; displayName: string };
 
+export type HomeImage = {
+  id: string;
+  url: string;
+  width: number;
+  height: number;
+};
+export type HomeShowcase = { image: HomeImage; title: string; url: string };
+export type HomeNewsPreview = {
+  id: string;
+  date: string;
+  preview: string;
+  previewImage: HomeImage | null;
+};
+export type HomeNews = HomeNewsPreview & { body: string; images: HomeImage[] };
+export type HomeContact = { id: string; title: string; url: string };
+export type HomeContent = {
+  revision: number;
+  aboutMe: string;
+  projects: HomeShowcase[];
+  artwork: HomeShowcase[];
+  news: HomeNews[];
+  contacts: HomeContact[];
+};
+export type HomePageContent = Omit<HomeContent, "news"> & { news: HomeNewsPreview[] };
+export type HomeNewsArticle = Omit<HomeNews, "previewImage">;
+
 type ProductInput = {
   title: string;
   description: string;
@@ -307,6 +333,11 @@ type ProductInput = {
 type NewProductInput = ProductInput & { kind: ProductKind };
 
 export const api = {
+  getHome: () => request<{ home: HomePageContent }>("/home"),
+
+  getHomeNews: (id: string) =>
+    request<{ news: HomeNewsArticle }>(`/home/news/${encodeURIComponent(id)}`),
+
   listProducts: () => request<{ products: Product[] }>("/products"),
 
   getProduct: (slug: string) =>
@@ -399,6 +430,30 @@ export const api = {
   },
 
   admin: {
+    getHome: () => request<{ home: HomeContent }>("/admin/home"),
+
+    saveHome: (home: HomeContent) =>
+      request<{ home: HomeContent }>("/admin/home", {
+        method: "PUT",
+        body: {
+          revision: home.revision,
+          aboutMe: home.aboutMe,
+          projects: home.projects.map(({ image, title, url }) => ({ imageId: image.id, title, url })),
+          artwork: home.artwork.map(({ image, title, url }) => ({ imageId: image.id, title, url })),
+          news: home.news.map(({ id, date, preview, previewImage, body, images }) => ({
+            id, date, preview, previewImageId: previewImage?.id ?? null,
+            body, imageIds: images.map((image) => image.id),
+          })),
+          contacts: home.contacts,
+        },
+      }),
+
+    uploadHomeImage: (file: File) => {
+      const formData = new FormData();
+      formData.append("image", file);
+      return request<{ image: HomeImage }>("/admin/home/images", { method: "POST", formData });
+    },
+
     me: () => request<{ admin: Admin | null }>("/admin/auth/me"),
 
     login: (email: string, password: string) =>
