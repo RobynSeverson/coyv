@@ -1,24 +1,33 @@
 import { useLocation } from "react-router-dom";
-import PageHeader from "../components/PageHeader";
-import blurbMobile from "../assets/homeBlurbMobile.webp";
-import blurbMobile2x from "../assets/homeBlurbMobile@2x.webp";
-import blurbDesktop from "../assets/homeBlurbDesktop.webp";
-import blurbDesktop2x from "../assets/homeBlurbDesktop@2x.webp";
+import contactArtwork from "../assets/homeContact.webp";
+import socialMark from "../assets/homeSocial.webp";
 import "./Home.css";
 
-/* The artwork is the writing, so the words have to reach screen readers and
-   search engines some other way. This is a transcription, not a description. */
-const BLURB_TEXT = [
-  "welcome to my castle. i've opened the gates.",
-  "i'm not perfect. but i want to try. try. try. try.",
-  "if we all stop trying, what are we?",
-  "humans, maybe, are tied to trying. to experimenting. to making something",
-  "even when we don't know what it will become.",
-  "even when you know it's futile, you still try.",
-  "we live in an evil, corrupt, strange world.",
-  "but if we stop trying, what's left?",
-  "so — come inside. let's try something.",
-].join(" ");
+const SHOWCASES = [
+  { title: "projects", item: "project" },
+  { title: "artwork", item: "artwork" },
+];
+
+const NEWS = [
+  {
+    title: "from the studio",
+    text: "A space for notes, experiments, and little things worth sharing.",
+  },
+  {
+    title: "new projects",
+    text: "Future photo and video projects will find a home here.",
+  },
+  {
+    title: "artwork & prints",
+    text: "A place to announce new pieces and print releases.",
+  },
+  {
+    title: "upcoming events",
+    text: "Exhibitions, gatherings, and other news will appear here.",
+  },
+];
+
+const SOCIALS = ["instagram", "youtube", "tiktok", "pinterest"];
 
 export default function Home() {
   /* The landing already rendered this page behind its dissolve, so replaying
@@ -30,29 +39,87 @@ export default function Home() {
 
   return (
     <main className={settled ? "home is-settled" : "home"}>
-      <PageHeader title="coyv" />
+      <header className="home__welcome">
+        <h1>welcome to my castle</h1>
+      </header>
 
-      <picture>
-        <source
-          media="(min-width: 769px)"
-          type="image/webp"
-          srcSet={`${blurbDesktop} 1x, ${blurbDesktop2x} 2x`}
-          width={1000}
-          height={1035}
-        />
-        <img
-          className="home__blurb"
-          src={blurbMobile}
-          srcSet={`${blurbMobile} 1x, ${blurbMobile2x} 2x`}
-          /* intrinsic size of the default source keeps the page from
-             reflowing while the artwork loads */
-          width={700}
-          height={1245}
-          alt={BLURB_TEXT}
-          /* this is the page's main content, so it should never be deferred */
-          fetchPriority="high"
-        />
-      </picture>
+      <section className="home__section" aria-labelledby="home-about">
+        <h2 id="home-about" className="home__heading">about me</h2>
+        <p className="home__about">
+          I make artwork and photographs that wander between the familiar and
+          the imagined. Drawn figures, quiet places, and fragments of memory
+          come together in a world that is always a little unfinished. This
+          castle is a home for those experiments, and an invitation to look
+          closer, get lost, and keep trying something new.
+        </p>
+      </section>
+
+      <div className="home__showcases">
+        {SHOWCASES.map(({ title, item }) => (
+          <section
+            className="home__section"
+            aria-labelledby={`home-${title}`}
+            key={title}
+          >
+            <h2 id={`home-${title}`} className="home__heading">{title}</h2>
+            <ol className="home__tiles" aria-label={`${title} preview placeholders`}>
+              {[1, 2, 3, 4].map((number) => (
+                <li className="home__tile" key={number}>
+                  <span>{item} 0{number}</span>
+                  <span className="home__tileNote">coming soon</span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ))}
+      </div>
+
+      <section className="home__section" aria-labelledby="home-news">
+        <h2 id="home-news" className="home__heading">news</h2>
+        <div className="home__news">
+          <p className="home__previewNote">studio noticeboard / layout preview</p>
+          <ul className="home__newsList">
+            {NEWS.map(({ title, text }) => (
+              <li key={title}>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="home__section" aria-labelledby="home-contact">
+        <h2 id="home-contact" className="home__heading">contact</h2>
+        <div className="home__contact">
+          <img
+            className="home__contactArtwork"
+            src={contactArtwork}
+            width={402}
+            height={359}
+            alt="Two illustrated figures sitting together in a drifting, painted world"
+          />
+          <ul className="home__socials">
+            {SOCIALS.map((social) => (
+              <li key={social}>
+                <button
+                  type="button"
+                  className="home__social"
+                  disabled
+                  aria-label={`${social}: link coming soon`}
+                  title="Link coming soon"
+                >
+                  <img src={socialMark} width={346} height={169} alt="" />
+                  <span>{social}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="home__previewNote home__contactNote">
+          social links coming soon
+        </p>
+      </section>
     </main>
   );
 }

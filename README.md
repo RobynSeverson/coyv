@@ -39,7 +39,7 @@ rejects them as a DNS-rebinding attempt and serves a blank page.
 
 - `src/assets/` — landing artwork and the nav button PNGs
 - `src/pages/Landing.tsx` / `Landing.css` — `/`, the artwork + dissolve transition
-- `src/pages/Home.tsx` / `Home.css` — `/home`, prints & photos tiles
+- `src/pages/Home.tsx` / `Home.css` — `/home`, about, projects, artwork, news and contact
 - `src/pages/Collection.tsx` / `Collection.css` — `/memories`
 - `src/pages/Vault.tsx` / `Vault.css` — `/vault`, the shop (`/prints` redirects here)
 - `src/pages/Subscribe.tsx` — `/subscribe/:slug`, on-site recurring signup
@@ -49,6 +49,12 @@ rejects them as a DNS-rebinding attempt and serves a blank page.
 - `src/components/BottomNav.tsx` / `.css` — fixed bottom navigation
 - `src/components/SiteLayout.tsx` / `.css` — shell that wraps the nested routes
 - `src/App.tsx` — routes
+
+The home page is a layout preview: its project/artwork tiles and news entries
+are placeholders, and its social buttons are disabled until real destinations
+are supplied. These sections are not yet editable in the studio. The contact
+artwork and repeated social icon live in `src/assets/homeContact.webp` and
+`src/assets/homeSocial.webp`.
 
 ## How the dissolve works
 

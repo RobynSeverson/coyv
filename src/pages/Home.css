@@ -1,7 +1,10 @@
 .home {
-  max-width: 68rem;
+  max-width: 48rem;
   margin: 0 auto;
-  padding: clamp(2.5rem, 8vw, 5rem) clamp(1rem, 4vw, 2.5rem) 0;
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.25rem, 5vw, 2.5rem) 1rem;
+  font-size: clamp(0.8rem, 1.5vw, 0.9rem);
+  line-height: 1.5;
+  color: #41443d;
   animation: homeIn 700ms ease-out both;
 }
 
@@ -20,20 +23,162 @@
   }
 }
 
-.home__blurb {
+.home__welcome {
+  margin-bottom: clamp(2.5rem, 8vw, 4.5rem);
+}
+
+.home__welcome h1 {
+  margin: 0;
+  font-size: clamp(0.7rem, 1.5vw, 0.85rem);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.home__section {
+  min-width: 0;
+  margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.home__heading {
+  display: table;
+  margin: 0 0 0.65rem;
+  padding: 0 0.2rem;
+  background: rgba(235, 237, 230, 0.8);
+  box-shadow: 2px 2px 0 rgba(255, 255, 255, 0.9);
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.home__about {
+  margin: 0;
+}
+
+.home__showcases {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1rem, 5vw, 2.5rem);
+}
+
+.home__tiles {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: clamp(0.25rem, 1vw, 0.5rem);
+  border: 1px solid #e0e3d9;
+  background: #f4f5ef;
+  box-shadow: 3px 3px 0 rgba(221, 225, 214, 0.65),
+    -3px -2px 0 rgba(255, 255, 255, 0.9);
+  list-style: none;
+}
+
+.home__tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: clamp(3rem, 9vw, 5rem);
+  padding: 0.4rem 0.65rem;
+  background: linear-gradient(135deg, #d6dacd, #eceee6 70%, #cbd0c2);
+  color: #505649;
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+}
+
+.home__tile:nth-child(even) {
+  background: linear-gradient(25deg, #e1e2d9, #cdd1c6 70%, #ebede5);
+}
+
+.home__tileNote {
+  font-size: 0.8em;
+  letter-spacing: 0;
+}
+
+.home__news {
+  padding: clamp(0.85rem, 3vw, 1.5rem);
+  border: 1px solid #d5dacd;
+  background: rgba(230, 234, 223, 0.94);
+  box-shadow: inset 3px 3px 0 #f8f9f4, inset -3px -3px 0 #d9dece,
+    4px 4px 0 rgba(235, 238, 228, 0.65);
+}
+
+.home__previewNote {
+  margin: 0 0 1rem;
+  color: #666d5e;
+  font-size: 0.75em;
+  letter-spacing: 0.05em;
+}
+
+.home__newsList {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding-left: 1rem;
+  list-style-type: square;
+}
+
+.home__newsList li::marker {
+  color: #a4ae98;
+}
+
+.home__newsList h3 {
+  margin: 0;
+  color: #885c52;
+  font-size: 0.9em;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.home__newsList p {
+  margin: 0.15rem 0 0;
+  font-size: 0.95em;
+}
+
+.home__contact {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.75rem, 3vw, 1.5rem);
+  align-items: center;
+}
+
+.home__contactArtwork {
   display: block;
   width: 100%;
   height: auto;
-  margin: 0 auto;
 }
 
-/* The desktop artwork is nearly square with the writing filling the sheet, so
-   it is capped well below the container width — at full width the letter runs
-   past the fold before a line of it can be read. */
-@media (min-width: 769px) {
-  .home__blurb {
-    max-width: 40rem;
-  }
+.home__socials {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home__social {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.25rem, 1vw, 0.75rem);
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #545a4c;
+  font: inherit;
+  font-size: 0.85em;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.home__social img {
+  flex: 0 0 auto;
+  width: clamp(2.5rem, 8vw, 4.5rem);
+  height: auto;
+}
+
+.home__contactNote {
+  margin: 0.5rem 0 0;
+  text-align: right;
 }
 
 @media (prefers-reduced-motion: reduce) {
