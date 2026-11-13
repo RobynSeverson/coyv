@@ -560,8 +560,12 @@ and public home; additional contacts are text-only. Removing a custom icon
 returns the contact to this default allocation. Decorative border variants
 are randomized per page load, with upper-right ornaments rotated 180 degrees.
 Borders render at full opacity. Social icons share a text-relative square size;
-social/news links bleach toward white on hover or touch, using the landing
-artwork's contrast-before-brightness exposure treatment on their images.
+contact labels follow a stationary vertical arc around the illustration,
+keeping their normal reading/tab order and wrapping long titles. Public links,
+including navigation and links in rich text, use vibrant underlined text and
+bleach toward white on hover or touch, using the landing artwork's
+contrast-before-brightness exposure treatment on their images. Checkout/payment
+buttons and studio/form controls keep their existing styling.
 Keyboard focus retains readable text with a glow and dotted underline instead
 of a box. Reduced-motion preferences disable the fades.
 

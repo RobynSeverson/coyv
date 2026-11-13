@@ -1,7 +1,5 @@
-/* Anchors inside admin-authored copy. Browser-default blue is jarring against
-   a page built out of greyscale artwork, so links take the surrounding colour
-   and rely on an underline to read as links — which keeps them distinguishable
-   without colour alone, the way the rest of the site works. */
+/* Editor previews inherit their ink. Public links get the shared vibrant
+   colors and exposure treatment from publicLinks.css. */
 .richText__small {
   font-size: 0.85em;
 }

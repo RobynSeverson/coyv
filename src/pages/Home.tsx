@@ -135,8 +135,9 @@ export default function Home() {
             alt="Two illustrated figures sitting together in a drifting, painted world"
           />
           <ul className="home__socials">
-            {home.contacts.map(({ id, title, url }) => (
-              <li key={id}>
+            {home.contacts.map(({ id, title, url }, index) => (
+              <li key={id} style={{ paddingInlineStart: `${home.contacts.length > 1
+                ? Math.sin(Math.PI * index / (home.contacts.length - 1)) * 24 : 0}%` }}>
                 <a
                   className="home__social"
                   href={url}

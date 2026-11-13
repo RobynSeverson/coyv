@@ -1,0 +1,73 @@
+.lightbox {
+  --public-link-color: #7edaff;
+  --public-link-focus: #f7d486;
+}
+
+/* Scope to public content, including the portaled memory viewer. Checkout's
+   artwork button and all form/payment buttons keep their existing treatment. */
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink) {
+  color: var(--public-link-color, #0a63ab);
+  text-decoration: underline;
+  text-decoration-color: currentColor;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 240ms ease, text-shadow 240ms ease;
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink) time {
+  color: inherit;
+  transition: color 240ms ease;
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink) :is(img, svg) {
+  transition: filter 240ms ease, opacity 240ms ease;
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):active:not(:focus-visible) {
+  color: #fff;
+  text-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 0 20px #fff, 0 0 32px rgba(255, 246, 224, 0.95);
+  transition-duration: 80ms;
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):active:not(:focus-visible) time {
+  transition-duration: 80ms;
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):active:not(:focus-visible) :is(img, svg) {
+  filter: contrast(0.3) brightness(3) blur(0.5px) drop-shadow(0 0 8px #fff);
+  opacity: 0.25;
+  transition-duration: 80ms;
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):focus-visible {
+  outline: none;
+  text-shadow: 0 0 4px #fff, 0 0 12px #fff, 0 0 20px rgba(192, 147, 125, 0.85);
+  text-decoration-style: dotted;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--public-link-focus, #885c52);
+}
+
+:is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):focus-visible:has(> img:only-child) {
+  outline: 2px dotted var(--public-link-focus, #885c52);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  :is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):hover:not(:focus-visible) {
+    color: #fff;
+    text-shadow: 0 0 4px #fff, 0 0 10px #fff, 0 0 20px #fff, 0 0 32px rgba(255, 246, 224, 0.95);
+  }
+
+  :is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink):hover:not(:focus-visible) :is(img, svg) {
+    filter: contrast(0.3) brightness(3) blur(0.5px) drop-shadow(0 0 8px #fff);
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink),
+  :is(.siteLayout, .lightbox) a[href]:not(.vault__checkoutLink) :is(time, img, svg) {
+    transition: none;
+  }
+}
