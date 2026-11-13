@@ -2,6 +2,14 @@
    a page built out of greyscale artwork, so links take the surrounding colour
    and rely on an underline to read as links — which keeps them distinguishable
    without colour alone, the way the rest of the site works. */
+.richText__small {
+  font-size: 0.85em;
+}
+
+.richText__large {
+  font-size: 1.25em;
+}
+
 .richText a {
   color: inherit;
   text-decoration: underline;

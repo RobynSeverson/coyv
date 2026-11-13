@@ -222,12 +222,9 @@ export default function AdminHome({ adminId }: { adminId: string }) {
       {!home ? <p className="admin__muted">{busy ? "loading…" : "Home has not loaded. Use reload to try again."}</p> : (
         <fieldset className="admin__homeFields" disabled={busy}>
           <section className="admin__card">
-            <h2 className="admin__cardTitle">about me</h2>
-            <label className="admin__field">
-              <span>about me text</span>
-              <textarea rows={6} maxLength={20000} value={home.aboutMe}
-                onChange={(event) => edit((current) => ({ ...current, aboutMe: event.target.value }))} />
-            </label>
+            <h2 className="admin__cardTitle">origins</h2>
+            <RichTextEditor label="origins text" rows={6} textSizes maxLength={20000} value={home.aboutMe}
+              onChange={(aboutMe) => edit((current) => ({ ...current, aboutMe }))} />
           </section>
 
           {(["projects", "artwork"] as const).map((section) => (

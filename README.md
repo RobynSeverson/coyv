@@ -55,7 +55,7 @@ The home page reads saved content from the studio's **home** tab. Keep the share
 `PageHeader` coyv wordmark above its welcome text, as on the other pages.
 The contact artwork and repeated social icon live in `src/assets/homeContact.webp` and
 `src/assets/homeSocial.webp`.
-Home's headings and panels use translucent light cream with irregular gray
+Home's headings and panels use translucent light gray with irregular gray
 top-edge fragments to echo the wallpaper, rather than green beveled cards.
 Only decorative fragments are skewed; text, images and the shared header stay upright.
 
@@ -515,13 +515,18 @@ into the studio after sign-in. Do not disable user zoom in the viewport meta tag
 Section tabs wrap onto additional rows rather than scrolling horizontally;
 sign out has a contrasting terracotta fill so it remains distinct from the tabs.
 
-The **home** tab edits about-me text, up to four project images and four artwork
+The **home** tab edits **origins** rich text, up to four project images and four artwork
 images, repeatable news entries, and any number of contact title/link pairs.
 Image slots reveal the next upload after success and show the same 3:1 crop as
 home. Optional showcase links, and both the contact icon and title, are clickable.
 Each news entry has a date, optional preview image, snippet, and rich-text body.
 Upload body images, then insert them with the editor's **place an image** control.
 Home's news date/preview opens the full entry in a new tab.
+Origins supports bold, italic, links, and small/large selection controls
+(`[[small]]text[[/small]]` / `[[large]]text[[/large]]`). It retains the existing
+`aboutMe` storage field so saved content and recovery drafts need no migration.
+Public browser and social-preview titles are simply **coyvcastle**; route-specific
+descriptions and canonicals remain unchanged.
 
 **Save home** publishes all sections together; uploads alone do not publish.
 Reload discards unsaved edits after confirmation. A conflicting save asks for

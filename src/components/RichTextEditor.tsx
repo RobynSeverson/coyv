@@ -15,6 +15,8 @@ type Props = {
   /* The images already attached to the record being edited. Offered as
      thumbnails to drop into the text; the author never types a URL. */
   images?: RichTextImage[];
+  textSizes?: boolean;
+  maxLength?: number;
 };
 
 export default function RichTextEditor({
@@ -23,6 +25,8 @@ export default function RichTextEditor({
   rows = 4,
   label,
   images = [],
+  textSizes = false,
+  maxLength,
 }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showPreview, setShowPreview] = useState(false);
@@ -37,7 +41,10 @@ export default function RichTextEditor({
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
     const selected = value.slice(start, end) || placeholder;
-    const next = `${value.slice(0, start)}${before}${selected}${after}${value.slice(end)}`;
+    const formatted = before === "[[small]]" || before === "[[large]]"
+      ? selected.split("\n").map((line) => line ? `${before}${line}${after}` : "").join("\n")
+      : `${before}${selected}${after}`;
+    const next = `${value.slice(0, start)}${formatted}${value.slice(end)}`;
 
     onChange(next);
 
@@ -72,6 +79,14 @@ export default function RichTextEditor({
         {label ? <span className="rte__label">{label}</span> : null}
 
         <div className="rte__tools">
+          {textSizes ? (
+            <>
+              <button type="button" title="Smaller text"
+                onClick={() => wrapSelection("[[small]]", "[[/small]]", "smaller text")}>small</button>
+              <button type="button" title="Larger text"
+                onClick={() => wrapSelection("[[large]]", "[[/large]]", "larger text")}>large</button>
+            </>
+          ) : null}
           <button
             type="button"
             title="Bold"
@@ -135,6 +150,8 @@ export default function RichTextEditor({
         <textarea
           ref={textareaRef}
           className="rte__input"
+          aria-label={label}
+          maxLength={maxLength}
           rows={rows}
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -143,6 +160,7 @@ export default function RichTextEditor({
 
       <p className="rte__hint">
         Blank line starts a paragraph · **bold** · *italic* · [text](https://link)
+        {textSizes ? " · select text, then choose small or large" : ""}
         {images.length > 0 ? " · [[image:1]] places an upload" : ""}
       </p>
     </div>

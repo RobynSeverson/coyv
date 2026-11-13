@@ -4,6 +4,7 @@ import PageHeader from "../components/PageHeader";
 import contactArtwork from "../assets/homeContact.webp";
 import socialMark from "../assets/homeSocial.webp";
 import { api, type HomePageContent } from "../lib/api";
+import { RichText } from "../lib/richText";
 import "./Home.css";
 
 /* Keep the content revealed on the landing while the router mounts /home. */
@@ -53,8 +54,8 @@ export default function Home() {
       ) : (
       <>
       <section className="home__section" aria-labelledby="home-about">
-        <h2 id="home-about" className="home__heading">about me</h2>
-        <p className="home__about">{home.aboutMe}</p>
+        <h2 id="home-about" className="home__heading">origins</h2>
+        <RichText className="home__about" value={home.aboutMe} />
       </section>
 
       <div className="home__showcases">

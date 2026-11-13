@@ -5,7 +5,7 @@ import { ADMIN_PATH } from "../config";
 const SITE = "coyv";
 const ORIGIN = "https://coyvcastle.com";
 
-const SITE_TITLE = `${SITE} — art, prints & a print of the month`;
+const SITE_TITLE = "coyvcastle";
 const SITE_DESCRIPTION =
   "coyv's castle: original artwork, limited prints, and a print-of-the-month subscription. Step past the threshold and wander the vault and the memories.";
 
@@ -66,6 +66,7 @@ export function metaForPath(pathname: string) {
   const match = matchForPath(pathname);
   return {
     ...(match?.[1] ?? { title: SITE_TITLE, description: SITE_DESCRIPTION }),
+    title: SITE_TITLE,
     /* Deep links such as /vault/some-print or /memories/memory_001 open the
        page they belong to with one item already selected, so they point at
        that page rather than offering Google a second URL for one document. */

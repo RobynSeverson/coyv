@@ -15,7 +15,7 @@ import "./richText.css";
    text written by someone who got hold of an admin session — can inject
    markup or script into the shop. */
 
-const INLINE = /(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)\s]+\))/g;
+const INLINE = /(\[\[small\]\].*?\[\[\/small\]\]|\[\[large\]\].*?\[\[\/large\]\]|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\([^)\s]+\))/g;
 
 /* A line of its own, so an image always breaks the column rather than trying
    to flow inside a sentence. */
@@ -49,12 +49,22 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     .map((part, index) => {
       const key = `${keyPrefix}-${index}`;
 
+      for (const size of ["small", "large"] as const) {
+        const opening = `[[${size}]]`;
+        const closing = `[[/${size}]]`;
+        if (part.startsWith(opening) && part.endsWith(closing)) {
+          return <span key={key} className={`richText__${size}`}>
+            {renderInline(part.slice(opening.length, -closing.length), key)}
+          </span>;
+        }
+      }
+
       if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
-        return <strong key={key}>{part.slice(2, -2)}</strong>;
+        return <strong key={key}>{renderInline(part.slice(2, -2), key)}</strong>;
       }
 
       if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
-        return <em key={key}>{part.slice(1, -1)}</em>;
+        return <em key={key}>{renderInline(part.slice(1, -1), key)}</em>;
       }
 
       const link = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(part);
