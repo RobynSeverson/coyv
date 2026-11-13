@@ -17,11 +17,9 @@ import outerLeftDesktop from "../assets/outerGate-desktop-left.webp";
 import outerRightDesktop from "../assets/outerGate-desktop-right.webp";
 import "./Landing.css";
 
-const DISSOLVE_DURATION = 2000;
-/* Must match the tail of the gate keyframes in Landing.css: the right panel
-   slides out, then the left, then the main gate drops. */
-const GATE_DURATION = 1100;
-const GATE_DURATION_REDUCED = 300;
+const ANIMATION_TIME_SCALE = 0.9;
+const DISSOLVE_DURATION = 1800;
+const DISSOLVE_DURATION_REDUCED = 360;
 const EASING = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const BLOB_GRADIENT =
   "radial-gradient(closest-side, rgb(0 0 0 / 1) 56%, rgb(0 0 0 / 0) 100%)";
@@ -81,7 +79,7 @@ const maskStyle = {
   ).join(", "),
   ["--landing-blob-animation" as string]: BLOBS.map(
     (blob, index) =>
-      `landingBlob${index} ${blob.duration}ms ${EASING} ${blob.delay}ms both`,
+      `landingBlob${index} ${blob.duration * ANIMATION_TIME_SCALE}ms ${EASING} ${blob.delay * ANIMATION_TIME_SCALE}ms both`,
   ).join(", "),
 };
 
@@ -98,14 +96,13 @@ export default function Landing() {
   const [isDissolving, setIsDissolving] = useState(false);
   const navigate = useNavigate();
   const timeoutRef = useRef<number | undefined>(undefined);
-  const gateTimeoutRef = useRef<number | undefined>(undefined);
   const innerStartedRef = useRef(false);
+  const dissolveStartedRef = useRef(false);
   const landingRef = useRef<HTMLElement>(null);
 
   useEffect(
     () => () => {
       window.clearTimeout(timeoutRef.current);
-      window.clearTimeout(gateTimeoutRef.current);
     },
     [],
   );
@@ -156,18 +153,19 @@ export default function Landing() {
     if (innerStartedRef.current) return;
     innerStartedRef.current = true;
     setIsInnerOpening(true);
+  };
+
+  const dissolve = () => {
+    if (dissolveStartedRef.current) return;
+    dissolveStartedRef.current = true;
+    setIsDissolving(true);
     const reduced = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
-    const gateDuration = reduced ? GATE_DURATION_REDUCED : GATE_DURATION;
-
-    gateTimeoutRef.current = window.setTimeout(() => {
-      setIsDissolving(true);
-      timeoutRef.current = window.setTimeout(
-        () => navigate("/home", { state: { fromLanding: true } }),
-        DISSOLVE_DURATION,
-      );
-    }, gateDuration);
+    timeoutRef.current = window.setTimeout(
+      () => navigate("/home", { state: { fromLanding: true } }),
+      reduced ? DISSOLVE_DURATION_REDUCED : DISSOLVE_DURATION,
+    );
   };
 
   const className = [
@@ -202,6 +200,7 @@ export default function Landing() {
         <source media="(max-width: 768px)" srcSet={mainGateMobile} />
         <img
           className="landing__gate landing__gate--main"
+          onAnimationEnd={dissolve}
           src={mainGateDesktop}
           alt=""
           aria-hidden="true"

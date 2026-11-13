@@ -13,7 +13,7 @@
   display: grid;
   place-items: center;
   background: #ffffff;
-  --dissolve-duration: 2000ms;
+  --dissolve-duration: 1800ms;
   /* Desktop artwork by default; the mobile crop swaps in below 768px. */
   --art-image: var(--art-image-desktop);
 }
@@ -121,18 +121,17 @@ body:has(.landing) {
   z-index: 4;
 }
 
-/* Right panel out first, then the left, then the main gate drops. The delays
-   here are what GATE_DURATION in Landing.tsx is timed against. */
+/* Right panel out first, then the left, then the main gate drops. */
 .landing.is-inner-opening .landing__gate--right {
-  animation: gateSlideRight 450ms cubic-bezier(0.5, 0, 0.75, 0) 0ms forwards;
+  animation: gateSlideRight 405ms cubic-bezier(0.5, 0, 0.75, 0) 0ms forwards;
 }
 
 .landing.is-inner-opening .landing__gate--left {
-  animation: gateSlideLeft 450ms cubic-bezier(0.5, 0, 0.75, 0) 300ms forwards;
+  animation: gateSlideLeft 405ms cubic-bezier(0.5, 0, 0.75, 0) 270ms forwards;
 }
 
 .landing.is-inner-opening .landing__gate--main {
-  animation: gateSlideDown 500ms cubic-bezier(0.5, 0, 0.75, 0) 600ms forwards;
+  animation: gateSlideDown 450ms cubic-bezier(0.5, 0, 0.75, 0) 540ms forwards;
 }
 
 @keyframes gateSlideRight {
@@ -168,18 +167,19 @@ body:has(.landing) {
 
 .landing__outerGate--left {
   transform-origin: left center;
-  --outer-angle: -105deg;
+  --outer-angle: -90deg;
 }
 
 .landing__outerGate--right {
   transform-origin: right center;
-  --outer-angle: 105deg;
+  --outer-angle: 90deg;
 }
 
 /* Full-frame transparent layers pivot at their outside hinges. Perspective
-   foreshortens each inner edge, matching the reference's separate distortions. */
+   foreshortens each inner edge. Finish edge-on without easing to a crawl or
+   spending an invisible tail past 90deg before the next stage can start. */
 .landing.is-opening .landing__outerGate {
-  animation: outerGateOpen 1800ms cubic-bezier(0.35, 0, 0.3, 1) forwards;
+  animation: outerGateOpen 1620ms ease-in forwards;
 }
 
 @keyframes outerGateOpen {
@@ -302,6 +302,7 @@ body:has(.landing) {
 
 .landing.is-opening .landing__button {
   opacity: 0;
+  transition-duration: 450ms;
   pointer-events: none;
   /* Pausing freezes the float mid-cycle. `animation: none` snapped the
      transform back to 0, which read as the button jumping on tap. */
@@ -327,31 +328,36 @@ body:has(.landing) {
 
 @media (prefers-reduced-motion: reduce) {
   .landing {
-    --dissolve-duration: 400ms;
+    --dissolve-duration: 360ms;
   }
 
   .landing__button {
     animation: none;
   }
 
-  /* Matches GATE_DURATION_REDUCED in Landing.tsx. */
   .landing.is-inner-opening .landing__gate--right {
-    animation-duration: 140ms;
+    animation-duration: 126ms;
     animation-delay: 0ms;
   }
 
   .landing.is-inner-opening .landing__gate--left {
-    animation-duration: 140ms;
-    animation-delay: 80ms;
+    animation-duration: 126ms;
+    animation-delay: 72ms;
   }
 
   .landing.is-inner-opening .landing__gate--main {
-    animation-duration: 140ms;
-    animation-delay: 160ms;
+    animation-duration: 126ms;
+    animation-delay: 144ms;
   }
 
   .landing.is-opening .landing__outerGate {
-    animation: outerGateFade 120ms linear forwards;
+    animation: outerGateFade 108ms linear forwards;
+  }
+
+  .landing.is-dissolving .landing__reveal {
+    mask-image: none;
+    -webkit-mask-image: none;
+    animation: plainReveal var(--dissolve-duration) ease-in-out forwards;
   }
 }
 
