@@ -321,6 +321,13 @@
   }
 }
 
+@media (max-width: 768px) {
+  .home__showcases {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .home {
     animation: none;

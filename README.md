@@ -552,6 +552,8 @@ The full-resolution source stays on the device; print product uploads are unchan
 Project/artwork slots have horizontal and vertical crop-position controls.
 The studio preview and public 3:1 tile use the same saved focal position;
 **center crop** restores the original framing without changing the source.
+Projects and artwork stack as separate full-width sections at 768px and below;
+desktop keeps the side-by-side layout.
 Contacts accept optional custom icon uploads. Otherwise, the four supplied
 defaults are assigned in a UUID-seeded, non-repeating order shared by studio
 and public home; additional contacts are text-only. Removing a custom icon
