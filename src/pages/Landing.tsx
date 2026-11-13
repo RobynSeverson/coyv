@@ -11,6 +11,10 @@ import leftGateMobile from "../assets/leftGateMobile.png";
 import rightGateDesktop from "../assets/rightGateDesktop.png";
 import rightGateMobile from "../assets/rightGateMobile.png";
 import enterMark from "../assets/openGates.png";
+import outerLeftMobile from "../assets/outerGate-mobile-left.webp";
+import outerRightMobile from "../assets/outerGate-mobile-right.webp";
+import outerLeftDesktop from "../assets/outerGate-desktop-left.webp";
+import outerRightDesktop from "../assets/outerGate-desktop-right.webp";
 import "./Landing.css";
 
 const DISSOLVE_DURATION = 2000;
@@ -90,10 +94,12 @@ const supportsBlobMask =
 
 export default function Landing() {
   const [isOpening, setIsOpening] = useState(false);
+  const [isInnerOpening, setIsInnerOpening] = useState(false);
   const [isDissolving, setIsDissolving] = useState(false);
   const navigate = useNavigate();
   const timeoutRef = useRef<number | undefined>(undefined);
   const gateTimeoutRef = useRef<number | undefined>(undefined);
+  const innerStartedRef = useRef(false);
   const landingRef = useRef<HTMLElement>(null);
 
   useEffect(
@@ -140,11 +146,16 @@ export default function Landing() {
     };
   }, []);
 
-  /* The gates open first, then the artwork dissolves into the home page. */
+  /* The outer pair swings open before the original gate sequence starts. */
   const openGates = () => {
     if (isOpening) return;
     setIsOpening(true);
+  };
 
+  const openInnerGates = () => {
+    if (innerStartedRef.current) return;
+    innerStartedRef.current = true;
+    setIsInnerOpening(true);
     const reduced = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     ).matches;
@@ -162,6 +173,7 @@ export default function Landing() {
   const className = [
     "landing",
     isOpening ? "is-opening" : "",
+    isInnerOpening ? "is-inner-opening" : "",
     isDissolving ? "is-dissolving" : "",
     supportsBlobMask ? "" : "is-plain",
   ]
@@ -213,6 +225,17 @@ export default function Landing() {
           aria-hidden="true"
         />
       </picture>
+      {([
+        ["left", outerLeftMobile, outerLeftDesktop],
+        ["right", outerRightMobile, outerRightDesktop],
+      ] as const).map(([side, mobile, desktop]) => (
+        <picture key={side}>
+          <source media="(max-width: 768px)" srcSet={mobile} />
+          <img className={`landing__outerGate landing__outerGate--${side}`}
+            onAnimationEnd={side === "right" ? openInnerGates : undefined}
+            src={desktop} alt="" aria-hidden="true" />
+        </picture>
+      ))}
       {/* The destination page, revealed through the blobs the dissolve opens. */}
       <div
         className="landing__reveal"

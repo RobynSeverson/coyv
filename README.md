@@ -97,6 +97,11 @@ the image as they collapse. The large viewport keeps the artwork's scale
 stable and covers the extra visible space, while still adapting to rotation.
 Both mobile and desktop wallpapers render without a white wash, brightness,
 contrast, or other color filter. Link exposure effects do not affect the backdrop.
+The landing's outer gate pair stretches its separate mobile/desktop layers to
+the viewport, then opens both sides together with a perspective distortion.
+Its animation-end event starts the original right/left/main gate sequence;
+the existing artwork exposure and dissolve follow unchanged. Reduced motion
+uses a brief outer-gate fade instead of a 3D swing.
 This is only the decorative backdrop; page layout keeps `min-height: 100svh`
 so short pages do not gain extra scrolling.
 
