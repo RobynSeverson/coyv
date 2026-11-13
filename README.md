@@ -99,10 +99,10 @@ Both mobile and desktop wallpapers render without a white wash, brightness,
 contrast, or other color filter. Link exposure effects do not affect the backdrop.
 The landing's outer gate pair stretches its separate mobile/desktop layers to
 the viewport, then opens both sides together with a perspective distortion.
-The original right/left/main gate sequence starts at 80% of the outer swing on
+The original right/left/main gate sequence starts at 60% of the outer swing on
 a shared CSS timeline; the main gate's animation-end starts exposure/dissolve.
-The outer swing ends edge-on and is another 20% shorter than the initial
-10% entrance-wide speedup, which still applies to exposure/dissolve. Reduced motion
+The outer swing ends edge-on in 1.0368 seconds. The initial 10% entrance-wide
+speedup still applies to exposure/dissolve. Reduced motion
 uses a brief outer-gate fade instead of a 3D swing.
 This is only the decorative backdrop; page layout keeps `min-height: 100svh`
 so short pages do not gain extra scrolling.

@@ -14,8 +14,8 @@
   place-items: center;
   background: #ffffff;
   --dissolve-duration: 1800ms;
-  --outer-gate-duration: 1296ms;
-  --inner-gate-delay: calc(var(--outer-gate-duration) * 0.8);
+  --outer-gate-duration: 1036.8ms;
+  --inner-gate-delay: calc(var(--outer-gate-duration) * 0.6);
   /* Desktop artwork by default; the mobile crop swaps in below 768px. */
   --art-image: var(--art-image-desktop);
 }
@@ -123,7 +123,7 @@ body:has(.landing) {
   z-index: 4;
 }
 
-/* One CSS timeline starts the original gates at 80% of the outer swing,
+/* One CSS timeline starts the original gates at 60% of the outer swing,
    independent of React rendering or timer scheduling. */
 .landing.is-opening .landing__gate--right {
   animation: gateSlideRight 405ms cubic-bezier(0.5, 0, 0.75, 0) var(--inner-gate-delay) forwards;

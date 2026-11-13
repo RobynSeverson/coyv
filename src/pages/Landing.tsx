@@ -141,7 +141,7 @@ export default function Landing() {
     };
   }, []);
 
-  /* CSS overlaps the original gates with the final fifth of the outer swing. */
+  /* CSS overlaps the original gates with the final 40% of the outer swing. */
   const openGates = () => {
     if (isOpening) return;
     setIsOpening(true);
