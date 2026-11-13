@@ -557,6 +557,9 @@ defaults are assigned in a UUID-seeded, non-repeating order shared by studio
 and public home; additional contacts are text-only. Removing a custom icon
 returns the contact to this default allocation. Decorative border variants
 are randomized per page load, with upper-right ornaments rotated 180 degrees.
+Borders render at full opacity. Social icons share a text-relative square size;
+social/news links glow on hover or activation, with a dotted underline for
+keyboard focus instead of a box. Reduced-motion preferences disable the fades.
 
 Home API integration tests use a dedicated local Mongo and an in-memory local
 object-store double, never AWS. Run from the repository root with an isolated

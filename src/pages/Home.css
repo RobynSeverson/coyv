@@ -54,21 +54,21 @@
 
 .home__ornament {
   position: absolute;
-  width: clamp(1.5rem, 4vw, 2.5rem);
-  height: min(80%, 12rem);
+  width: clamp(2.75rem, 8vw, 4.75rem);
+  height: clamp(5rem, 100%, 18rem);
   object-fit: contain;
-  opacity: 0.65;
+  opacity: 1;
 }
 
 .home__ornament--lower {
   bottom: -0.5rem;
-  left: -1.2rem;
+  left: -1.5rem;
   object-position: left bottom;
 }
 
 .home__ornament--upper {
   top: -0.5rem;
-  right: -1.2rem;
+  right: -1.5rem;
   object-position: left bottom;
   transform: rotate(180deg);
 }
@@ -231,8 +231,8 @@
 
 .home__social img {
   flex: 0 0 auto;
-  width: clamp(2rem, 6vw, 3rem);
-  height: clamp(2.5rem, 7vw, 3.5rem);
+  width: 1.5em;
+  height: 1.5em;
   object-fit: contain;
 }
 
@@ -276,8 +276,34 @@
   color: #885c52;
 }
 
+.home__social,
+.home__newsLink {
+  -webkit-tap-highlight-color: transparent;
+  transition: text-shadow 160ms ease;
+}
+
+.home__social img,
+.home__newsLink img {
+  transition: filter 160ms ease;
+}
+
+.home__social:is(:active, :focus-visible),
+.home__newsLink:is(:active, :focus-visible) {
+  text-shadow: 0 0 3px #fff, 0 0 8px #fff, 0 0 14px rgba(192, 147, 125, 0.85);
+}
+
+.home__social:is(:active, :focus-visible) img,
+.home__newsLink:is(:active, :focus-visible) img {
+  filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(192, 147, 125, 0.75));
+}
+
 .home__social:focus-visible,
-.home__newsLink:focus-visible,
+.home__newsLink:focus-visible {
+  outline: none;
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}
+
 .home__tile a:focus-visible {
   outline: 2px solid #41443d;
   outline-offset: -2px;
@@ -285,13 +311,25 @@
 
 @media (hover: hover) and (pointer: fine) {
   .home__social:hover,
-  .home__newsLink:hover time {
-    text-decoration: underline;
+  .home__newsLink:hover {
+    text-shadow: 0 0 3px #fff, 0 0 8px #fff, 0 0 14px rgba(192, 147, 125, 0.85);
+  }
+
+  .home__social:hover img,
+  .home__newsLink:hover img {
+    filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 6px rgba(192, 147, 125, 0.75));
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .home {
     animation: none;
+  }
+
+  .home__social,
+  .home__newsLink,
+  .home__social img,
+  .home__newsLink img {
+    transition: none;
   }
 }
