@@ -36,4 +36,23 @@ describe("home recovery drafts", () => {
     assert.equal(refreshed.revision, draft.revision);
     assert.throws(() => refreshHomeImages(draft, []), /draft has been kept/);
   });
+
+  it("recovers crop offsets and unpublished custom contact icons alongside legacy drafts", () => {
+    const customized: HomeContent = {
+      ...draft,
+      projects: [{ ...draft.projects[0]!, cropX: 15, cropY: 90 }],
+      contacts: [{ ...draft.contacts[0]!, icon: { ...image, id: "000000000000000000000002" } }],
+    };
+    assert.deepEqual(readHomeDraft(writeHomeDraft(customized)), customized);
+    assert.deepEqual(homeImageIds(customized), [image.id, "000000000000000000000002"]);
+    const refreshed = refreshHomeImages(customized, [
+      { ...image, url: "https://fresh.example/image" },
+      { ...image, id: "000000000000000000000002", url: "https://fresh.example/icon" },
+    ]);
+    assert.equal(refreshed.projects[0]?.cropY, 90);
+    assert.equal(refreshed.contacts[0]?.icon?.url, "https://fresh.example/icon");
+    assert.throws(() => readHomeDraft(writeHomeDraft({
+      ...customized, projects: [{ ...customized.projects[0]!, cropX: 101 }],
+    })));
+  });
 });

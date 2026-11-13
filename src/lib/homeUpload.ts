@@ -7,9 +7,6 @@ const TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
    full-resolution camera original. Product/print uploads are not changed. */
 export async function prepareHomeImage(file: File, signal: AbortSignal): Promise<File> {
   if (!TYPES.has(file.type)) throw new Error("Choose a JPEG, PNG, WebP or AVIF image.");
-  if (file.size > 50 * 1024 * 1024) {
-    throw new Error("This source image is over 50 MB. Export a smaller copy before uploading.");
-  }
   signal.throwIfAborted();
   const task = (async () => {
     const bitmap = await createImageBitmap(file);
@@ -22,18 +19,27 @@ export async function prepareHomeImage(file: File, signal: AbortSignal): Promise
       canvas.height = Math.max(1, Math.round(bitmap.height * scale));
       const context = canvas.getContext("2d");
       if (!context) throw new Error("This browser could not prepare the image. Try a smaller image.");
-      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-      for (const quality of [0.85, 0.7]) {
-        signal.throwIfAborted();
-        const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
-        signal.throwIfAborted();
-        if (!blob) throw new Error("This browser could not prepare the image. Try a smaller image.");
-        if (blob.size <= MAX_BYTES) {
-          const extension = blob.type === "image/webp" ? "webp" : "png";
-          return new File([blob], `home-image.${extension}`, { type: blob.type });
+      while (true) {
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        for (const quality of [0.85, 0.65, 0.45]) {
+          signal.throwIfAborted();
+          const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", quality));
+          signal.throwIfAborted();
+          if (!blob) throw new Error("This browser could not encode the image. Try another image format.");
+          if (blob.size <= MAX_BYTES) {
+            const extension = blob.type === "image/webp" ? "webp" : "png";
+            return new File([blob], `home-image.${extension}`, { type: blob.type });
+          }
+          /* Safari may return PNG when WebP encoding is unavailable. Quality
+             has no effect on PNG, so reduce dimensions instead of retrying it. */
+          if (blob.type !== "image/webp") break;
         }
+        if (canvas.width === 1 && canvas.height === 1) {
+          throw new Error("This browser could not prepare a valid image upload.");
+        }
+        canvas.width = Math.max(1, Math.floor(canvas.width * 0.7));
+        canvas.height = Math.max(1, Math.floor(canvas.height * 0.7));
       }
-      throw new Error("This image is still over 3 MB after preparation. Export a smaller copy.");
     } finally {
       bitmap.close();
     }

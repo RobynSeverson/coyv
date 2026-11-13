@@ -16,6 +16,8 @@ const showcaseSchema = new Schema({
   imageId: { type: Schema.Types.ObjectId, required: true },
   title: { type: String, default: '' },
   url: { type: String, default: '' },
+  cropX: { type: Number, default: 50, min: 0, max: 100 },
+  cropY: { type: Number, default: 50, min: 0, max: 100 },
 }, { _id: false })
 
 const newsSchema = new Schema({
@@ -31,6 +33,7 @@ const contactSchema = new Schema({
   id: { type: String, required: true },
   title: { type: String, required: true },
   url: { type: String, required: true },
+  iconId: { type: Schema.Types.ObjectId, default: null },
 }, { _id: false })
 
 const homeSchema = new Schema({

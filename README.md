@@ -543,16 +543,27 @@ recovery, not a backup available on another device.
 Home uploads show preparation/upload stages, have a **cancel upload** button
 and a 60-second deadline, and leave all other draft edits intact on failure.
 Large home images are resized in the browser to at most 1600px on the longest
-side and compressed to at most 3 MiB before being sent. Sources over 50 MiB
-need a smaller export. The full-resolution source stays on the device; print
-product uploads are unchanged.
+side and compressed to at most 3 MiB before being sent. If compression is not
+enough, dimensions are reduced further, including when a browser falls back to
+PNG instead of WebP. Transparency is retained. There is no source-file size cap,
+but the browser must be able to decode the supported image within the deadline.
+The full-resolution source stays on the device; print product uploads are unchanged.
+
+Project/artwork slots have horizontal and vertical crop-position controls.
+The studio preview and public 3:1 tile use the same saved focal position;
+**center crop** restores the original framing without changing the source.
+Contacts accept optional custom icon uploads. Otherwise, the four supplied
+defaults are assigned in a UUID-seeded, non-repeating order shared by studio
+and public home; additional contacts are text-only. Removing a custom icon
+returns the contact to this default allocation. Decorative border variants
+are randomized per page load, with upper-right ornaments rotated 180 degrees.
 
 Home API integration tests use a dedicated local Mongo and an in-memory local
 object-store double, never AWS. Run from the repository root with an isolated
 Mongo instance: `HOME_TEST_MONGODB_URI=mongodb://127.0.0.1:27017 node --test
 server/src/routes/home.test.ts`. Each run creates and drops its own random test
 database; without the variable the suite is skipped.
-Run draft/formatting tests with `node --test tests/homeDraft.test.ts tests/richContent.test.ts`.
+Run draft/formatting/upload tests with `node --test tests/homeDraft.test.ts tests/richContent.test.ts tests/homeUpload.test.ts`.
 
 The **products** tab is where you create prints and subscriptions, set prices
 and stock, upload artwork, and publish. A product with no images cannot be

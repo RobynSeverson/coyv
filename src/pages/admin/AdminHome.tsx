@@ -4,6 +4,7 @@ import { api, type HomeContent, type HomeImage, type HomeNews } from "../../lib/
 import { homeImageIds, readHomeDraft, refreshHomeImages, writeHomeDraft } from "../../lib/homeDraft";
 import { prepareHomeImage } from "../../lib/homeUpload";
 import { hasRichContent, removeRichImage } from "../../../server/src/lib/richContent";
+import { contactIconSources } from "../../lib/homePresentation";
 
 function ImagePicker({ label, onUpload }: { label: string; onUpload: (file: File) => void }) {
   return (
@@ -35,6 +36,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
   const [notice, setNotice] = useState("");
   const [uploadStage, setUploadStage] = useState<string | null>(null);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
+  const contactIcons = contactIconSources(home?.contacts ?? []);
 
   function replaceHome(next: HomeContent) {
     homeRef.current = next;
@@ -225,7 +227,25 @@ export default function AdminHome({ adminId }: { adminId: string }) {
               <div className="admin__grid">
                 {home[section].map((item, index) => (
                   <div className="admin__homeTile" key={`${item.image.id}-${index}`}>
-                    <img src={item.image.url} alt={item.title || `${section} preview ${index + 1}`} />
+                    <img src={item.image.url} alt={item.title || `${section} preview ${index + 1}`}
+                      style={{ objectPosition: `${item.cropX ?? 50}% ${item.cropY ?? 50}%` }} />
+                    {(["X", "Y"] as const).map((axis) => (
+                      <label className="admin__field" key={axis}>
+                        <span>{axis === "X" ? "horizontal" : "vertical"} crop position</span>
+                        <input type="range" min={0} max={100} step={1} value={item[`crop${axis}`] ?? 50}
+                          onChange={(event) => {
+                            const value = Number(event.target.value);
+                            edit((current) => ({
+                              ...current, [section]: current[section].map((entry, at) =>
+                                at === index ? { ...entry, [`crop${axis}`]: value } : entry),
+                            }));
+                          }} />
+                      </label>
+                    ))}
+                    <button className="admin__logout" type="button" onClick={() => edit((current) => ({
+                      ...current, [section]: current[section].map((entry, at) =>
+                        at === index ? { ...entry, cropX: 50, cropY: 50 } : entry),
+                    }))}>center crop</button>
                     <label className="admin__field">
                       <span>caption / alt text</span>
                       <input maxLength={160} value={item.title} onChange={(event) => edit((current) => ({
@@ -249,7 +269,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
                 {home[section].length < 4 ? (
                   <ImagePicker label={`add ${section} image`} onUpload={(file) => void upload(file, (image) =>
                     edit((current) => ({
-                      ...current, [section]: [...current[section], { image, title: "", url: "" }],
+                      ...current, [section]: [...current[section], { image, title: "", url: "", cropX: 50, cropY: 50 }],
                     })),
                   )} />
                 ) : null}
@@ -321,8 +341,22 @@ export default function AdminHome({ adminId }: { adminId: string }) {
 
           <section className="admin__card">
             <h2 className="admin__cardTitle">contact</h2>
+            <p className="admin__muted">
+              Upload a custom icon or use one of the four supplied defaults.
+              Defaults never repeat; further contacts without custom icons show text only.
+            </p>
             {home.contacts.map((contact) => (
               <div className="admin__homeContact" key={contact.id}>
+                {contactIcons.get(contact.id) ? <img className="admin__contactIcon"
+                  src={contactIcons.get(contact.id)} alt={`${contact.title || "Contact"} icon preview`} /> :
+                  <p className="admin__muted">text-only contact</p>}
+                <ImagePicker label={contact.icon ? `replace icon for ${contact.title || "contact"}` : `add icon for ${contact.title || "contact"}`}
+                  onUpload={(file) => void upload(file, (image) => edit((current) => ({
+                    ...current, contacts: current.contacts.map((entry) => entry.id === contact.id ? { ...entry, icon: image } : entry),
+                  })))} />
+                {contact.icon ? <button className="admin__logout" type="button" onClick={() => edit((current) => ({
+                  ...current, contacts: current.contacts.map((entry) => entry.id === contact.id ? { ...entry, icon: null } : entry),
+                }))}>use default icon</button> : null}
                 <label className="admin__field">
                   <span>contact title</span>
                   <input required maxLength={100} value={contact.title} onChange={(event) => edit((current) => ({

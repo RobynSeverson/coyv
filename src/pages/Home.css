@@ -40,8 +40,37 @@
 }
 
 .home__section {
+  position: relative;
   min-width: 0;
   margin-bottom: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.home__ornaments {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.home__ornament {
+  position: absolute;
+  width: clamp(1.5rem, 4vw, 2.5rem);
+  height: min(80%, 12rem);
+  object-fit: contain;
+  opacity: 0.65;
+}
+
+.home__ornament--lower {
+  bottom: -0.5rem;
+  left: -1.2rem;
+  object-position: left bottom;
+}
+
+.home__ornament--upper {
+  top: -0.5rem;
+  right: -1.2rem;
+  object-position: left bottom;
+  transform: rotate(180deg);
 }
 
 .home__heading {
@@ -202,8 +231,9 @@
 
 .home__social img {
   flex: 0 0 auto;
-  width: clamp(2.5rem, 8vw, 4.5rem);
-  height: auto;
+  width: clamp(2rem, 6vw, 3rem);
+  height: clamp(2.5rem, 7vw, 3.5rem);
+  object-fit: contain;
 }
 
 .home__empty {

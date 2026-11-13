@@ -27,6 +27,8 @@ const showcaseInput = z.object({
   imageId,
   title: z.string().trim().max(160),
   url: z.union([z.literal(''), webUrl]),
+  cropX: z.number().min(0).max(100).default(50),
+  cropY: z.number().min(0).max(100).default(50),
 })
 const newsInput = z.object({
   id: z.string().uuid(),
@@ -43,6 +45,7 @@ const contactInput = z.object({
   id: z.string().uuid(),
   title: z.string().trim().min(1).max(100),
   url: webUrl,
+  iconId: imageId.nullable().default(null),
 })
 const homeInput = z.object({
   revision: z.number().int().nonnegative(),
@@ -78,6 +81,7 @@ function referencedIds(home: HomeDocument, full: boolean) {
   return [
     ...home.projects.map((item) => String(item.imageId)),
     ...home.artwork.map((item) => String(item.imageId)),
+    ...home.contacts.flatMap((item) => item.iconId ? [String(item.iconId)] : []),
     ...home.news.flatMap((item) => [
       ...(item.previewImageId ? [String(item.previewImageId)] : []),
       ...(full ? item.imageIds.map(String) : []),
@@ -94,6 +98,7 @@ async function serializeHome(home: HomeDocument, full: boolean) {
   }
   const showcase = (items: HomeDocument['projects']) => items.map((item) => ({
     image: resolve(String(item.imageId)), title: item.title, url: item.url,
+    cropX: item.cropX, cropY: item.cropY,
   }))
   return {
     revision: home.revision,
@@ -107,7 +112,9 @@ async function serializeHome(home: HomeDocument, full: boolean) {
       previewImage: item.previewImageId ? resolve(String(item.previewImageId)) : null,
       ...(full ? { body: readRichContent(item.body), images: item.imageIds.map((id) => resolve(String(id))) } : {}),
     })),
-    contacts: home.contacts.map((item) => ({ id: item.id, title: item.title, url: item.url })),
+    contacts: home.contacts.map((item) => ({
+      id: item.id, title: item.title, url: item.url, icon: item.iconId ? resolve(String(item.iconId)) : null,
+    })),
   }
 }
 
@@ -149,6 +156,7 @@ adminHomeRouter.put('/', async (req, res) => {
   const ids = new Set([
     ...content.projects.map((item) => item.imageId),
     ...content.artwork.map((item) => item.imageId),
+    ...content.contacts.flatMap((item) => item.iconId ? [item.iconId] : []),
     ...content.news.flatMap((item) => [
       ...(item.previewImageId ? [item.previewImageId] : []), ...item.imageIds,
     ]),

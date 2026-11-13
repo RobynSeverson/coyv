@@ -2,13 +2,21 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import PageHeader from "../components/PageHeader";
 import contactArtwork from "../assets/homeContact.webp";
-import socialMark from "../assets/homeSocial.webp";
+import { contactIconSources, homeBorders } from "../lib/homePresentation";
 import { api, type HomePageContent } from "../lib/api";
 import { RichText } from "../lib/richText";
 import "./Home.css";
 
 /* Keep the content revealed on the landing while the router mounts /home. */
 let cachedHome: HomePageContent | null = null;
+const borderOffset = Math.floor(Math.random() * homeBorders.length);
+
+function Ornaments({ index }: { index: number }) {
+  return <div className="home__ornaments" aria-hidden="true">
+    <img className="home__ornament home__ornament--lower" src={homeBorders[(borderOffset + index) % homeBorders.length]} alt="" />
+    <img className="home__ornament home__ornament--upper" src={homeBorders[(borderOffset + index + 1) % homeBorders.length]} alt="" />
+  </div>;
+}
 
 export default function Home() {
   /* The landing already rendered this page behind its dissolve, so replaying
@@ -20,6 +28,7 @@ export default function Home() {
   const [home, setHome] = useState(cachedHome);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const contactIcons = contactIconSources(home?.contacts ?? []);
 
   useEffect(() => {
     let active = true;
@@ -54,6 +63,7 @@ export default function Home() {
       ) : (
       <>
       <section className="home__section" aria-labelledby="home-about">
+        <Ornaments index={0} />
         <h2 id="home-about" className="home__heading">origins</h2>
         <RichText className="home__about" value={home.aboutMe} />
       </section>
@@ -65,17 +75,20 @@ export default function Home() {
             aria-labelledby={`home-${title}`}
             key={title}
           >
+            <Ornaments index={title === "projects" ? 1 : 2} />
             <h2 id={`home-${title}`} className="home__heading">{title}</h2>
             <ol className="home__tiles" aria-label={title}>
-              {home[title].map(({ image, title: caption, url }, index) => (
+              {home[title].map(({ image, title: caption, url, cropX = 50, cropY = 50 }, index) => (
                 <li className="home__tile" key={`${image.id}-${index}`}>
                   {url ? (
                     <a href={url} target="_blank" rel="noopener noreferrer">
                       <img src={image.url} alt={caption || `${title} ${index + 1}`}
+                        style={{ objectPosition: `${cropX}% ${cropY}%` }}
                         width={image.width} height={image.height} />
                     </a>
                   ) : (
                     <img src={image.url} alt={caption || `${title} ${index + 1}`}
+                      style={{ objectPosition: `${cropX}% ${cropY}%` }}
                       width={image.width} height={image.height} />
                   )}
                 </li>
@@ -87,6 +100,7 @@ export default function Home() {
       </div>
 
       <section className="home__section" aria-labelledby="home-news">
+        <Ornaments index={3} />
         <h2 id="home-news" className="home__heading">news</h2>
         <div className="home__news">
           <ul className="home__newsList">
@@ -110,6 +124,7 @@ export default function Home() {
       </section>
 
       <section className="home__section" aria-labelledby="home-contact">
+        <Ornaments index={4} />
         <h2 id="home-contact" className="home__heading">contact</h2>
         <div className="home__contact">
           <img
@@ -128,7 +143,7 @@ export default function Home() {
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <img src={socialMark} width={346} height={169} alt="" />
+                  {contactIcons.get(id) ? <img src={contactIcons.get(id)} width={172} height={203} alt="" /> : null}
                   <span>{title}</span>
                 </a>
               </li>

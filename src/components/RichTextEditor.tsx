@@ -101,7 +101,7 @@ export default function RichTextEditor({ value, onChange, rows = 4, label = "con
     setPreview(value);
   }, [value, editor]);
   useEffect(() => {
-    editor?.setEditable(!disabled);
+    editor?.setEditable(!disabled, false);
   }, [editor, disabled]);
 
   if (!editor) return <p role="status">loading editor…</p>;

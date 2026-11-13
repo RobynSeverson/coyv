@@ -169,6 +169,10 @@ unaffected. Uploads can be cancelled and time out after 60 seconds. Drafts are
 kept per admin in this browser's localStorage, with unpublished image IDs
 rehydrated through the authenticated resolve endpoint after reload. A failed
 upload must not clear the draft or leave the form permanently disabled.
+Some browsers return PNG from `canvas.toBlob` when WebP encoding is unavailable;
+lowering the quality then changes nothing. Preparation must keep reducing
+dimensions until the encoded bytes fit, preserving transparency rather than
+rejecting a decodable source solely for its size.
 
 It deliberately has no `--env-file`, unlike the other scripts: picking up the
 local `server/.env` would point it at local Mongo. Run on 2026-11-09: `prints:

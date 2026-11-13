@@ -11,7 +11,9 @@ function image(value: unknown): value is HomeImage {
 }
 
 function showcase(value: unknown): value is HomeShowcase {
-  return record(value) && image(value.image) && typeof value.title === "string" && typeof value.url === "string";
+  const position = (value: unknown) => value === undefined || typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100;
+  return record(value) && image(value.image) && typeof value.title === "string" && typeof value.url === "string"
+    && position(value.cropX) && position(value.cropY);
 }
 
 function news(value: unknown): value is HomeNews {
@@ -22,7 +24,8 @@ function news(value: unknown): value is HomeNews {
 }
 
 function contact(value: unknown): value is HomeContact {
-  return record(value) && typeof value.id === "string" && typeof value.title === "string" && typeof value.url === "string";
+  return record(value) && typeof value.id === "string" && typeof value.title === "string" && typeof value.url === "string"
+    && (value.icon === undefined || value.icon === null || image(value.icon));
 }
 
 function content(value: unknown): value is HomeContent {
@@ -50,6 +53,7 @@ export function homeImageIds(home: HomeContent): string[] {
   return [...new Set([
     ...home.projects.map((item) => item.image.id),
     ...home.artwork.map((item) => item.image.id),
+    ...home.contacts.flatMap((item) => item.icon ? [item.icon.id] : []),
     ...home.news.flatMap((item) => [
       ...(item.previewImage ? [item.previewImage.id] : []), ...item.images.map((entry) => entry.id),
     ]),
@@ -67,6 +71,7 @@ export function refreshHomeImages(home: HomeContent, images: HomeImage[]): HomeC
     ...home,
     projects: home.projects.map((entry) => ({ ...entry, image: resolve(entry.image) })),
     artwork: home.artwork.map((entry) => ({ ...entry, image: resolve(entry.image) })),
+    contacts: home.contacts.map((entry) => ({ ...entry, ...(entry.icon ? { icon: resolve(entry.icon) } : {}) })),
     news: home.news.map((entry) => ({
       ...entry, previewImage: entry.previewImage ? resolve(entry.previewImage) : null,
       images: entry.images.map(resolve),

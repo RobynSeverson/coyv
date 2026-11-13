@@ -302,7 +302,7 @@ export type HomeImage = {
   width: number;
   height: number;
 };
-export type HomeShowcase = { image: HomeImage; title: string; url: string };
+export type HomeShowcase = { image: HomeImage; title: string; url: string; cropX?: number; cropY?: number };
 export type HomeNewsPreview = {
   id: string;
   date: string;
@@ -310,7 +310,7 @@ export type HomeNewsPreview = {
   previewImage: HomeImage | null;
 };
 export type HomeNews = HomeNewsPreview & { body: RichContent; images: HomeImage[] };
-export type HomeContact = { id: string; title: string; url: string };
+export type HomeContact = { id: string; title: string; url: string; icon?: HomeImage | null };
 export type HomeContent = {
   revision: number;
   aboutMe: RichContent;
@@ -439,13 +439,13 @@ export const api = {
         body: {
           revision: home.revision,
           aboutMe: home.aboutMe,
-          projects: home.projects.map(({ image, title, url }) => ({ imageId: image.id, title, url })),
-          artwork: home.artwork.map(({ image, title, url }) => ({ imageId: image.id, title, url })),
+          projects: home.projects.map(({ image, title, url, cropX, cropY }) => ({ imageId: image.id, title, url, cropX, cropY })),
+          artwork: home.artwork.map(({ image, title, url, cropX, cropY }) => ({ imageId: image.id, title, url, cropX, cropY })),
           news: home.news.map(({ id, date, preview, previewImage, body, images }) => ({
             id, date, preview, previewImageId: previewImage?.id ?? null,
             body, imageIds: images.map((image) => image.id),
           })),
-          contacts: home.contacts,
+          contacts: home.contacts.map(({ id, title, url, icon }) => ({ id, title, url, iconId: icon?.id ?? null })),
         },
       }),
 

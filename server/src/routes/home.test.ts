@@ -218,4 +218,34 @@ describe('editable home', { skip: !process.env.HOME_TEST_MONGODB_URI }, () => {
     assert.equal((await call(`/admin/memories/${journal.id}`, 'PATCH', { body: unsafe })).status, 400)
     assert.equal((await call('/admin/home', 'PUT', { ...home, aboutMe: unsafe })).status, 400)
   })
+
+  it('persists crop positioning and contact icons, validates their limits and preserves legacy defaults', async () => {
+    const { home: current } = z.object({ home: z.object({ revision: z.number() }) })
+      .parse(await (await call('/home')).json())
+    const updated = {
+      ...content(), revision: current.revision,
+      projects: [{ ...content().projects[0]!, cropX: 10, cropY: 85 }],
+      artwork: [{ ...content().artwork[0]!, cropX: 100, cropY: 0 }],
+      contacts: [{ ...content().contacts[0]!, iconId: image.id }, ...content().contacts.slice(1)],
+    }
+    const response = await call('/admin/home', 'PUT', updated)
+    assert.equal(response.status, 200, await response.clone().text())
+    const shape = z.object({ home: z.object({
+      revision: z.number(),
+      projects: z.array(z.object({ cropX: z.number(), cropY: z.number() })),
+      artwork: z.array(z.object({ cropX: z.number(), cropY: z.number() })),
+      contacts: z.array(z.object({ icon: imageShape.nullable() })),
+    }) })
+    const { home } = shape.parse(await (await call('/home')).json())
+    assert.deepEqual(home.projects[0], { cropX: 10, cropY: 85 })
+    assert.deepEqual(home.artwork[0], { cropX: 100, cropY: 0 })
+    assert.equal(home.contacts[0]?.icon?.id, image.id)
+    assert.equal(home.contacts[1]?.icon, null)
+    assert.equal((await call('/admin/home', 'PUT', {
+      ...updated, revision: home.revision, projects: [{ ...updated.projects[0], cropY: 101 }],
+    })).status, 400)
+    assert.equal((await call('/admin/home', 'PUT', {
+      ...updated, revision: home.revision, contacts: [{ ...updated.contacts[0], iconId: '000000000000000000000002' }],
+    })).status, 400)
+  })
 })
