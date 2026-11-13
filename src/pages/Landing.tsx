@@ -92,11 +92,9 @@ const supportsBlobMask =
 
 export default function Landing() {
   const [isOpening, setIsOpening] = useState(false);
-  const [isInnerOpening, setIsInnerOpening] = useState(false);
   const [isDissolving, setIsDissolving] = useState(false);
   const navigate = useNavigate();
   const timeoutRef = useRef<number | undefined>(undefined);
-  const innerStartedRef = useRef(false);
   const dissolveStartedRef = useRef(false);
   const landingRef = useRef<HTMLElement>(null);
 
@@ -143,16 +141,10 @@ export default function Landing() {
     };
   }, []);
 
-  /* The outer pair swings open before the original gate sequence starts. */
+  /* CSS overlaps the original gates with the final fifth of the outer swing. */
   const openGates = () => {
     if (isOpening) return;
     setIsOpening(true);
-  };
-
-  const openInnerGates = () => {
-    if (innerStartedRef.current) return;
-    innerStartedRef.current = true;
-    setIsInnerOpening(true);
   };
 
   const dissolve = () => {
@@ -171,7 +163,6 @@ export default function Landing() {
   const className = [
     "landing",
     isOpening ? "is-opening" : "",
-    isInnerOpening ? "is-inner-opening" : "",
     isDissolving ? "is-dissolving" : "",
     supportsBlobMask ? "" : "is-plain",
   ]
@@ -231,7 +222,6 @@ export default function Landing() {
         <picture key={side}>
           <source media="(max-width: 768px)" srcSet={mobile} />
           <img className={`landing__outerGate landing__outerGate--${side}`}
-            onAnimationEnd={side === "right" ? openInnerGates : undefined}
             src={desktop} alt="" aria-hidden="true" />
         </picture>
       ))}
