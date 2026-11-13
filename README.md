@@ -522,9 +522,8 @@ home. Optional showcase links, and both the contact icon and title, are clickabl
 Each news entry has a date, optional preview image, snippet, and rich-text body.
 Upload body images, then insert them with the editor's **place an image** control.
 Home's news date/preview opens the full entry in a new tab.
-Origins supports bold, italic, links, and small/large selection controls
-(`[[small]]text[[/small]]` / `[[large]]text[[/large]]`). It retains the existing
-`aboutMe` storage field so saved content and recovery drafts need no migration.
+Origins uses the shared Tiptap editor described below. It retains the existing
+`aboutMe` storage field so saved content and recovery drafts need no bulk migration.
 Public browser and social-preview titles are simply **coyvcastle**; route-specific
 descriptions and canonicals remain unchanged.
 
@@ -553,7 +552,7 @@ object-store double, never AWS. Run from the repository root with an isolated
 Mongo instance: `HOME_TEST_MONGODB_URI=mongodb://127.0.0.1:27017 node --test
 server/src/routes/home.test.ts`. Each run creates and drops its own random test
 database; without the variable the suite is skipped.
-Run browser-draft persistence tests with `node --test tests/homeDraft.test.ts`.
+Run draft/formatting tests with `node --test tests/homeDraft.test.ts tests/richContent.test.ts`.
 
 The **products** tab is where you create prints and subscriptions, set prices
 and stock, upload artwork, and publish. A product with no images cannot be
@@ -567,12 +566,25 @@ status and renewal date, so the studio never needs a Stripe login.
 The **fulfillment** tab is the parcel queue described above; its badge counts
 what is still owed.
 
-Description fields use a small rich text editor — blank line for a new
-paragraph, single newline for a line break, plus `**bold**`, `*italic*` and
-`[text](url)`, with a preview toggle. It is stored as plain text and parsed
-into React elements at render time rather than through
-`dangerouslySetInnerHTML`, and link URLs are dropped unless they are plainly
-http(s), so no admin-authored text can inject markup into the shop.
+Origins, full news entries, product/subscription descriptions and memory
+notes/journals share a custom minimalist **Tiptap** editor built entirely from
+free open-source core/extensions. The toolbar provides bold, italic, underline,
+strike, text/highlight colors, five font families, six font sizes, paragraphs
+and headings, alignment, nested bulleted/numbered lists with indent/outdent,
+blockquotes, http(s) links, undo/redo and clear formatting. The live preview
+uses the same React renderer as public content. Existing upload controls feed
+an image strip; inserted images reference the record's uploads by position,
+never a stored signed URL.
+
+Edits are saved as structured JSON in the existing Mongo fields. Legacy plain
+text/markdown (including small/large and image tokens) still renders unchanged;
+opening it in the editor converts it for editing, and the next edit/save stores
+JSON. API and model validation share a bounded allowlist (20,000 characters,
+3,000 nodes, depth 16); unknown nodes, arbitrary styles, external image URLs,
+HTML and unsafe links are not accepted. The public renderer creates React
+elements, not raw HTML. Stripe receives a plain-text summary capped at 4,000
+characters, never JSON; the full formatted content stays in Mongo.
+No paid Tiptap features, subscriptions, or collaboration service are used.
 
 The **memories** tab manages the `/memories` gallery: drop in any number of
 images, give them captions and alt text, reorder them with the arrows, hide one

@@ -1,5 +1,6 @@
 import Stripe from 'stripe'
 import { env } from '../env.ts'
+import { richPlainText, type RichContent } from '../lib/richContent.ts'
 
 /* No explicit apiVersion: the account's pinned version is used, which keeps
    this in step with the dashboard and with the webhook payloads Stripe sends. */
@@ -13,7 +14,7 @@ export const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
 export async function ensureStripeProduct(product: {
   _id: unknown
   title: string
-  description?: string
+  description?: RichContent
   stripeProductId?: string | null
 }): Promise<string> {
   if (product.stripeProductId) {
@@ -21,14 +22,14 @@ export async function ensureStripeProduct(product: {
        what the studio shows. */
     await stripe.products.update(product.stripeProductId, {
       name: product.title,
-      ...(product.description ? { description: product.description } : {}),
+      ...(product.description ? { description: richPlainText(product.description).slice(0, 4000) } : {}),
     })
     return product.stripeProductId
   }
 
   const created = await stripe.products.create({
     name: product.title,
-    ...(product.description ? { description: product.description } : {}),
+    ...(product.description ? { description: richPlainText(product.description).slice(0, 4000) } : {}),
     metadata: { productId: String(product._id) },
   })
   return created.id
@@ -43,7 +44,7 @@ export async function ensureStripeProduct(product: {
 export async function ensureSubscriptionPrice(product: {
   _id: unknown
   title: string
-  description?: string
+  description?: RichContent
   priceCents: number
   currency: string
   stripeProductId?: string | null

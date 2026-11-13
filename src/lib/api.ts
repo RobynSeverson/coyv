@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../config";
+import type { RichContent } from "../../server/src/lib/richContent";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -94,7 +95,7 @@ export type Product = {
   kind: ProductKind;
   slug: string;
   title: string;
-  description: string;
+  description: RichContent;
   priceCents: number;
   currency: string;
   /* null for a one-off print, "month" for a subscription */
@@ -268,8 +269,8 @@ export type Memory = {
   tag: string;
   title: string;
   alt: string;
-  /* markdown, only ever set on a journal entry */
-  body: string;
+  /* Structured editor JSON or legacy markdown. */
+  body: RichContent;
   capturedAt: string | null;
   images: MemoryImage[];
 };
@@ -287,7 +288,7 @@ type MemoryInput = {
   kind: MemoryKind;
   title: string;
   alt: string;
-  body: string;
+  body: RichContent;
   published: boolean;
   sortOrder: number;
   capturedAt: string | null;
@@ -308,11 +309,11 @@ export type HomeNewsPreview = {
   preview: string;
   previewImage: HomeImage | null;
 };
-export type HomeNews = HomeNewsPreview & { body: string; images: HomeImage[] };
+export type HomeNews = HomeNewsPreview & { body: RichContent; images: HomeImage[] };
 export type HomeContact = { id: string; title: string; url: string };
 export type HomeContent = {
   revision: number;
-  aboutMe: string;
+  aboutMe: RichContent;
   projects: HomeShowcase[];
   artwork: HomeShowcase[];
   news: HomeNews[];
@@ -323,7 +324,7 @@ export type HomeNewsArticle = Omit<HomeNews, "previewImage">;
 
 type ProductInput = {
   title: string;
-  description: string;
+  description: RichContent;
   priceCents: number;
   stock: number | null;
   published: boolean;
@@ -540,7 +541,7 @@ export const api = {
       });
     },
 
-    createJournalMemory: (payload: { title: string; body: string }) =>
+    createJournalMemory: (payload: { title: string; body: RichContent }) =>
       request<{ memories: AdminMemory[] }>("/admin/memories/journal", {
         method: "POST",
         body: payload,

@@ -2,6 +2,11 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  width: 100%;
 }
 
 .rte__bar {
@@ -20,19 +25,43 @@
 .rte__tools {
   display: flex;
   gap: 0.3rem;
+  flex-wrap: wrap;
+  align-items: center;
+  min-width: 0;
 }
 
-.rte__tools button {
+.rte__tools button,
+.rte__tools select,
+.rte__tools label {
   min-width: 2rem;
   padding: 0.25rem 0.5rem;
   border: 1px solid rgba(18, 26, 28, 0.2);
   border-radius: 3px;
-  background: #fff;
+  background: rgba(233, 232, 228, 0.6);
   font: inherit;
   font-size: 0.78rem;
   line-height: 1.4;
   color: inherit;
   cursor: pointer;
+}
+
+.rte__tools select,
+.rte__tools input {
+  max-width: 100%;
+  min-width: 0;
+  font-size: 16px;
+}
+
+.rte__tools input[type="color"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  vertical-align: middle;
+}
+
+.rte__tools button:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 .rte__tools button:hover,
@@ -49,10 +78,28 @@
   border-radius: 3px;
   background: #fff;
   font: inherit;
-  font-size: 0.92rem;
+  font-size: 16px;
   line-height: 1.5;
   color: inherit;
   resize: vertical;
+  min-height: 8rem;
+  overflow-wrap: anywhere;
+}
+
+.rte__input:focus {
+  outline: 1px solid #77766f;
+  outline-offset: 1px;
+}
+
+.rte__input figure[data-upload-position] {
+  padding: 1rem;
+  border: 1px dashed #999;
+  background: rgba(233, 232, 228, 0.6);
+  font-size: 0.85em;
+}
+
+.rte__input.ProseMirror {
+  white-space: pre-wrap;
 }
 
 /* Sized to match the textarea it replaces so toggling preview does not make

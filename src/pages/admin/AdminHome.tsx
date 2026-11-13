@@ -3,6 +3,7 @@ import RichTextEditor from "../../components/RichTextEditor";
 import { api, type HomeContent, type HomeImage, type HomeNews } from "../../lib/api";
 import { homeImageIds, readHomeDraft, refreshHomeImages, writeHomeDraft } from "../../lib/homeDraft";
 import { prepareHomeImage } from "../../lib/homeUpload";
+import { hasRichContent, removeRichImage } from "../../../server/src/lib/richContent";
 
 function ImagePicker({ label, onUpload }: { label: string; onUpload: (file: File) => void }) {
   return (
@@ -21,15 +22,6 @@ function ImagePicker({ label, onUpload }: { label: string; onUpload: (file: File
       />
     </label>
   );
-}
-
-function withoutImage(body: string, position: number) {
-  return body.split(/\r?\n/).map((line) => {
-    const token = /^\s*\[\[image:(\d+)\]\]\s*$/.exec(line);
-    if (!token) return line;
-    const number = Number(token[1]);
-    return number === position ? "" : number > position ? `[[image:${number - 1}]]` : line;
-  }).join("\n");
 }
 
 export default function AdminHome({ adminId }: { adminId: string }) {
@@ -166,7 +158,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!home) return;
-    if (home.news.some((item) => !item.preview.trim() || !item.body.trim())) {
+    if (home.news.some((item) => !item.preview.trim() || !hasRichContent(item.body))) {
       setError("Each news entry needs preview text and full entry text before saving.");
       return;
     }
@@ -223,7 +215,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
         <fieldset className="admin__homeFields" disabled={busy}>
           <section className="admin__card">
             <h2 className="admin__cardTitle">origins</h2>
-            <RichTextEditor label="origins text" rows={6} textSizes maxLength={20000} value={home.aboutMe}
+            <RichTextEditor label="origins text" rows={6} disabled={busy} maxLength={20000} value={home.aboutMe}
               onChange={(aboutMe) => edit((current) => ({ ...current, aboutMe }))} />
           </section>
 
@@ -299,7 +291,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
                       onChange={(event) => editNews(item.id, { preview: event.target.value })} />
                   </label>
                 </div>
-                <RichTextEditor label="full news entry" rows={8} value={item.body}
+                <RichTextEditor label="full news entry" rows={8} disabled={busy} value={item.body}
                   images={item.images.map((image) => ({ url: image.url }))}
                   onChange={(body) => editNews(item.id, { body })} />
                 <p className="admin__muted">
@@ -313,7 +305,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
                       <button type="button" aria-label={`Remove entry image ${index + 1}`}
                         onClick={() => editNews(item.id, {
                           images: item.images.filter((_, at) => at !== index),
-                          body: withoutImage(item.body, index + 1),
+                          body: removeRichImage(item.body, index + 1),
                         })}>×</button>
                     </figure>
                   ))}

@@ -1,4 +1,5 @@
 import type { HomeContent, HomeImage, HomeNews, HomeShowcase, HomeContact } from "./api";
+import { isRichContent } from "../../server/src/lib/richContent.ts";
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -15,7 +16,7 @@ function showcase(value: unknown): value is HomeShowcase {
 
 function news(value: unknown): value is HomeNews {
   return record(value) && typeof value.id === "string" && typeof value.date === "string"
-    && typeof value.preview === "string" && typeof value.body === "string"
+    && typeof value.preview === "string" && isRichContent(value.body)
     && (value.previewImage === null || image(value.previewImage))
     && Array.isArray(value.images) && value.images.every(image);
 }
@@ -26,7 +27,7 @@ function contact(value: unknown): value is HomeContact {
 
 function content(value: unknown): value is HomeContent {
   return record(value) && typeof value.revision === "number" && Number.isInteger(value.revision) && value.revision >= 0
-    && typeof value.aboutMe === "string"
+    && isRichContent(value.aboutMe)
     && Array.isArray(value.projects) && value.projects.length <= 4 && value.projects.every(showcase)
     && Array.isArray(value.artwork) && value.artwork.length <= 4 && value.artwork.every(showcase)
     && Array.isArray(value.news) && value.news.every(news)

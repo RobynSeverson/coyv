@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from 'mongoose'
+import { isRichContent, type RichContent } from '../lib/richContent.ts'
 
 /* Two objects are kept in S3 for each image: the untouched original, which is
    what the lightbox and the download link serve, and a small webp the list
@@ -31,8 +32,8 @@ const memorySchema = new Schema(
     title: { type: String, default: '', trim: true, maxlength: 160 },
     alt: { type: String, default: '', trim: true, maxlength: 300 },
 
-    /* Markdown, rendered through the same reader as product descriptions. */
-    body: { type: String, default: '', maxlength: 20000 },
+    /* Native editor JSON; legacy markdown remains readable until edited. */
+    body: { type: Schema.Types.Mixed, default: '', validate: isRichContent },
 
     images: { type: [memoryImageSchema], default: [] },
 
@@ -59,7 +60,7 @@ const memorySchema = new Schema(
 
 memorySchema.index({ published: 1, sortOrder: 1, createdAt: 1 })
 
-export type Memory = InferSchemaType<typeof memorySchema>
+export type Memory = Omit<InferSchemaType<typeof memorySchema>, 'body'> & { body: RichContent }
 export type MemoryDocument = HydratedDocument<Memory>
 export type MemoryImage = MemoryDocument['images'][number]
 
@@ -101,4 +102,4 @@ export function randomCapturedAt(): Date {
   return new Date(CAPTURED_FROM + Math.random() * (CAPTURED_TO - CAPTURED_FROM))
 }
 
-export const MemoryModel = model('Memory', memorySchema)
+export const MemoryModel = model<Memory>('Memory', memorySchema)

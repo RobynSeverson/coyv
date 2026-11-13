@@ -1,4 +1,5 @@
 import { Schema, model, type InferSchemaType, type HydratedDocument } from 'mongoose'
+import { isRichContent, type RichContent } from '../lib/richContent.ts'
 
 /* Everything for sale is a product. A print is bought once; a subscription is
    billed every month by Stripe until it is cancelled. */
@@ -38,7 +39,7 @@ const productSchema = new Schema(
       unique: true,
       match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
     },
-    description: { type: String, default: '', trim: true, maxlength: 4000 },
+    description: { type: Schema.Types.Mixed, default: '', validate: isRichContent },
 
     /* Money is always an integer count of the currency's minor unit; storing
        dollars as floats is how rounding bugs get into ledgers. */
@@ -66,10 +67,10 @@ const productSchema = new Schema(
 
 productSchema.index({ published: 1, sortOrder: 1, createdAt: -1 })
 
-export type Product = InferSchemaType<typeof productSchema>
+export type Product = Omit<InferSchemaType<typeof productSchema>, 'description'> & { description: RichContent }
 export type ProductDocument = HydratedDocument<Product>
 export type ProductImage = Product['images'][number]
 
 /* The collection is still called `prints`: this was a rename in the code, not
    a change to the data. */
-export const ProductModel = model('Product', productSchema, 'prints')
+export const ProductModel = model<Product>('Product', productSchema, 'prints')

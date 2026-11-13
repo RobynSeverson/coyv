@@ -152,6 +152,14 @@ to dev and overwrites dev's home content too. The home editor stores uploads
 immediately, but only **Save home** publishes their references. Removing a home
 image slot never deletes its stored object.
 
+Rich editor fields now accept validated Tiptap JSON as well as legacy markdown.
+Deploy the API before the frontend so the new editor can save JSON. No bulk
+database migration is needed: legacy strings remain readable and are converted
+when edited. Origins (`aboutMe`), home news bodies, product descriptions and
+memory bodies keep their existing field names; Stripe descriptions are projected
+to plain text. A rollback to a pre-JSON API/frontend will not understand newly
+saved documents, so retain JSON support when rolling back unrelated UI changes.
+
 Home image uploads must fit the buffered Lambda request envelope (6 MB,
 including the invocation payload and binary/base64 overhead), regardless of
 `MAX_UPLOAD_BYTES` being 15 MiB. Raising that variable cannot raise Lambda's

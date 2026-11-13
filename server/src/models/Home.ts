@@ -1,4 +1,5 @@
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose'
+import { isRichContent, type RichContent } from '../lib/richContent.ts'
 
 export const DEFAULT_ABOUT = 'I make artwork and photographs that wander between the familiar and the imagined. Drawn figures, quiet places, and fragments of memory come together in a world that is always a little unfinished. This castle is a home for those experiments, and an invitation to look closer, get lost, and keep trying something new.'
 
@@ -22,7 +23,7 @@ const newsSchema = new Schema({
   date: { type: String, required: true },
   preview: { type: String, default: '' },
   previewImageId: { type: Schema.Types.ObjectId, default: null },
-  body: { type: String, default: '' },
+  body: { type: Schema.Types.Mixed, default: '', validate: isRichContent },
   imageIds: { type: [Schema.Types.ObjectId], default: [] },
 }, { _id: false })
 
@@ -35,15 +36,19 @@ const contactSchema = new Schema({
 const homeSchema = new Schema({
   _id: { type: String, default: 'home' },
   revision: { type: Number, default: 0 },
-  aboutMe: { type: String, default: DEFAULT_ABOUT },
+  aboutMe: { type: Schema.Types.Mixed, default: DEFAULT_ABOUT, validate: isRichContent },
   projects: { type: [showcaseSchema], default: [] },
   artwork: { type: [showcaseSchema], default: [] },
   news: { type: [newsSchema], default: [] },
   contacts: { type: [contactSchema], default: [] },
 }, { timestamps: true })
 
-export type HomeDocument = HydratedDocument<InferSchemaType<typeof homeSchema>>
+type Home = Omit<InferSchemaType<typeof homeSchema>, 'aboutMe' | 'news'> & {
+  aboutMe: RichContent
+  news: (Omit<InferSchemaType<typeof newsSchema>, 'body'> & { body: RichContent })[]
+}
+export type HomeDocument = HydratedDocument<Home>
 export type HomeImageDocument = HydratedDocument<InferSchemaType<typeof homeImageSchema>>
 
-export const HomeModel = model('HomeContent', homeSchema)
+export const HomeModel = model<Home>('HomeContent', homeSchema)
 export const HomeImageModel = model('HomeImage', homeImageSchema)

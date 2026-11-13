@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import RichTextEditor from "../../components/RichTextEditor";
+import type { RichContent } from "../../../server/src/lib/richContent";
 import { api, type AdminProduct, type ProductKind } from "../../lib/api";
 import { formatMoney, parseMoneyToCents } from "../../lib/money";
 import "./admin.css";
@@ -11,7 +12,7 @@ const KIND_LABELS: Record<ProductKind, string> = {
 
 type Draft = {
   title: string;
-  description: string;
+  description: RichContent;
   price: string;
   stock: string;
   published: boolean;
@@ -53,7 +54,7 @@ function draftToPayload(draft: Draft, kind: ProductKind) {
 
   return {
     title: draft.title.trim(),
-    description: draft.description.trim(),
+    description: draft.description,
     priceCents,
     stock: kind === "subscription" ? null : stock,
     published: draft.published,
@@ -179,6 +180,7 @@ export default function AdminProducts() {
         <div className="admin__field">
           <RichTextEditor
             label="description"
+            disabled={busyId === "new"}
             value={newDraft.description}
             onChange={(description) => setNewDraft({ ...newDraft, description })}
           />
@@ -338,6 +340,7 @@ export default function AdminProducts() {
               <div className="admin__field">
                 <RichTextEditor
                   label="description"
+                  disabled={busyId === product.id}
                   value={draft.description}
                   onChange={(description) =>
                     setDrafts({ ...drafts, [product.id]: { ...draft, description } })

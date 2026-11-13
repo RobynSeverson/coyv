@@ -4,6 +4,7 @@ import { before, after, describe, it } from 'node:test'
 import sharp from 'sharp'
 import { z } from 'zod'
 import { startHomeFixture } from '../testing/homeFixture.ts'
+import { isRichContent, type RichDocument } from '../lib/richContent.ts'
 
 const imageShape = z.object({ id: z.string(), url: z.string(), fullUrl: z.never().optional() })
 const showcaseShape = z.object({ image: imageShape, title: z.string(), url: z.string() })
@@ -175,5 +176,46 @@ describe('editable home', { skip: !process.env.HOME_TEST_MONGODB_URI }, () => {
     assert.equal(home.aboutMe, '')
     assert.deepEqual(home.contacts, [])
     assert.equal((await call(`/home/news/${newsId}`)).status, 404)
+  })
+
+  it('stores editor JSON unchanged for origins, news, products and journal memories', async () => {
+    const document: RichDocument = {
+      type: 'doc', content: [
+        { type: 'paragraph', attrs: { textAlign: 'center' }, content: [{
+          type: 'text', text: 'Structured text', marks: [
+            { type: 'underline' }, { type: 'textStyle', attrs: { fontSize: '24px', fontFamily: 'Georgia', color: '#123456' } },
+            { type: 'highlight', attrs: { color: '#eeeeaa' } },
+          ],
+        }] },
+        { type: 'bulletList', content: [{ type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'A list item' }] }] }] },
+      ],
+    }
+    const current = await readHome(await call('/home'))
+    const home = { ...content(), revision: current.revision, aboutMe: document, news: [{ ...content().news[0]!, body: document }] }
+    const response = await call('/admin/home', 'PUT', home)
+    assert.equal(response.status, 200, await response.clone().text())
+    const rich = z.custom(isRichContent)
+    const stored = z.object({ home: z.object({ aboutMe: rich }) }).parse(await (await call('/home')).json())
+    assert.deepEqual(stored.home.aboutMe, document)
+    const news = z.object({ news: z.object({ body: rich }) }).parse(await (await call(`/home/news/${newsId}`)).json())
+    assert.deepEqual(news.news.body, document)
+
+    const productResponse = await call('/admin/products', 'POST', { kind: 'print', title: 'JSON test product', description: document, priceCents: 500 })
+    assert.equal(productResponse.status, 201, await productResponse.clone().text())
+    const product = z.object({ product: z.object({ id: z.string(), description: rich }) }).parse(await productResponse.json()).product
+    const reloadedProduct = z.object({ product: z.object({ description: rich }) }).parse(await (await call(`/admin/products/${product.id}`)).json())
+    assert.deepEqual(reloadedProduct.product.description, document)
+    const journalResponse = await call('/admin/memories/journal', 'POST', { title: 'JSON journal', body: document })
+    assert.equal(journalResponse.status, 201, await journalResponse.clone().text())
+    const memoryShape = z.object({ memories: z.array(z.object({ id: z.string(), body: rich })) })
+    const journal = memoryShape.parse(await journalResponse.json()).memories[0]!
+    assert.deepEqual(journal.body, document)
+    assert.equal((await call(`/admin/memories/${journal.id}`, 'PATCH', { published: true })).status, 200)
+    const publicMemories = memoryShape.parse(await (await call('/memories')).json())
+    assert.deepEqual(publicMemories.memories[0]?.body, document)
+    const unsafe = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'bad', marks: [{ type: 'link', attrs: { href: 'javascript:alert(1)' } }] }] }] }
+    assert.equal((await call(`/admin/products/${product.id}`, 'PATCH', { description: unsafe })).status, 400)
+    assert.equal((await call(`/admin/memories/${journal.id}`, 'PATCH', { body: unsafe })).status, 400)
+    assert.equal((await call('/admin/home', 'PUT', { ...home, aboutMe: unsafe })).status, 400)
   })
 })

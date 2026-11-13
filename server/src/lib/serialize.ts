@@ -7,6 +7,7 @@ import type { FulfillmentDocument } from '../models/Fulfillment.ts'
 import { env } from '../env.ts'
 import { referenceNumber } from './referenceNumber.ts'
 import { getSignedObjectUrl } from '../services/s3.ts'
+import { readRichContent, type RichContent } from './richContent.ts'
 
 export type SerializedImage = {
   id: string
@@ -21,7 +22,7 @@ export type SerializedProduct = {
   kind: 'print' | 'subscription'
   slug: string
   title: string
-  description: string
+  description: RichContent
   priceCents: number
   currency: string
   /* Null for a one-off print; "month" for a subscription. */
@@ -57,7 +58,7 @@ export async function serializeProduct(product: ProductDocument): Promise<Serial
     kind: isSubscription ? 'subscription' : 'print',
     slug: product.slug,
     title: product.title,
-    description: product.description,
+    description: readRichContent(product.description),
     priceCents: product.priceCents,
     currency: product.currency,
     interval: isSubscription ? 'month' : null,
@@ -235,7 +236,7 @@ export type SerializedMemory = {
   tag: string
   title: string
   alt: string
-  body: string
+  body: RichContent
   capturedAt: string | null
   images: SerializedMemoryImage[]
 }
@@ -292,7 +293,7 @@ export async function serializeMemory(
     tag: memoryTag(kind, images),
     title: memory.title,
     alt: memory.alt || memory.title,
-    body: memory.body ?? '',
+    body: readRichContent(memory.body ?? ''),
     capturedAt: memory.capturedAt ? memory.capturedAt.toISOString() : null,
     images: serializedImages,
   }

@@ -3,6 +3,8 @@ import multer from 'multer'
 import { z } from 'zod'
 import { env } from '../env.ts'
 import { HttpError } from '../lib/httpError.ts'
+import { richContentSchema } from '../lib/richContentSchema.ts'
+import { hasRichContent, readRichContent } from '../lib/richContent.ts'
 import { requireAdmin } from '../middleware/auth.ts'
 import { HomeModel, HomeImageModel, type HomeDocument, type HomeImageDocument } from '../models/Home.ts'
 import { buildPreview, readDimensions } from '../services/images.ts'
@@ -34,7 +36,7 @@ const newsInput = z.object({
   }, 'Enter a valid date'),
   preview: z.string().trim().min(1).max(1000),
   previewImageId: imageId.nullable(),
-  body: z.string().trim().min(1).max(20000),
+  body: richContentSchema.refine(hasRichContent, 'Enter full news content'),
   imageIds: z.array(imageId),
 })
 const contactInput = z.object({
@@ -44,7 +46,7 @@ const contactInput = z.object({
 })
 const homeInput = z.object({
   revision: z.number().int().nonnegative(),
-  aboutMe: z.string().max(20000),
+  aboutMe: richContentSchema,
   projects: z.array(showcaseInput).max(4),
   artwork: z.array(showcaseInput).max(4),
   news: z.array(newsInput).refine((items) => new Set(items.map((item) => item.id)).size === items.length, 'Duplicate news ids'),
@@ -95,7 +97,7 @@ async function serializeHome(home: HomeDocument, full: boolean) {
   }))
   return {
     revision: home.revision,
-    aboutMe: home.aboutMe,
+    aboutMe: readRichContent(home.aboutMe),
     projects: showcase(home.projects),
     artwork: showcase(home.artwork),
     news: home.news.map((item) => ({
@@ -103,7 +105,7 @@ async function serializeHome(home: HomeDocument, full: boolean) {
       date: item.date,
       preview: item.preview,
       previewImage: item.previewImageId ? resolve(String(item.previewImageId)) : null,
-      ...(full ? { body: item.body, images: item.imageIds.map((id) => resolve(String(id))) } : {}),
+      ...(full ? { body: readRichContent(item.body), images: item.imageIds.map((id) => resolve(String(id))) } : {}),
     })),
     contacts: home.contacts.map((item) => ({ id: item.id, title: item.title, url: item.url })),
   }
@@ -120,7 +122,7 @@ homeRouter.get('/news/:id', async (req, res) => {
   const images = await imageMap(news.imageIds.map(String))
   res.set('Cache-Control', 'no-store').json({
     news: {
-      id: news.id, date: news.date, preview: news.preview, body: news.body,
+      id: news.id, date: news.date, preview: news.preview, body: readRichContent(news.body),
       images: news.imageIds.map((id) => {
         const image = images.get(String(id))
         if (!image) throw new Error(`Missing news image: ${id}`)

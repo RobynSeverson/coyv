@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import RichTextEditor from "../../components/RichTextEditor";
+import { removeRichImage, richPlainText, type RichContent } from "../../../server/src/lib/richContent";
 import { api, type AdminMemory } from "../../lib/api";
 import "./admin.css";
 
 type Draft = {
   title: string;
   alt: string;
-  body: string;
+  body: RichContent;
   published: boolean;
   capturedAt: string;
 };
@@ -54,7 +55,7 @@ export default function AdminMemories() {
   const [error, setError] = useState<string | null>(null);
   const [grouped, setGrouped] = useState(false);
   const [journalTitle, setJournalTitle] = useState("");
-  const [journalBody, setJournalBody] = useState("");
+  const [journalBody, setJournalBody] = useState<RichContent>("");
   const uploadInput = useRef<HTMLInputElement | null>(null);
   const imageInputs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -182,6 +183,7 @@ export default function AdminMemories() {
 
         <RichTextEditor
           label="entry"
+          disabled={busyId === "journal"}
           rows={8}
           value={journalBody}
           onChange={setJournalBody}
@@ -191,7 +193,7 @@ export default function AdminMemories() {
           <button
             className="admin__primary"
             type="button"
-            disabled={busyId === "journal" || journalBody.trim().length === 0}
+            disabled={busyId === "journal" || richPlainText(journalBody).length === 0}
             onClick={() =>
               run("journal", async () => {
                 const { memories: updated } = await api.admin.createJournalMemory({
@@ -257,6 +259,14 @@ export default function AdminMemories() {
                           const { memories: updated } =
                             await api.admin.deleteMemoryImage(memory.id, image.id);
                           apply(updated);
+                          setDrafts((current) => {
+                            const draft = current[memory.id];
+                            return draft ? {
+                              ...current, [memory.id]: {
+                                ...draft, body: removeRichImage(draft.body, memory.images.findIndex((entry) => entry.id === image.id) + 1),
+                              },
+                            } : current;
+                          });
                         });
                       }}
                     >
@@ -326,6 +336,7 @@ export default function AdminMemories() {
 
               <RichTextEditor
                 label={isJournal ? "entry" : "note"}
+                disabled={busy}
                 rows={isJournal ? 8 : 3}
                 value={draft.body}
                 onChange={(value) => patchDraft(memory.id, draft, { body: value })}

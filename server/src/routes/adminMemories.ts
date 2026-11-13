@@ -3,6 +3,8 @@ import multer from 'multer'
 import { z } from 'zod'
 import { env } from '../env.ts'
 import { HttpError } from '../lib/httpError.ts'
+import { richContentSchema } from '../lib/richContentSchema.ts'
+import { readRichContent, removeRichImage } from '../lib/richContent.ts'
 import { serializeMemoryForAdmin } from '../lib/serialize.ts'
 import { requireAdmin } from '../middleware/auth.ts'
 import {
@@ -135,7 +137,7 @@ adminMemoriesRouter.post('/', upload.array('images', 12), async (req, res) => {
 
 const journalInputSchema = z.object({
   title: z.string().trim().max(160).default(''),
-  body: z.string().max(20000).default(''),
+  body: richContentSchema.default(''),
 })
 
 /* A journal entry starts as text alone; images can be attached afterwards
@@ -192,6 +194,8 @@ adminMemoriesRouter.delete('/:id/images/:imageId', async (req, res) => {
   const images = memoryImages(memory)
   const target = images.find((image) => String(image._id) === req.params.imageId)
   if (!target) throw HttpError.notFound('No such image')
+  const removedPosition = images.indexOf(target) + 1
+  memory.set('body', removeRichImage(readRichContent(memory.body ?? ''), removedPosition))
 
   if (memory.kind !== 'journal' && images.length === 1) {
     throw HttpError.badRequest('A photo memory must keep at least one image')
@@ -215,7 +219,7 @@ const memoryInputSchema = z.object({
   kind: z.enum(MEMORY_KINDS),
   title: z.string().trim().max(160),
   alt: z.string().trim().max(300),
-  body: z.string().max(20000),
+  body: richContentSchema,
   published: z.boolean(),
   sortOrder: z.number().int(),
   /* Null clears the date back to "undated" rather than meaning "unchanged",

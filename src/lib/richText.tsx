@@ -1,7 +1,8 @@
-import type { ReactNode } from "react";
+import { createElement, type CSSProperties, type ReactNode } from "react";
+import { readRichContent, type RichContent, type RichNode } from "../../server/src/lib/richContent";
 import "./richText.css";
 
-/* A deliberately small formatting language for product descriptions and
+/* Legacy formatting for product descriptions and
    journal entries: blank line = new paragraph, single newline = line break,
    plus **bold**, *italic*, [text](url) and [[image:1]].
 
@@ -10,7 +11,7 @@ import "./richText.css";
    cannot point at anything but its own uploads, and the signed links — which
    expire — are resolved at render time instead of being frozen into the text.
 
-   It is parsed into React elements rather than HTML, so there is no
+   Both legacy text and validated editor documents render as React elements rather than HTML, so there is no
    dangerouslySetInnerHTML anywhere and no amount of admin-authored text — or
    text written by someone who got hold of an admin session — can inject
    markup or script into the shop. */
@@ -27,7 +28,12 @@ export const imageToken = (position: number): string => `[[image:${position}]]`;
 
 /* Positions are 1-based because the toolbar that writes them counts the way
    the admin's thumbnail strip reads. */
-export function hasImageToken(value: string, position: number): boolean {
+export function hasImageToken(value: RichContent, position: number): boolean {
+  if (typeof value !== "string") {
+    const contains = (node: RichNode): boolean => node.type === "attachedImage" && node.attrs?.position === position
+      || (node.content ?? []).some(contains);
+    return contains(value);
+  }
   return value.split(/\r?\n/).some((line) => line.trim() === imageToken(position));
 }
 
@@ -82,7 +88,44 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
     });
 }
 
-export function renderRichText(value: string, images: RichTextImage[] = []): ReactNode[] {
+function renderDocument(node: RichNode, images: RichTextImage[], key: string): ReactNode {
+  const children = (node.content ?? []).map((child, index) => renderDocument(child, images, `${key}-${index}`));
+  if (node.type === "text") {
+    return (node.marks ?? []).reduce<ReactNode>((text, mark, index) => {
+      const markKey = `${key}-m${index}`;
+      const attrs = mark.attrs ?? {};
+      if (mark.type === "link") return <a key={markKey} href={attrs.href ?? undefined} title={attrs.title ?? undefined} target="_blank" rel="noopener noreferrer">{text}</a>;
+      if (mark.type === "textStyle") {
+        const style: CSSProperties = {
+          color: attrs.color ?? undefined, fontSize: attrs.fontSize ?? undefined, fontFamily: attrs.fontFamily ?? undefined,
+        };
+        return <span key={markKey} style={style}>{text}</span>;
+      }
+      if (mark.type === "highlight") return <mark key={markKey} style={{ backgroundColor: attrs.color ?? "#fff2a8" }}>{text}</mark>;
+      const tag = { bold: "strong", italic: "em", underline: "u", strike: "s" }[mark.type];
+      return tag ? createElement(tag, { key: markKey }, text) : text;
+    }, node.text ?? "");
+  }
+  if (node.type === "doc") return children;
+  if (node.type === "hardBreak") return <br key={key} />;
+  if (node.type === "horizontalRule") return <hr key={key} />;
+  if (node.type === "attachedImage") {
+    const image = images[Number(node.attrs?.position) - 1];
+    return image ? <figure key={key} className="richText__figure"><img src={image.url} alt={image.alt ?? ""} loading="lazy" /></figure> : null;
+  }
+  const tag = node.type === "heading" ? `h${node.attrs?.level}` : {
+    paragraph: "p", blockquote: "blockquote", bulletList: "ul", orderedList: "ol", listItem: "li",
+  }[node.type];
+  return tag ? createElement(tag, {
+    key,
+    ...(node.attrs?.textAlign ? { style: { textAlign: node.attrs.textAlign } } : {}),
+    ...(node.type === "orderedList" ? { start: node.attrs?.start ?? 1, type: node.attrs?.type ?? undefined } : {}),
+  }, children) : null;
+}
+
+export function renderRichText(value: RichContent, images: RichTextImage[] = []): ReactNode[] {
+  readRichContent(value);
+  if (typeof value !== "string") return value.content.map((node, index) => renderDocument(node, images, `b-${index}`));
   return value
     .replace(/\r\n/g, "\n")
     /* An image token is pulled out into a paragraph of its own, so it works
@@ -125,11 +168,11 @@ export function RichText({
   className,
   images,
 }: {
-  value: string;
+  value: RichContent;
   className?: string;
   images?: RichTextImage[];
 }) {
-  if (!value.trim()) return null;
+  if (typeof value === "string" && !value.trim()) return null;
   /* The base class is always present so links can be styled in one place,
      wherever a caller chooses to mount this. */
   return (

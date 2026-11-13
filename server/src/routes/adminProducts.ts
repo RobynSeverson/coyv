@@ -3,6 +3,7 @@ import multer from 'multer'
 import { z } from 'zod'
 import { env } from '../env.ts'
 import { HttpError } from '../lib/httpError.ts'
+import { richContentSchema } from '../lib/richContentSchema.ts'
 import {
   serializeFulfillment,
   serializeOrder,
@@ -49,7 +50,7 @@ const productInputSchema = z.object({
   kind: z.enum(PRODUCT_KINDS).default('print'),
   title: z.string().trim().min(1).max(160),
   slug: z.string().trim().toLowerCase().regex(slugPattern).optional(),
-  description: z.string().trim().max(4000).default(''),
+  description: richContentSchema.default(''),
   /* Accepted in cents so the API never has to round a float. */
   priceCents: z.number().int().min(0),
   stock: z.number().int().min(0).nullable().default(null),

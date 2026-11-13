@@ -71,7 +71,7 @@ jobs:
             sleep 6
           done
           test "$(curl -so /dev/null -w '%{http_code}' "$SITE/api/products")" = 200
-          curl -sf "$SITE/api/home" | jq -e '.home | (.aboutMe | type == "string") and (.projects | type == "array") and (.news | type == "array")'
+          curl -sf "$SITE/api/home" | jq -e '.home | (.aboutMe | type == "string" or (type == "object" and .type == "doc")) and (.projects | type == "array") and (.news | type == "array")'
           test "$(curl -so /dev/null -w '%{http_code}' "$SITE/api/admin/home")" = 401
           test "$(curl -so /dev/null -w '%{http_code}' "$SITE/api/admin/fulfillments")" = 401
 
