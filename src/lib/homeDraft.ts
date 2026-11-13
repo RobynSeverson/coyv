@@ -1,5 +1,6 @@
 import type { HomeContent, HomeImage, HomeNews, HomeShowcase, HomeContact } from "./api";
 import { isRichContent } from "../../server/src/lib/richContent.ts";
+import { CONTACT_TYPES } from "../../server/src/lib/homeContact.ts";
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -25,6 +26,7 @@ function news(value: unknown): value is HomeNews {
 
 function contact(value: unknown): value is HomeContact {
   return record(value) && typeof value.id === "string" && typeof value.title === "string" && typeof value.url === "string"
+    && (value.type === undefined || CONTACT_TYPES.some((type) => type === value.type))
     && (value.icon === undefined || value.icon === null || image(value.icon));
 }
 

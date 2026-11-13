@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "../config";
 import type { RichContent } from "../../server/src/lib/richContent";
+import type { ContactType } from "../../server/src/lib/homeContact";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -310,7 +311,7 @@ export type HomeNewsPreview = {
   previewImage: HomeImage | null;
 };
 export type HomeNews = HomeNewsPreview & { body: RichContent; images: HomeImage[] };
-export type HomeContact = { id: string; title: string; url: string; icon?: HomeImage | null };
+export type HomeContact = { id: string; type?: ContactType; title: string; url: string; icon?: HomeImage | null };
 export type HomeContent = {
   revision: number;
   aboutMe: RichContent;
@@ -445,7 +446,7 @@ export const api = {
             id, date, preview, previewImageId: previewImage?.id ?? null,
             body, imageIds: images.map((image) => image.id),
           })),
-          contacts: home.contacts.map(({ id, title, url, icon }) => ({ id, title, url, iconId: icon?.id ?? null })),
+          contacts: home.contacts.map(({ id, type, title, url, icon }) => ({ id, type, title, url, iconId: icon?.id ?? null })),
         },
       }),
 

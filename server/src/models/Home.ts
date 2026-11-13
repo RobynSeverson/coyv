@@ -1,5 +1,6 @@
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose'
 import { isRichContent, type RichContent } from '../lib/richContent.ts'
+import { CONTACT_TYPES } from '../lib/homeContact.ts'
 
 export const DEFAULT_ABOUT = 'I make artwork and photographs that wander between the familiar and the imagined. Drawn figures, quiet places, and fragments of memory come together in a world that is always a little unfinished. This castle is a home for those experiments, and an invitation to look closer, get lost, and keep trying something new.'
 
@@ -30,6 +31,7 @@ const newsSchema = new Schema({
 }, { _id: false })
 
 const contactSchema = new Schema({
+  type: { type: String, enum: CONTACT_TYPES, default: 'other' },
   id: { type: String, required: true },
   title: { type: String, required: true },
   url: { type: String, required: true },

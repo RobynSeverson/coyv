@@ -29,14 +29,7 @@
     height: 100lvh;
     z-index: -1;
     pointer-events: none;
-    /* A light white wash only: the artwork is already mostly white, and the
-       heavier 0.55 wash the desktop crop uses bleached it well past the
-       original (issue #3). */
-    background-image: linear-gradient(
-        rgba(255, 255, 255, 0.2),
-        rgba(255, 255, 255, 0.2)
-      ),
-      url('../assets/mainBackground.webp');
+    background-image: url('../assets/mainBackground.webp');
     background-size: cover;
     background-position: center top;
   }
@@ -51,11 +44,7 @@
     inset: 0;
     z-index: -1;
     pointer-events: none;
-    background-image: linear-gradient(
-        rgba(255, 255, 255, 0.55),
-        rgba(255, 255, 255, 0.55)
-      ),
-      url('../assets/mainBackgroundDesktop.webp');
+    background-image: url('../assets/mainBackgroundDesktop.webp');
     background-size: cover;
     background-position: center center;
   }

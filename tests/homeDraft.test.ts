@@ -41,7 +41,7 @@ describe("home recovery drafts", () => {
     const customized: HomeContent = {
       ...draft,
       projects: [{ ...draft.projects[0]!, cropX: 15, cropY: 90 }],
-      contacts: [{ ...draft.contacts[0]!, icon: { ...image, id: "000000000000000000000002" } }],
+      contacts: [{ ...draft.contacts[0]!, type: "email", url: "hello@example.com", icon: { ...image, id: "000000000000000000000002" } }],
     };
     assert.deepEqual(readHomeDraft(writeHomeDraft(customized)), customized);
     assert.deepEqual(homeImageIds(customized), [image.id, "000000000000000000000002"]);

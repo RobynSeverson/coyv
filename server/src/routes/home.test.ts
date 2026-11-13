@@ -219,6 +219,38 @@ describe('editable home', { skip: !process.env.HOME_TEST_MONGODB_URI }, () => {
     assert.equal((await call('/admin/home', 'PUT', { ...home, aboutMe: unsafe })).status, 400)
   })
 
+  it('persists contact actions, keeps legacy links and rejects mismatched or unsafe destinations', async () => {
+    const { home: current } = z.object({ home: z.object({ revision: z.number() }) })
+      .parse(await (await call('/home')).json())
+    const contacts = [
+      { id: randomUUID(), title: 'Email', type: 'email', url: 'hello@example.com' },
+      { id: randomUUID(), title: 'Phone', type: 'phone', url: '+1 (212) 555-1234' },
+      { id: randomUUID(), title: 'Listening', type: 'spotify', url: 'https://open.spotify.com/playlist/abc' },
+      { id: randomUUID(), title: 'Legacy', url: 'https://example.com' },
+    ]
+    const response = await call('/admin/home', 'PUT', { ...content(), revision: current.revision, contacts })
+    assert.equal(response.status, 200, await response.clone().text())
+    const shape = z.object({ home: z.object({ revision: z.number(), contacts: z.array(z.object({
+      type: z.string(), url: z.string(),
+    })) }) })
+    const { home } = shape.parse(await (await call('/home')).json())
+    assert.deepEqual(home.contacts, [
+      { type: 'email', url: 'mailto:hello@example.com' },
+      { type: 'phone', url: 'tel:+12125551234' },
+      { type: 'spotify', url: 'https://open.spotify.com/playlist/abc' },
+      { type: 'other', url: 'https://example.com' },
+    ])
+    for (const contact of [
+      { type: 'other', url: 'javascript:alert(1)' }, { type: 'email', url: 'https://example.com' },
+      { type: 'phone', url: 'tel:*123#' }, { type: 'spotify', url: 'https://example.com/playlist/abc' },
+      { type: 'invalid', url: 'https://example.com' },
+    ]) {
+      assert.equal((await call('/admin/home', 'PUT', {
+        ...content(), revision: home.revision, contacts: [{ ...contacts[0], ...contact }],
+      })).status, 400)
+    }
+  })
+
   it('persists crop positioning and contact icons, validates their limits and preserves legacy defaults', async () => {
     const { home: current } = z.object({ home: z.object({ revision: z.number() }) })
       .parse(await (await call('/home')).json())

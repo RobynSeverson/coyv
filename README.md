@@ -95,6 +95,8 @@ The mobile `.siteLayout::before` backdrop uses a fixed `100lvh` canvas
 toolbars otherwise resize the layer and make `background-size: cover` zoom
 the image as they collapse. The large viewport keeps the artwork's scale
 stable and covers the extra visible space, while still adapting to rotation.
+Both mobile and desktop wallpapers render without a white wash, brightness,
+contrast, or other color filter. Link exposure effects do not affect the backdrop.
 This is only the decorative backdrop; page layout keeps `min-height: 100svh`
 so short pages do not gain extra scrolling.
 
@@ -559,6 +561,11 @@ defaults are assigned in a UUID-seeded, non-repeating order shared by studio
 and public home; additional contacts are text-only. Removing a custom icon
 returns the contact to this default allocation. Decorative border variants
 are randomized per page load, with upper-right ornaments rotated 180 degrees.
+Contact types are **other** (the existing HTTP(S) link), **Spotify** (a profile
+or playlist URL), **email**, and **phone**. Email/phone accept plain values or
+`mailto:`/`tel:` prefixes; saving normalizes them into native app links.
+Existing contacts default to other. Typed destinations are validated by the API,
+and unsaved drafts preserve both the chosen type and entered value.
 Borders render at full opacity. Social icons share a text-relative square size;
 contact labels follow a stationary vertical arc around the illustration,
 keeping their normal reading/tab order and wrapping long titles. Public links,
@@ -574,7 +581,7 @@ object-store double, never AWS. Run from the repository root with an isolated
 Mongo instance: `HOME_TEST_MONGODB_URI=mongodb://127.0.0.1:27017 node --test
 server/src/routes/home.test.ts`. Each run creates and drops its own random test
 database; without the variable the suite is skipped.
-Run draft/formatting/upload tests with `node --test tests/homeDraft.test.ts tests/richContent.test.ts tests/homeUpload.test.ts`.
+Run draft/formatting/upload/contact tests with `node --test tests/homeDraft.test.ts tests/richContent.test.ts tests/homeUpload.test.ts tests/homeContact.test.ts`.
 
 The **products** tab is where you create prints and subscriptions, set prices
 and stock, upload artwork, and publish. A product with no images cannot be

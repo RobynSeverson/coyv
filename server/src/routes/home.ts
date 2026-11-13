@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { env } from '../env.ts'
 import { HttpError } from '../lib/httpError.ts'
 import { richContentSchema } from '../lib/richContentSchema.ts'
+import { CONTACT_TYPES, contactDestination } from '../lib/homeContact.ts'
 import { hasRichContent, readRichContent } from '../lib/richContent.ts'
 import { requireAdmin } from '../middleware/auth.ts'
 import { HomeModel, HomeImageModel, type HomeDocument, type HomeImageDocument } from '../models/Home.ts'
@@ -42,10 +43,18 @@ const newsInput = z.object({
   imageIds: z.array(imageId),
 })
 const contactInput = z.object({
+  type: z.enum(CONTACT_TYPES).default('other'),
   id: z.string().uuid(),
   title: z.string().trim().min(1).max(100),
-  url: webUrl,
+  url: z.string().trim().min(1).max(2048),
   iconId: imageId.nullable().default(null),
+}).transform((item, ctx) => {
+  const url = contactDestination(item.type, item.url)
+  if (!url) {
+    ctx.addIssue({ code: 'custom', path: ['url'], message: 'Enter a valid destination for this contact type' })
+    return z.NEVER
+  }
+  return { ...item, url }
 })
 const homeInput = z.object({
   revision: z.number().int().nonnegative(),
@@ -113,7 +122,7 @@ async function serializeHome(home: HomeDocument, full: boolean) {
       ...(full ? { body: readRichContent(item.body), images: item.imageIds.map((id) => resolve(String(id))) } : {}),
     })),
     contacts: home.contacts.map((item) => ({
-      id: item.id, title: item.title, url: item.url, icon: item.iconId ? resolve(String(item.iconId)) : null,
+      id: item.id, type: item.type, title: item.title, url: item.url, icon: item.iconId ? resolve(String(item.iconId)) : null,
     })),
   }
 }

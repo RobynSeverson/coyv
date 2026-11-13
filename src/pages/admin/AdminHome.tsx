@@ -5,6 +5,7 @@ import { homeImageIds, readHomeDraft, refreshHomeImages, writeHomeDraft } from "
 import { prepareHomeImage } from "../../lib/homeUpload";
 import { hasRichContent, removeRichImage } from "../../../server/src/lib/richContent";
 import { contactIconSources } from "../../lib/homePresentation";
+import { CONTACT_TYPES, contactDestination } from "../../../server/src/lib/homeContact";
 
 function ImagePicker({ label, onUpload }: { label: string; onUpload: (file: File) => void }) {
   return (
@@ -160,6 +161,11 @@ export default function AdminHome({ adminId }: { adminId: string }) {
   async function save(event: React.FormEvent) {
     event.preventDefault();
     if (!home) return;
+    const invalidContact = home.contacts.find((contact) => !contactDestination(contact.type ?? "other", contact.url));
+    if (invalidContact) {
+      setError(`Enter a valid ${invalidContact.type ?? "other"} destination for ${invalidContact.title || "this contact"}.`);
+      return;
+    }
     if (home.news.some((item) => !item.preview.trim() || !hasRichContent(item.body))) {
       setError("Each news entry needs preview text and full entry text before saving.");
       return;
@@ -347,6 +353,20 @@ export default function AdminHome({ adminId }: { adminId: string }) {
             </p>
             {home.contacts.map((contact) => (
               <div className="admin__homeContact" key={contact.id}>
+                <label className="admin__field">
+                  <span>contact type</span>
+                  <select value={contact.type ?? "other"} onChange={(event) => {
+                    const type = CONTACT_TYPES.find((type) => type === event.target.value);
+                    if (type) edit((current) => ({
+                      ...current, contacts: current.contacts.map((entry) => entry.id === contact.id ? { ...entry, type } : entry),
+                    }));
+                  }}>
+                    <option value="other">other (website link)</option>
+                    <option value="spotify">Spotify (music / listening)</option>
+                    <option value="email">email</option>
+                    <option value="phone">phone</option>
+                  </select>
+                </label>
                 {contactIcons.get(contact.id) ? <img className="admin__contactIcon"
                   src={contactIcons.get(contact.id)} alt={`${contact.title || "Contact"} icon preview`} /> :
                   <p className="admin__muted">text-only contact</p>}
@@ -365,8 +385,13 @@ export default function AdminHome({ adminId }: { adminId: string }) {
                   }))} />
                 </label>
                 <label className="admin__field">
-                  <span>contact link</span>
-                  <input type="url" required maxLength={2048} placeholder="https://" value={contact.url}
+                  <span>{contact.type === "email" ? "email address" : contact.type === "phone" ? "phone number" : "contact link"}</span>
+                  <input type={contact.type === "email" || contact.type === "phone" ? "text" : "url"}
+                    inputMode={contact.type === "email" ? "email" : contact.type === "phone" ? "tel" : "url"}
+                    required maxLength={2048}
+                    placeholder={contact.type === "email" ? "hello@example.com or mailto:hello@example.com"
+                      : contact.type === "phone" ? "+12125551234 or tel:+12125551234"
+                      : contact.type === "spotify" ? "https://open.spotify.com/playlist/..." : "https://"} value={contact.url}
                     onChange={(event) => edit((current) => ({
                       ...current, contacts: current.contacts.map((item) =>
                         item.id === contact.id ? { ...item, url: event.target.value } : item),
@@ -378,7 +403,7 @@ export default function AdminHome({ adminId }: { adminId: string }) {
               </div>
             ))}
             <button className="admin__logout" type="button" onClick={() => edit((current) => ({
-              ...current, contacts: [...current.contacts, { id: crypto.randomUUID(), title: "", url: "" }],
+              ...current, contacts: [...current.contacts, { id: crypto.randomUUID(), type: "other", title: "", url: "" }],
             }))}>+ contact</button>
           </section>
         </fieldset>

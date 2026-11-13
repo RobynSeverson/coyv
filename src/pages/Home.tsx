@@ -135,13 +135,13 @@ export default function Home() {
             alt="Two illustrated figures sitting together in a drifting, painted world"
           />
           <ul className="home__socials">
-            {home.contacts.map(({ id, title, url }, index) => (
+            {home.contacts.map(({ id, type = "other", title, url }, index) => (
               <li key={id} style={{ paddingInlineStart: `${home.contacts.length > 1
                 ? Math.sin(Math.PI * index / (home.contacts.length - 1)) * 24 : 0}%` }}>
                 <a
                   className="home__social"
                   href={url}
-                  target="_blank"
+                  target={type === "email" || type === "phone" ? undefined : "_blank"}
                   rel="noopener noreferrer"
                 >
                   {contactIcons.get(id) ? <img src={contactIcons.get(id)} width={172} height={203} alt="" /> : null}
