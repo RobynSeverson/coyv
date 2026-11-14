@@ -74,8 +74,9 @@ page is fully revealed.
 - Each blob gets a registered `@property --landing-bN` (`syntax: "<number>"`)
   plus a matching keyframe, generated into `BLOB_CSS`. Registration is what makes
   the value *tween* — unregistered custom properties animate discretely.
-- `DISSOLVE_DURATION` in `Landing.tsx` and `--dissolve-duration` in
-  `Landing.css` must stay in sync; they set the total length (2s).
+- `ANIMATION_TIME_SCALE` in `Landing.tsx` scales blob durations/delays.
+  The final sweep must finish with `--dissolve-duration` in `Landing.css`
+  (1.8s). Navigation waits for the exposure animation's actual end.
 
 ### Why not an SVG mask?
 
@@ -100,9 +101,9 @@ contrast, or other color filter. Link exposure effects do not affect the backdro
 The landing's outer gate pair stretches its separate mobile/desktop layers to
 the viewport, then opens both sides together with a perspective distortion.
 The original right/left/main gate sequence starts at 60% of the outer swing on
-a shared CSS timeline. Exposure/dissolve starts as the left gate begins moving,
-overlapping both remaining gates instead of waiting for the main gate to finish.
-The outer swing ends edge-on in 1.0368 seconds; exposure/dissolve takes 1.26 seconds.
+a shared CSS timeline. Exposure/dissolve starts at 90% of the last gate's
+animation, preserving a sudden handoff with only a brief overlap.
+The outer swing ends edge-on in 1.0368 seconds; exposure/dissolve takes 1.8 seconds.
 Reduced motion
 uses a brief outer-gate fade instead of a 3D swing.
 This is only the decorative backdrop; page layout keeps `min-height: 100svh`

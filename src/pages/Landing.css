@@ -13,9 +13,13 @@
   display: grid;
   place-items: center;
   background: #ffffff;
-  --dissolve-duration: 1260ms;
+  --dissolve-duration: 1800ms;
   --outer-gate-duration: 1036.8ms;
   --inner-gate-delay: calc(var(--outer-gate-duration) * 0.6);
+  --main-gate-delay: 540ms;
+  --main-gate-duration: 450ms;
+  /* Start exposure at 90% of the last gate on the same animation timeline. */
+  --exposure-delay: calc(var(--inner-gate-delay) + var(--main-gate-delay) + var(--main-gate-duration) * 0.9);
   /* Desktop artwork by default; the mobile crop swaps in below 768px. */
   --art-image: var(--art-image-desktop);
 }
@@ -44,10 +48,10 @@ body:has(.landing) {
 
 /* While the blobs eat through it, the artwork is also overexposed until it
    bleaches out entirely, like memories being erased to white. */
-.landing.is-dissolving .landing__art {
+.landing.is-opening .landing__art {
   animation:
-    artDrift var(--dissolve-duration) ease-in forwards,
-    artExpose var(--dissolve-duration) ease-in-out forwards;
+    artDrift var(--dissolve-duration) ease-in var(--exposure-delay) forwards,
+    artExpose var(--dissolve-duration) ease-in-out var(--exposure-delay) forwards;
 }
 
 @keyframes artDrift {
@@ -134,7 +138,7 @@ body:has(.landing) {
 }
 
 .landing.is-opening .landing__gate--main {
-  animation: gateSlideDown 450ms cubic-bezier(0.5, 0, 0.75, 0) calc(var(--inner-gate-delay) + 540ms) forwards;
+  animation: gateSlideDown var(--main-gate-duration) cubic-bezier(0.5, 0, 0.75, 0) calc(var(--inner-gate-delay) + var(--main-gate-delay)) forwards;
 }
 
 @keyframes gateSlideRight {
@@ -206,7 +210,7 @@ body:has(.landing) {
   -webkit-mask-repeat: no-repeat;
 }
 
-.landing.is-dissolving .landing__reveal {
+.landing.is-opening .landing__reveal {
   animation: var(--landing-blob-animation);
 }
 
@@ -218,8 +222,8 @@ body:has(.landing) {
   transform: translateZ(0);
 }
 
-.landing.is-dissolving .landing__revealInner {
-  animation: revealSettle var(--dissolve-duration) ease-out both;
+.landing.is-opening .landing__revealInner {
+  animation: revealSettle var(--dissolve-duration) ease-out var(--exposure-delay) both;
 }
 
 @keyframes revealSettle {
@@ -237,8 +241,8 @@ body:has(.landing) {
   opacity: 0;
 }
 
-.landing.is-plain.is-dissolving .landing__reveal {
-  animation: plainReveal var(--dissolve-duration) ease-in-out forwards;
+.landing.is-plain.is-opening .landing__reveal {
+  animation: plainReveal var(--dissolve-duration) ease-in-out var(--exposure-delay) forwards;
 }
 
 @keyframes plainReveal {
@@ -333,6 +337,8 @@ body:has(.landing) {
     --dissolve-duration: 360ms;
     --outer-gate-duration: 108ms;
     --inner-gate-delay: var(--outer-gate-duration);
+    --main-gate-delay: 144ms;
+    --main-gate-duration: 126ms;
   }
 
   .landing__button {
@@ -350,18 +356,18 @@ body:has(.landing) {
   }
 
   .landing.is-opening .landing__gate--main {
-    animation-duration: 126ms;
-    animation-delay: calc(var(--inner-gate-delay) + 144ms);
+    animation-duration: var(--main-gate-duration);
+    animation-delay: calc(var(--inner-gate-delay) + var(--main-gate-delay));
   }
 
   .landing.is-opening .landing__outerGate {
     animation: outerGateFade var(--outer-gate-duration) linear forwards;
   }
 
-  .landing.is-dissolving .landing__reveal {
+  .landing.is-opening .landing__reveal {
     mask-image: none;
     -webkit-mask-image: none;
-    animation: plainReveal var(--dissolve-duration) ease-in-out forwards;
+    animation: plainReveal var(--dissolve-duration) ease-in-out var(--exposure-delay) forwards;
   }
 }
 

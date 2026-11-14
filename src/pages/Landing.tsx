@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../components/BottomNav";
 import Home from "./Home";
@@ -17,9 +17,7 @@ import outerLeftDesktop from "../assets/outerGate-desktop-left.webp";
 import outerRightDesktop from "../assets/outerGate-desktop-right.webp";
 import "./Landing.css";
 
-const ANIMATION_TIME_SCALE = 0.63;
-const DISSOLVE_DURATION = 1260;
-const DISSOLVE_DURATION_REDUCED = 360;
+const ANIMATION_TIME_SCALE = 0.9;
 const EASING = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const BLOB_GRADIENT =
   "radial-gradient(closest-side, rgb(0 0 0 / 1) 56%, rgb(0 0 0 / 0) 100%)";
@@ -79,7 +77,7 @@ const maskStyle = {
   ).join(", "),
   ["--landing-blob-animation" as string]: BLOBS.map(
     (blob, index) =>
-      `landingBlob${index} ${blob.duration * ANIMATION_TIME_SCALE}ms ${EASING} ${blob.delay * ANIMATION_TIME_SCALE}ms both`,
+      `landingBlob${index} ${blob.duration * ANIMATION_TIME_SCALE}ms ${EASING} calc(var(--exposure-delay) + ${blob.delay * ANIMATION_TIME_SCALE}ms) both`,
   ).join(", "),
 };
 
@@ -92,18 +90,8 @@ const supportsBlobMask =
 
 export default function Landing() {
   const [isOpening, setIsOpening] = useState(false);
-  const [isDissolving, setIsDissolving] = useState(false);
   const navigate = useNavigate();
-  const timeoutRef = useRef<number | undefined>(undefined);
-  const dissolveStartedRef = useRef(false);
   const landingRef = useRef<HTMLElement>(null);
-
-  useEffect(
-    () => () => {
-      window.clearTimeout(timeoutRef.current);
-    },
-    [],
-  );
 
   /* Viewport units are unreliable here: iOS resolves them against whichever
      viewport it thinks is current, and keeps reporting the pre-toolbar value
@@ -147,23 +135,9 @@ export default function Landing() {
     setIsOpening(true);
   };
 
-  const dissolve = () => {
-    if (dissolveStartedRef.current) return;
-    dissolveStartedRef.current = true;
-    setIsDissolving(true);
-    const reduced = window.matchMedia?.(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-    timeoutRef.current = window.setTimeout(
-      () => navigate("/home", { state: { fromLanding: true } }),
-      reduced ? DISSOLVE_DURATION_REDUCED : DISSOLVE_DURATION,
-    );
-  };
-
   const className = [
     "landing",
     isOpening ? "is-opening" : "",
-    isDissolving ? "is-dissolving" : "",
     supportsBlobMask ? "" : "is-plain",
   ]
     .filter(Boolean)
@@ -180,7 +154,12 @@ export default function Landing() {
     >
       {supportsBlobMask ? <style>{BLOB_CSS}</style> : null}
 
-      <div className="landing__art" aria-hidden="true" />
+      <div className="landing__art" aria-hidden="true"
+        onAnimationEnd={(event) => {
+          if (event.animationName === "artExpose") {
+            navigate("/home", { state: { fromLanding: true } });
+          }
+        }} />
 
       {/* Gate panels, stacked over the artwork: main, then right, then left.
           Each panel is drawn twice over — the portrait cut for phones, the
@@ -209,7 +188,6 @@ export default function Landing() {
         <source media="(max-width: 768px)" srcSet={leftGateMobile} />
         <img
           className="landing__gate landing__gate--left"
-          onAnimationStart={dissolve}
           src={leftGateDesktop}
           alt=""
           aria-hidden="true"
