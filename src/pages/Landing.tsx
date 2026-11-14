@@ -17,8 +17,8 @@ import outerLeftDesktop from "../assets/outerGate-desktop-left.webp";
 import outerRightDesktop from "../assets/outerGate-desktop-right.webp";
 import "./Landing.css";
 
-const ANIMATION_TIME_SCALE = 0.9;
-const DISSOLVE_DURATION = 1800;
+const ANIMATION_TIME_SCALE = 0.63;
+const DISSOLVE_DURATION = 1260;
 const DISSOLVE_DURATION_REDUCED = 360;
 const EASING = "cubic-bezier(0.2, 0.7, 0.3, 1)";
 const BLOB_GRADIENT =
@@ -191,7 +191,6 @@ export default function Landing() {
         <source media="(max-width: 768px)" srcSet={mainGateMobile} />
         <img
           className="landing__gate landing__gate--main"
-          onAnimationEnd={dissolve}
           src={mainGateDesktop}
           alt=""
           aria-hidden="true"
@@ -210,6 +209,7 @@ export default function Landing() {
         <source media="(max-width: 768px)" srcSet={leftGateMobile} />
         <img
           className="landing__gate landing__gate--left"
+          onAnimationStart={dissolve}
           src={leftGateDesktop}
           alt=""
           aria-hidden="true"

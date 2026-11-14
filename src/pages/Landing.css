@@ -13,7 +13,7 @@
   display: grid;
   place-items: center;
   background: #ffffff;
-  --dissolve-duration: 1800ms;
+  --dissolve-duration: 1260ms;
   --outer-gate-duration: 1036.8ms;
   --inner-gate-delay: calc(var(--outer-gate-duration) * 0.6);
   /* Desktop artwork by default; the mobile crop swaps in below 768px. */

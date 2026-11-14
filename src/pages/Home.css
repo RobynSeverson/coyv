@@ -54,8 +54,8 @@
 
 .home__ornament {
   position: absolute;
-  width: clamp(2.75rem, 8vw, 4.75rem);
-  height: clamp(5rem, 100%, 18rem);
+  width: clamp(3.75rem, 11vw, 6.5rem);
+  height: clamp(7rem, 120%, 22rem);
   object-fit: contain;
   opacity: 1;
 }
